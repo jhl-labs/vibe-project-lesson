@@ -2,7 +2,6 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import { Callout } from '../../components/Callout';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
 import { CodeBlock } from '../../components/CodeBlock';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
 
@@ -92,23 +91,10 @@ import { templateFiles } from '../../data/template-files';
 | **참조 시점** | 새 기능 설계 시 | 코드 작성/리뷰 시 |
 | **예시 내용** | "PostgreSQL 15 사용" | "함수는 30줄 이내" |
 
-<Quiz
-  title="컨텍스트와 컨벤션 이해도 확인"
-  questions={[
-    {
-      question: 'context.md에 포함되어야 할 정보는?',
-      options: ['코드 들여쓰기 규칙', '프로젝트 기술 스택과 도메인 지식', '커밋 메시지 형식', '함수 네이밍 규칙'],
-      correctIndex: 1,
-      explanation: 'context.md는 프로젝트의 "무엇"에 대한 정보(기술 스택, 도메인, 환경)를 담고, conventions.md는 "어떻게"에 대한 규칙을 담습니다.',
-    },
-    {
-      question: 'conventions.md의 Conventional Commits에서 새 기능 추가 시 사용하는 type은?',
-      options: ['fix', 'feat', 'chore', 'docs'],
-      correctIndex: 1,
-      explanation: 'feat는 새로운 기능 추가를 나타내는 커밋 타입입니다. fix는 버그 수정, docs는 문서 변경, chore는 빌드/설정 변경에 사용합니다.',
-    },
-  ]}
-/>
+<Callout type="tip" title="CLAUDE.md에서 참조하기">
+  CLAUDE.md에 모든 규칙을 넣으면 "fading memory" 현상이 발생합니다.
+  핵심 규칙만 CLAUDE.md에 두고, 상세 내용은 `@.agent/context.md`와 `@.agent/conventions.md`로 분리하세요.
+</Callout>
 
 <ChapterNav
   prev={{ title: '.agent 디렉토리 개요', path: '/docs/part-2--프로젝트-템플릿-구조-agent-디렉토리-개요' }}

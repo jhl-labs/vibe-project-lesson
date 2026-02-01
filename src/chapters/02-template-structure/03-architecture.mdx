@@ -4,7 +4,6 @@ import { CodeBlock } from '../../components/CodeBlock';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { MermaidDiagram } from '../../components/MermaidDiagram';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
 
@@ -126,29 +125,6 @@ import { templateFiles } from '../../data/template-files';
   ]}
 />
 
-<Quiz
-  title="아키텍처 이해도 확인"
-  questions={[
-    {
-      question: 'Clean Architecture에서 의존성 방향은?',
-      options: ['Domain → Infrastructure', 'Infrastructure → Domain', '외부에서 내부(Domain) 방향', '내부에서 외부 방향'],
-      correctIndex: 2,
-      explanation: 'Clean Architecture에서 의존성은 항상 외부에서 내부(Domain) 방향으로 향합니다. Domain 레이어는 다른 어떤 레이어에도 의존하지 않습니다.',
-    },
-    {
-      question: '비즈니스 로직을 담당하는 레이어는?',
-      options: ['Presentation Layer', 'Application Layer', 'Domain Layer', 'Infrastructure Layer'],
-      correctIndex: 2,
-      explanation: 'Domain Layer는 비즈니스 로직을 캡슐화하고, 비즈니스 규칙을 강제하며, 도메인 불변성을 유지하는 핵심 레이어입니다.',
-    },
-    {
-      question: 'DB 접근을 담당하는 레이어는?',
-      options: ['Presentation Layer', 'Application Layer', 'Domain Layer', 'Infrastructure Layer'],
-      correctIndex: 3,
-      explanation: 'Infrastructure Layer가 Repository 구현, 외부 API 클라이언트, DB 설정 등 기술적 구현을 담당합니다.',
-    },
-  ]}
-/>
 
 <ChapterNav
   prev={{ title: '컨텍스트와 컨벤션', path: '/docs/part-2--프로젝트-템플릿-구조-컨텍스트와-컨벤션' }}

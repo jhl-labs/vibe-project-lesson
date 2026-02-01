@@ -2,7 +2,6 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import { Callout } from '../../components/Callout';
 import { FileTree } from '../../components/FileTree';
 import { CodeBlock } from '../../components/CodeBlock';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 2: 프로젝트 템플릿 구조/.agent 디렉토리 개요" />
@@ -13,7 +12,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## .agent/ 디렉토리란?
 
-`.agent/` 디렉토리는 AI 에이전트(Claude Code, Cursor, Roo Code 등)가 프로젝트를 깊이 이해하고 효과적으로 작업하기 위한 **지식 베이스**입니다.
+`.agent/` 디렉토리는 AI 에이전트(Claude Code, Cursor, GitHub Copilot 등)가 프로젝트를 깊이 이해하고 효과적으로 작업하기 위한 **지식 베이스**입니다. Claude Code에서는 CLAUDE.md의 `@.agent/context.md` 같은 임포트 구문으로 참조하거나, 대화 중 직접 파일을 읽어 활용합니다.
 
 <Callout type="info" title="핵심 개념">
   CLAUDE.md가 "요약본"이라면, .agent/ 디렉토리는 "상세 매뉴얼"입니다.
@@ -116,29 +115,17 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## 다른 AI 도구에서의 활용
 
-| AI 도구 | 참조 방식 |
-|---------|----------|
-| **Claude Code** | CLAUDE.md에서 참조, 대화 중 직접 파일 읽기 |
-| **Cursor** | `.cursorrules`에서 참조, @files로 직접 참조 |
-| **Roo Code** | `.roo/` 설정에서 참조 |
+| AI 도구 | 프로젝트 설정 파일 | .agent/ 참조 방식 |
+|---------|-------------------|------------------|
+| **Claude Code** | `CLAUDE.md` | `@.agent/context.md` 임포트, 대화 중 직접 파일 읽기 |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | 파일 참조로 컨텍스트 제공 |
+| **Cursor** | `.cursorrules` | `@files`로 직접 참조 |
 
-<Quiz
-  title=".agent/ 디렉토리 이해도 확인"
-  questions={[
-    {
-      question: '.agent/ 디렉토리의 핵심 역할은?',
-      options: ['빌드 설정 관리', 'AI 에이전트를 위한 프로젝트 지식 베이스', '테스트 파일 저장', 'CI/CD 설정'],
-      correctIndex: 1,
-      explanation: '.agent/ 디렉토리는 AI 에이전트가 프로젝트를 이해하고 효과적으로 작업하기 위한 지식 베이스입니다.',
-    },
-    {
-      question: '.agent/skills/ 디렉토리의 파일들은 무엇을 정의하나요?',
-      options: ['팀원 스킬 매트릭스', '슬래시 커맨드로 실행 가능한 AI 스킬', '언어별 코딩 스킬', '기술 면접 질문'],
-      correctIndex: 1,
-      explanation: 'skills/ 디렉토리에는 /review, /test, /doc 등 슬래시 커맨드로 실행할 수 있는 AI 스킬이 정의되어 있습니다.',
-    },
-  ]}
-/>
+<Callout type="tip" title="도구 독립적인 구조">
+  `.agent/` 디렉토리는 특정 AI 도구에 종속되지 않습니다.
+  프로젝트 지식을 마크다운으로 관리하므로 어떤 AI 도구에서든 활용할 수 있습니다.
+  Claude Code에서는 CLAUDE.md의 임포트 구문(`@.agent/context.md`)으로, Cursor에서는 `@files`로 참조합니다.
+</Callout>
 
 <ChapterNav
   prev={{ title: '엔터프라이즈 보안', path: '/docs/part-1--기초-엔터프라이즈-보안' }}

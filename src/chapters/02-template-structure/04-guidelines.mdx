@@ -3,7 +3,6 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
 import { ComparisonTable } from '../../components/ComparisonTable';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
 
@@ -118,23 +117,6 @@ import { templateFiles } from '../../data/template-files';
   ]}
 />
 
-<Quiz
-  title="가이드라인 이해도 확인"
-  questions={[
-    {
-      question: 'AI 생성 코드의 최종 책임은 누구에게 있나요?',
-      options: ['AI 도구 제공 업체', '코드를 커밋한 개발자', '팀 리더', 'AI 도구 자체'],
-      correctIndex: 1,
-      explanation: 'AI가 생성한 코드라도 개발자가 검토하고 커밋하면 해당 개발자의 책임입니다. "AI가 만들어준 코드"는 면책 사유가 되지 않습니다.',
-    },
-    {
-      question: '다음 중 AI 프롬프트에 포함해서는 안 되는 것은?',
-      options: ['기술 스택 정보', '코딩 컨벤션 참조', '프로덕션 데이터', '기존 코드 파일 경로'],
-      correctIndex: 2,
-      explanation: '프로덕션 데이터는 데이터 유출 위험이 있으므로 프롬프트에 포함해서는 안 됩니다. 대신 익명화/가상 데이터를 사용해야 합니다.',
-    },
-  ]}
-/>
 
 <ChapterNav
   prev={{ title: '아키텍처', path: '/docs/part-2--프로젝트-템플릿-구조-아키텍처' }}
