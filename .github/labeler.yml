@@ -1,0 +1,123 @@
+# ===========================
+# PR Labeler Configuration
+# ===========================
+# PR의 변경된 파일에 따라 자동으로 라벨을 추가합니다.
+# 사용: .github/workflows/labeler.yml 워크플로우와 함께 사용
+#
+# 라벨명은 .github/labels.yml과 일치해야 합니다.
+# 자세한 정보: https://github.com/actions/labeler
+
+# 문서 변경
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
+          - "*.md"
+
+# AI Agent 설정
+"area: ai-agent":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".agent/**"
+          - "CLAUDE.md"
+          - ".cursorrules"
+          - ".cursor/**"
+          - ".roo/**"
+          - ".mcp.json*"
+
+# CI/CD
+"area: ci-cd":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/actions/**"
+
+# GitHub 설정
+github-actions:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "!.github/workflows/**"
+
+# 설정 파일
+chore:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.json"
+          - "*.yml"
+          - "*.yaml"
+          - "*.toml"
+          - "*.config.*"
+          - ".editorconfig"
+          - ".gitignore"
+          - ".env.example"
+
+# 테스트
+test:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.test.*"
+          - "**/*.spec.*"
+          - "**/test/**"
+          - "**/tests/**"
+          - "**/__tests__/**"
+          - "jest.config.*"
+          - "pytest.ini"
+          - "pyproject.toml"
+
+# TypeScript/JavaScript
+typescript:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.ts"
+          - "**/*.tsx"
+          - "**/*.js"
+          - "**/*.jsx"
+          - "package.json"
+          - "tsconfig.json"
+
+# Python
+python:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.py"
+          - "requirements*.txt"
+          - "pyproject.toml"
+          - "setup.py"
+          - "Pipfile"
+
+# 인프라
+"area: infrastructure":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "Dockerfile*"
+          - "docker-compose*.yml"
+          - "*.dockerfile"
+          - "terraform/**"
+          - "k8s/**"
+          - "helm/**"
+
+# 보안
+"area: security":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "SECURITY.md"
+          - ".github/workflows/security*.yml"
+          - "**/security/**"
+
+# 의존성
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "package-lock.json"
+          - "yarn.lock"
+          - "pnpm-lock.yaml"
+          - "requirements*.txt"
+          - "pyproject.toml"
+          - "Pipfile*"
+          - "go.mod"
+          - "go.sum"
+          - "Cargo.toml"
+          - "Cargo.lock"
