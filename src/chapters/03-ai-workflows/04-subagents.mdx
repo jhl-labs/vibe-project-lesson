@@ -1,0 +1,173 @@
+import { Meta } from '@storybook/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { Quiz } from '../../components/Quiz';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 3: AI Agent 워크플로우/서브에이전트" />
+
+# 서브에이전트 (Subagents)
+
+> 전문 분야별 AI 에이전트 시스템
+
+## 개요
+
+서브에이전트는 `.agent/subagents/` 디렉토리에 정의된 **전문 분야별 AI 에이전트**입니다. 각 서브에이전트는 독립된 컨텍스트와 전문 지식을 가지며, 복잡한 작업을 분업하여 처리합니다.
+
+<Callout type="info" title="핵심 개념">
+  서브에이전트는 "한 명의 전문가"와 같습니다.
+  아키텍트, 보안 전문가, 테스터, 테크니컬 라이터 — 각각의 전문성을 가진 AI 에이전트가 협력합니다.
+</Callout>
+
+## 4개 서브에이전트
+
+<ComparisonTable
+  title="서브에이전트 비교"
+  headers={['항목', 'Architect', 'Security', 'Test', 'Documentation']}
+  rows={[
+    { feature: '전문 분야', values: ['시스템 설계', '보안 분석', '테스트 전략', '기술 문서'] },
+    { feature: '주요 산출물', values: ['ADR, 설계안', '취약점 리포트', '테스트 코드', 'API 문서'] },
+    { feature: '참조 지식', values: ['아키텍처 패턴', 'OWASP Top 10', '테스트 피라미드', '문서 표준'] },
+    { feature: '활용 시점', values: ['설계/기술 결정', '보안 검토', '테스트 작성', '문서화'] },
+  ]}
+/>
+
+## Architect 서브에이전트
+
+### 역할
+- 시스템 설계 및 기술 의사결정
+- 아키텍처 검토 및 개선
+- ADR (Architecture Decision Record) 작성
+- 기술 스택 평가
+
+### 분석 프레임워크
+
+<CodeBlock
+  code={`## 아키텍처 분석
+
+### 컴포넌트 맵
+- 현재 시스템 구성 분석
+- 의존성 그래프 작성
+- 병목 지점 식별
+
+### SWOT 분석
+- Strengths: 현재 아키텍처의 강점
+- Weaknesses: 개선이 필요한 부분
+- Opportunities: 활용 가능한 기술/패턴
+- Threats: 잠재적 위험 요소
+
+### 기술 선정 매트릭스
+| 기준 | 가중치 | 옵션 A | 옵션 B |
+|------|--------|--------|--------|
+| 성능 | 30% | 8/10 | 7/10 |
+| 확장성 | 25% | 9/10 | 6/10 |
+| 학습 곡선 | 20% | 5/10 | 8/10 |
+| 커뮤니티 | 15% | 7/10 | 9/10 |
+| 비용 | 10% | 6/10 | 8/10 |`}
+  language="markdown"
+  filename="Architect 분석 프레임워크"
+/>
+
+## Security 서브에이전트
+
+### 역할
+- 보안 코드 리뷰
+- 취약점 분석 (OWASP Top 10)
+- 보안 권고 및 수정 제안
+- 보안 문서화
+
+### 취약점 분석 출력 형식
+
+<CodeBlock
+  code={`## 보안 분석 리포트
+
+### 취약점 #1: SQL Injection
+- 심각도: 🔴 Critical
+- 위치: src/api/users.ts:45
+- 설명: 사용자 입력이 SQL 쿼리에 직접 사용
+- 영향: 데이터 유출, 데이터 조작 가능
+- 수정 권고:
+  - 파라미터화된 쿼리 사용
+  - ORM의 빌트인 이스케이프 활용
+- 참고: OWASP A03:2021`}
+  language="markdown"
+  filename="Security 리포트 예시"
+/>
+
+## Test 서브에이전트
+
+### 역할
+- 테스트 전략 수립
+- 테스트 코드 생성 (단위/통합/E2E)
+- 테스트 리뷰 및 개선
+- 커버리지 분석
+
+## Documentation 서브에이전트
+
+### 역할
+- API 문서 작성 (REST, GraphQL)
+- 코드 문서 생성 (JSDoc, Docstring)
+- README 구조화
+- 코드-문서 동기화 검증
+
+## 서브에이전트 활용 패턴
+
+### 병렬 실행
+
+<CodeBlock
+  code={`# 여러 서브에이전트를 동시에 활용하는 시나리오
+
+## 새 기능 개발 시
+1. Architect → 설계 검토, ADR 작성
+2. (병렬) Security → 보안 분석
+          Test → 테스트 전략 수립
+          Documentation → 문서 초안
+3. 개발자 → 종합 검토 후 구현`}
+  language="text"
+  filename="병렬 실행 패턴"
+/>
+
+### 순차 실행
+
+<CodeBlock
+  code={`# 코드 리뷰 시 순차 활용
+
+1. Security → 보안 취약점 1차 스캔
+2. Test → 테스트 커버리지 확인
+3. Documentation → 문서 동기화 검증
+4. 개발자 → 종합 리뷰 결정`}
+  language="text"
+  filename="순차 실행 패턴"
+/>
+
+### 격리된 컨텍스트
+
+<Callout type="warning" title="중요">
+  각 서브에이전트는 **격리된 컨텍스트**에서 작동합니다.
+  하나의 서브에이전트가 다른 서브에이전트의 작업 결과를 직접 참조하지 않으며,
+  개발자가 결과를 종합하여 최종 판단합니다.
+</Callout>
+
+<Quiz
+  title="서브에이전트 이해도 확인"
+  questions={[
+    {
+      question: '서브에이전트의 핵심 특징은?',
+      options: ['하나의 만능 에이전트', '전문 분야별 독립된 AI 에이전트', '자동 배포 에이전트', '모니터링 에이전트'],
+      correctIndex: 1,
+      explanation: '서브에이전트는 아키텍트, 보안, 테스트, 문서화 등 전문 분야별로 독립된 컨텍스트와 전문 지식을 가진 AI 에이전트입니다.',
+    },
+    {
+      question: '서브에이전트 활용 시 최종 판단은 누가 하나요?',
+      options: ['Architect 서브에이전트', '모든 서브에이전트 합의', '개발자', 'Security 서브에이전트'],
+      correctIndex: 2,
+      explanation: '각 서브에이전트는 격리된 컨텍스트에서 작동하며, 개발자가 결과를 종합하여 최종 판단합니다.',
+    },
+  ]}
+/>
+
+<ChapterNav
+  prev={{ title: '스킬', path: '/docs/part-3--ai-agent-워크플로우-스킬' }}
+  next={{ title: 'MCP 개요', path: '/docs/part-4--mcp와-통합-mcp-개요' }}
+/>

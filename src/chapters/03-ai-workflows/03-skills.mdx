@@ -1,0 +1,146 @@
+import { Meta } from '@storybook/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { TemplateFileViewer } from '../../components/TemplateFileViewer';
+import { Quiz } from '../../components/Quiz';
+import { ChapterNav } from '../../components/ChapterNav';
+import { templateFiles } from '../../data/template-files';
+
+<Meta title="Part 3: AI Agent 워크플로우/스킬" />
+
+# 스킬 (Skills)
+
+> 슬래시 커맨드로 실행 가능한 전문 AI 스킬
+
+## 개요
+
+스킬은 `.agent/skills/` 디렉토리에 정의된 **실행 가능한 전문 능력**입니다. 슬래시 커맨드로 호출되며, 각 스킬은 특정 작업에 대한 상세한 절차, 체크리스트, 출력 형식을 정의합니다.
+
+<Callout type="info" title="프롬프트 vs 스킬">
+  **프롬프트**는 "어떤 정보를 제공하고 무엇을 요청할지"의 템플릿이고,
+  **스킬**은 "AI가 어떻게 작업을 수행할지"의 실행 절차서입니다.
+</Callout>
+
+## 5개 스킬 요약
+
+| 스킬 | 커맨드 | 핵심 역할 |
+|------|--------|----------|
+| **Code Review** | `/review` | 코드 리뷰 수행 (보안, 품질, 성능) |
+| **Test Generation** | `/test` | 테스트 코드 생성 (단위, 통합, E2E) |
+| **Documentation** | `/doc` | 문서 생성 (JSDoc, API, README) |
+| **Refactor** | `/refactor` | 리팩토링 제안 (코드 스멜 탐지, 개선) |
+| **Security Scan** | `/security` | 보안 취약점 분석 (OWASP Top 10) |
+
+## Code Review 스킬 상세
+
+### 리뷰 프로세스
+
+<CodeBlock
+  code={`Phase 1: 분석
+  - 변경된 파일 목록 확인
+  - 변경 유형 분류 (기능/버그/리팩토링)
+  - 영향 범위 파악
+
+Phase 2: 검토
+  - 기능 정확성 확인
+  - 코드 품질 검사 (컨벤션, DRY, KISS)
+  - 보안 취약점 스캔
+  - 성능 이슈 확인
+  - 테스트 커버리지 확인
+
+Phase 3: 피드백
+  - 🚨 필수 수정 (Blocker)
+  - 💡 권장 사항 (Suggestion)
+  - ❓ 질문 (Question)
+  - ✨ 좋은 점 (Praise)`}
+  language="text"
+  filename="Code Review 프로세스"
+/>
+
+## Test Generation 스킬 상세
+
+### 테스트 피라미드
+
+<CodeBlock
+  code={`         /\\
+        /  \\
+       / E2E\\        10%
+      /  (UI) \\
+     /─────────\\
+    / Integration\\   20%
+   /   (Service)  \\
+  /────────────────\\
+ /    Unit Tests    \\  70%
+/    (Functions)     \\
+──────────────────────`}
+  language="text"
+  filename="테스트 피라미드"
+/>
+
+### FIRST 원칙
+
+| 원칙 | 설명 |
+|------|------|
+| **F**ast | 빠르게 실행 |
+| **I**ndependent | 테스트 간 독립 |
+| **R**epeatable | 동일 결과 보장 |
+| **S**elf-validating | 자동 판별 |
+| **T**imely | 코드와 함께 작성 |
+
+## Security Scan 스킬 상세
+
+### OWASP Top 10 체크리스트
+
+| 순위 | 취약점 | 검사 내용 |
+|------|--------|----------|
+| A01 | 접근 제어 취약점 | 권한 검증, 직접 객체 참조 |
+| A02 | 암호화 실패 | 평문 저장, 약한 알고리즘 |
+| A03 | 인젝션 | SQL, NoSQL, OS, LDAP 인젝션 |
+| A04 | 불안전한 설계 | 위협 모델링, 보안 패턴 |
+| A05 | 보안 설정 오류 | 기본 설정, 불필요한 기능 |
+| A06 | 취약한 컴포넌트 | 알려진 취약점, 라이센스 |
+| A07 | 인증 실패 | 세션 관리, 비밀번호 정책 |
+| A08 | 무결성 실패 | 서명 검증, 공급망 보안 |
+| A09 | 로깅/모니터링 실패 | 감사 로그, 알림 |
+| A10 | SSRF | 서버측 요청 위조 |
+
+## 스킬 커스터마이징
+
+<CodeBlock
+  code={`# .agent/skills/code-review.md 커스터마이징 예시
+
+## 추가 체크리스트
+- [ ] 접근성 (a11y) 검사
+- [ ] 국제화 (i18n) 검사
+- [ ] 성능 벤치마크 기준 충족
+
+## 팀 특화 규칙
+- React 컴포넌트는 Storybook 스토리 필수
+- API 엔드포인트는 OpenAPI 스펙 업데이트 필수`}
+  language="markdown"
+  filename="스킬 커스터마이징"
+/>
+
+<Quiz
+  title="스킬 이해도 확인"
+  questions={[
+    {
+      question: '프롬프트와 스킬의 차이는?',
+      options: ['차이 없음', '프롬프트는 입력 템플릿, 스킬은 실행 절차서', '스킬이 더 간단함', '프롬프트만 커스터마이징 가능'],
+      correctIndex: 1,
+      explanation: '프롬프트는 "어떤 정보를 제공하고 무엇을 요청할지"의 템플릿이고, 스킬은 "AI가 어떻게 작업을 수행할지"의 실행 절차서입니다.',
+    },
+    {
+      question: '테스트 피라미드에서 가장 많은 비중을 차지하는 테스트는?',
+      options: ['E2E 테스트', '통합 테스트', '단위 테스트', 'UI 테스트'],
+      correctIndex: 2,
+      explanation: '테스트 피라미드에서 단위 테스트가 70%로 가장 많은 비중을 차지합니다. 통합 테스트 20%, E2E 테스트 10% 순입니다.',
+    },
+  ]}
+/>
+
+<ChapterNav
+  prev={{ title: '프롬프트 라이브러리', path: '/docs/part-3--ai-agent-워크플로우-프롬프트-라이브러리' }}
+  next={{ title: '서브에이전트', path: '/docs/part-3--ai-agent-워크플로우-서브에이전트' }}
+/>
