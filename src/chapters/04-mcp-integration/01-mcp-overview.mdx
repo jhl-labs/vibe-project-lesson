@@ -1,0 +1,136 @@
+import { Meta } from '@storybook/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { TemplateFileViewer } from '../../components/TemplateFileViewer';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { Quiz } from '../../components/Quiz';
+import { ChapterNav } from '../../components/ChapterNav';
+import { templateFiles } from '../../data/template-files';
+
+<Meta title="Part 4: MCP와 통합/MCP 개요" />
+
+# MCP (Model Context Protocol) 개요
+
+> AI 에이전트의 기능을 확장하는 표준 프로토콜
+
+## MCP란?
+
+**MCP(Model Context Protocol)**는 AI 에이전트가 외부 도구 및 서비스와 통신하기 위한 **개방형 표준 프로토콜**입니다. Claude Code에서 MCP를 통해 파일 시스템, Git, 데이터베이스, 외부 API 등 다양한 서비스에 접근할 수 있습니다.
+
+<Callout type="info" title="비유">
+  MCP는 AI 에이전트의 "USB 포트"와 같습니다.
+  다양한 도구(MCP 서버)를 꽂아서 AI의 능력을 확장할 수 있습니다.
+</Callout>
+
+## 구조
+
+<CodeBlock
+  code={`┌─────────────┐     MCP Protocol     ┌─────────────┐
+│             │ ◄──────────────────► │  Filesystem │
+│             │                      └─────────────┘
+│             │     MCP Protocol     ┌─────────────┐
+│  Claude     │ ◄──────────────────► │     Git     │
+│  Code       │                      └─────────────┘
+│             │     MCP Protocol     ┌─────────────┐
+│             │ ◄──────────────────► │   GitHub    │
+│             │                      └─────────────┘
+│             │     MCP Protocol     ┌─────────────┐
+│             │ ◄──────────────────► │  Database   │
+└─────────────┘                      └─────────────┘`}
+  language="text"
+  filename="MCP 아키텍처"
+/>
+
+## .mcp.json 설정
+
+MCP 서버 설정은 프로젝트 루트의 `.mcp.json` 파일에서 관리합니다.
+
+<TemplateFileViewer
+  filename=".mcp.json.example"
+  content={templateFiles['.mcp.json.example']}
+  language="json"
+  annotations={[
+    { lineStart: 1, lineEnd: 2, text: '설정 파일은 .mcp.json.example로 제공됩니다. 실제 사용 시 .mcp.json으로 복사하고 프로젝트에 맞게 수정합니다.' },
+    { lineStart: 3, lineEnd: 9, text: 'Filesystem MCP 서버입니다. 프로젝트 디렉토리 내 파일을 읽고 쓸 수 있게 합니다.' },
+    { lineStart: 10, lineEnd: 14, text: 'Git MCP 서버입니다. 커밋, 브랜치, 히스토리 등 Git 작업을 수행합니다.' },
+    { lineStart: 15, lineEnd: 23, text: 'GitHub MCP 서버입니다. PR, 이슈, 리뷰 등 GitHub API를 사용합니다. GITHUB_TOKEN 환경 변수가 필요합니다.' },
+    { lineStart: 24, lineEnd: 32, text: 'PostgreSQL MCP 서버입니다. 데이터베이스 쿼리를 직접 실행할 수 있습니다. disabled: true로 기본 비활성화되어 있습니다.' },
+    { lineStart: 40, lineEnd: 45, text: 'Fetch MCP 서버입니다. 외부 API 호출이나 웹 콘텐츠를 가져올 수 있습니다.' },
+  ]}
+/>
+
+## 권장 MCP 서버
+
+| 서버 | 용도 | 필수 환경 변수 |
+|------|------|---------------|
+| **filesystem** | 파일 읽기/쓰기 | 없음 |
+| **git** | Git 작업 | 없음 |
+| **github** | GitHub API (PR, 이슈) | `GITHUB_TOKEN` |
+| **postgres** | PostgreSQL 쿼리 | `DATABASE_URL` |
+| **sqlite** | SQLite 쿼리 | 없음 (DB 경로 지정) |
+| **fetch** | HTTP 요청 | 없음 |
+| **puppeteer** | 브라우저 자동화 | 없음 |
+| **slack** | Slack 연동 | `SLACK_BOT_TOKEN` |
+
+## 보안 고려사항
+
+<Callout type="warning" title="MCP 보안 주의사항">
+  MCP 서버는 외부 시스템에 접근 권한을 부여하므로 보안에 주의해야 합니다.
+</Callout>
+
+### 주의사항
+
+1. **환경 변수로 시크릿 관리**: 토큰/키를 .mcp.json에 직접 작성하지 마세요
+2. **최소 권한 원칙**: 필요한 서버만 활성화하세요 (`disabled: true` 활용)
+3. **.mcp.json은 .gitignore에 추가**: 실제 설정 파일은 Git에 커밋하지 마세요
+4. **DB 접근 제한**: 프로덕션 DB에 직접 연결하지 마세요
+5. **읽기 전용 우선**: 가능하면 읽기 전용 권한만 부여하세요
+
+<CodeBlock
+  code={`# .gitignore에 추가
+.mcp.json
+
+# .mcp.json.example은 커밋 (템플릿으로 제공)
+!.mcp.json.example`}
+  language="bash"
+  filename=".gitignore 설정"
+/>
+
+## MCP 설정 방법
+
+<CodeBlock
+  code={`# 1. 템플릿 복사
+cp .mcp.json.example .mcp.json
+
+# 2. 필요한 서버 활성화 (disabled: false로 변경)
+# 3. 환경 변수 설정
+export GITHUB_TOKEN="ghp_your_token_here"
+
+# 4. Claude Code 실행
+claude`}
+  language="bash"
+  filename="MCP 설정 순서"
+/>
+
+<Quiz
+  title="MCP 이해도 확인"
+  questions={[
+    {
+      question: 'MCP의 역할은?',
+      options: ['코드 컴파일', 'AI 에이전트와 외부 도구 간의 통신 프로토콜', '보안 스캐너', '패키지 매니저'],
+      correctIndex: 1,
+      explanation: 'MCP(Model Context Protocol)는 AI 에이전트가 외부 도구 및 서비스(파일 시스템, Git, DB 등)와 통신하기 위한 개방형 표준 프로토콜입니다.',
+    },
+    {
+      question: '.mcp.json 파일의 보안 관리로 올바른 것은?',
+      options: ['Git에 커밋하여 공유', '.gitignore에 추가하고 환경 변수로 시크릿 관리', '팀 Slack에 공유', '프로덕션 DB 직접 연결'],
+      correctIndex: 1,
+      explanation: '.mcp.json에는 토큰 등 민감 정보가 포함될 수 있으므로 .gitignore에 추가하고, 시크릿은 환경 변수로 관리해야 합니다.',
+    },
+  ]}
+/>
+
+<ChapterNav
+  prev={{ title: '서브에이전트', path: '/docs/part-3--ai-agent-워크플로우-서브에이전트' }}
+  next={{ title: 'GitHub Actions', path: '/docs/part-4--mcp와-통합-github-actions' }}
+/>

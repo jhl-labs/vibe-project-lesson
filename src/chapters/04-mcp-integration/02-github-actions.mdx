@@ -1,0 +1,207 @@
+import { Meta } from '@storybook/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { Quiz } from '../../components/Quiz';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 4: MCP와 통합/GitHub Actions" />
+
+# GitHub Actions 통합
+
+> Claude AI를 활용한 자동화 워크플로우
+
+## 개요
+
+이 프로젝트 템플릿은 Claude AI를 활용한 **4개의 전용 GitHub Actions 워크플로우**를 제공합니다. 이를 통해 PR 리뷰, 이슈 분류, 코드 제안, 문서 동기화를 자동화합니다.
+
+## Claude 전용 워크플로우 (4개)
+
+<ComparisonTable
+  title="Claude GitHub Actions"
+  headers={['워크플로우', '트리거', '주요 기능', '산출물']}
+  rows={[
+    { feature: 'PR Review', values: ['PR 생성/업데이트', '코드 리뷰 자동화', '리뷰 코멘트'] },
+    { feature: 'Issue Triage', values: ['이슈 생성', '자동 분류/라벨링', '라벨, 담당자'] },
+    { feature: 'Code Suggest', values: ['PR 생성', '코드 개선 제안', '제안 코멘트'] },
+    { feature: 'Doc Sync', values: ['스케줄/수동', '코드-문서 동기화', '동기화 리포트'] },
+  ]}
+/>
+
+### 1. Claude PR Review
+
+<CodeBlock
+  code={`# .github/workflows/claude-pr-review.yml
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            이 PR의 변경사항을 리뷰해주세요.
+            보안, 성능, 코드 품질을 중점적으로 확인하고
+            .agent/skills/code-review.md 기준을 따라주세요.
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`}
+  language="yaml"
+  filename="claude-pr-review.yml"
+/>
+
+<Callout type="info" title="자동 리뷰의 장점">
+  모든 PR에 일관된 품질의 1차 리뷰를 자동으로 수행합니다.
+  보안 취약점이나 컨벤션 위반을 사전에 잡을 수 있습니다.
+</Callout>
+
+### 2. Claude Issue Triage
+
+<CodeBlock
+  code={`# .github/workflows/claude-issue-triage.yml
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Analyze Issue
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            이 이슈를 분석하고:
+            1. 적절한 라벨을 추가해주세요
+            2. 우선순위를 판단해주세요
+            3. 관련 코드 영역을 파악해주세요
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`}
+  language="yaml"
+  filename="claude-issue-triage.yml"
+/>
+
+### 3. Claude Code Suggest
+
+<CodeBlock
+  code={`# .github/workflows/claude-code-suggest.yml
+name: Claude Code Suggest
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  suggest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Suggest Improvements
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            이 PR의 코드를 분석하고 개선 제안을 해주세요:
+            - 성능 최적화 기회
+            - 더 나은 패턴/관용구
+            - 에러 처리 개선
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`}
+  language="yaml"
+  filename="claude-code-suggest.yml"
+/>
+
+### 4. Claude Doc Sync
+
+<CodeBlock
+  code={`# .github/workflows/claude-doc-sync.yml
+name: Claude Doc Sync
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # 매주 월요일 9시
+  workflow_dispatch:       # 수동 실행
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check Doc Sync
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            코드와 문서의 동기화 상태를 확인해주세요:
+            1. API 코드와 API 문서 일치 여부
+            2. README와 실제 프로젝트 구조 일치 여부
+            3. 변경된 코드에 대한 문서 업데이트 필요 여부
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`}
+  language="yaml"
+  filename="claude-doc-sync.yml"
+/>
+
+## 기타 CI/CD 워크플로우
+
+| 워크플로우 | 트리거 | 역할 |
+|-----------|--------|------|
+| `ci.yml` | Push, PR | 린트, 테스트, 타입 체크 |
+| `cd.yml` | main 머지 | 자동 배포 |
+| `security-scan.yml` | 스케줄 | 의존성 보안 취약점 검사 |
+| `release.yml` | 태그 생성 | 릴리스 자동화 |
+| `rollback.yml` | 수동 | 배포 롤백 |
+| `labeler.yml` | PR | 자동 라벨링 |
+| `stale.yml` | 스케줄 | 오래된 이슈/PR 처리 |
+
+## 설정 필수 사항
+
+<Callout type="important" title="GitHub Secrets 설정">
+  Claude GitHub Actions를 사용하려면 다음 시크릿을 설정해야 합니다:
+</Callout>
+
+<CodeBlock
+  code={`# GitHub Repository Settings > Secrets and variables > Actions
+
+# 필수
+ANTHROPIC_API_KEY=sk-ant-api03-...
+
+# 선택 (GitHub 관련 기능 사용 시)
+# GITHUB_TOKEN은 자동 제공됨`}
+  language="bash"
+  filename="GitHub Secrets 설정"
+/>
+
+<Quiz
+  title="GitHub Actions 이해도 확인"
+  questions={[
+    {
+      question: 'Claude PR Review 워크플로우의 트리거는?',
+      options: ['매일 스케줄', 'PR 생성/업데이트', '수동 실행', 'main 브랜치 머지'],
+      correctIndex: 1,
+      explanation: 'claude-pr-review.yml은 PR이 생성되거나 업데이트될 때(opened, synchronize) 자동으로 실행됩니다.',
+    },
+    {
+      question: 'Claude GitHub Actions 사용 시 필수 시크릿은?',
+      options: ['GITHUB_TOKEN', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'AWS_SECRET_KEY'],
+      correctIndex: 1,
+      explanation: 'Claude API를 사용하기 위해 ANTHROPIC_API_KEY가 필수이며, GitHub Repository Secrets에 설정해야 합니다.',
+    },
+  ]}
+/>
+
+<ChapterNav
+  prev={{ title: 'MCP 개요', path: '/docs/part-4--mcp와-통합-mcp-개요' }}
+  next={{ title: 'TypeScript API', path: '/docs/part-5--실전-예제-typescript-api' }}
+/>
