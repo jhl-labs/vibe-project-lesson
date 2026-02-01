@@ -1,0 +1,89 @@
+import { Meta } from '@storybook/blocks';
+import { Callout } from '../../components/Callout';
+import { Timeline } from '../../components/Timeline';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="소개" />
+
+# Vibe Coding & Claude Code 교육
+
+> AI Agent와 함께하는 현대적 소프트웨어 개발의 새로운 패러다임
+
+## 이 교육에서 배우는 것
+
+이 교육 자료는 **Vibe Coding**의 개념부터 **Claude Code**를 활용한 실전 개발 워크플로우까지 체계적으로 다룹니다.
+
+<Callout type="info" title="교육 대상">
+  AI 도구를 활용한 개발에 관심있는 모든 개발자를 대상으로 합니다.
+  기본적인 프로그래밍 경험이 있으면 충분합니다.
+</Callout>
+
+## 교육 구성
+
+| Part | 주제 | 내용 |
+|------|------|------|
+| **Part 1** | 기초 | 바이브 코딩, Claude Code, CLAUDE.md |
+| **Part 2** | 프로젝트 템플릿 구조 | .agent 디렉토리, 컨텍스트, 아키텍처, 가이드라인 |
+| **Part 3** | AI Agent 워크플로우 | 슬래시 커맨드, 프롬프트, 스킬, 서브에이전트 |
+| **Part 4** | MCP와 통합 | Model Context Protocol, GitHub Actions |
+| **Part 5** | 실전 예제 | TypeScript API, Python API |
+| **Part 6** | 모범 사례 | 보안, 팀 협업, 효과 측정 |
+
+## 교육 타임라인
+
+<Timeline
+  title="AI 코딩 도구의 발전"
+  events={[
+    {
+      date: '2021.06',
+      title: 'GitHub Copilot 출시',
+      description: 'AI 코드 자동완성의 대중화 시작',
+    },
+    {
+      date: '2023.03',
+      title: 'GPT-4 출시',
+      description: '대형 언어 모델의 코딩 능력 비약적 향상',
+    },
+    {
+      date: '2024.03',
+      title: 'Claude 3 출시 & Devin 공개',
+      description: 'AI 코딩 에이전트의 본격적인 등장',
+    },
+    {
+      date: '2025.02',
+      title: 'Vibe Coding 개념 등장',
+      description: 'Andrej Karpathy가 "Vibe Coding" 용어를 소개',
+      highlight: true,
+    },
+    {
+      date: '2025.03',
+      title: 'Claude Code CLI 출시',
+      description: 'Anthropic이 터미널 기반 AI 코딩 에이전트 공개',
+      highlight: true,
+    },
+    {
+      date: '2025.11',
+      title: 'Collins "Vibe Coding" 올해의 단어',
+      description: 'Collins 사전이 올해의 단어로 선정',
+      highlight: true,
+    },
+  ]}
+/>
+
+## 학습 방법
+
+1. **순서대로 학습**: Part 1부터 차례로 진행하세요
+2. **실습 병행**: 코드 블록의 예제를 직접 따라해보세요
+3. **퀴즈 풀기**: 각 챕터 끝의 퀴즈로 이해도를 점검하세요
+4. **파일 뷰어 활용**: 실제 템플릿 파일 내용을 직접 확인하세요
+
+<Callout type="tip" title="실습 준비">
+  교육을 최대한 활용하려면 다음을 준비하세요:
+  - Node.js 18+ 설치
+  - Claude Code CLI 설치 (`npm i -g @anthropic-ai/claude-code`)
+  - 이 프로젝트 템플릿 클론
+</Callout>
+
+<ChapterNav
+  next={{ title: '바이브 코딩이란?', path: '/docs/part-1--기초-바이브-코딩이란' }}
+/>
