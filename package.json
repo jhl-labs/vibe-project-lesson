@@ -37,7 +37,6 @@
   },
   "devDependencies": {
     "@storybook/addon-docs": "^10.2.3",
-    "@storybook/addon-onboarding": "^10.2.3",
     "@storybook/react": "^10.2.3",
     "@storybook/react-vite": "^10.2.3",
     "@types/react-plotly.js": "^2.6.4",
