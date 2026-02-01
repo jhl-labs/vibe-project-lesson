@@ -3,7 +3,6 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { DataTable } from '../../components/DataTable';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 6: 모범 사례/팀 협업" />
@@ -131,23 +130,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>"`}
   filename="AI 지원 커밋 예시"
 />
 
-<Quiz
-  title="팀 협업 이해도 확인"
-  questions={[
-    {
-      question: 'AI 생성 코드를 PR에 포함할 때 해야 할 것은?',
-      options: ['아무 표시 없이 커밋', 'AI 사용 내역을 PR에 명시', 'AI가 만든 파일만 별도 커밋', '리뷰 없이 바로 머지'],
-      correctIndex: 1,
-      explanation: 'AI 도움을 받은 코드는 PR에 AI 사용 여부와 구체적인 사용 내역을 명시하여 투명하게 관리합니다.',
-    },
-    {
-      question: 'AI 코드 리뷰 시 일반 리뷰와 다른 추가 확인사항은?',
-      options: ['코딩 컨벤션만 확인', '존재하지 않는 API 사용(AI 환각) 확인', '성능 벤치마크만 확인', '코드 라인 수만 확인'],
-      correctIndex: 1,
-      explanation: 'AI가 실제로 존재하지 않는 API, 라이브러리, 메서드를 사용하는 코드를 생성(환각)할 수 있으므로 이에 대한 검증이 추가로 필요합니다.',
-    },
-  ]}
-/>
 
 <ChapterNav
   prev={{ title: '보안', path: '/docs/part-6--모범-사례-보안' }}

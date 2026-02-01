@@ -2,7 +2,6 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 6: 모범 사례/보안" />
@@ -132,23 +131,11 @@ if (!API_KEY) {
   filename="보안 검사 파이프라인"
 />
 
-<Quiz
-  title="보안 이해도 확인"
-  questions={[
-    {
-      question: 'AI가 생성한 코드에서 가장 흔한 보안 취약점은?',
-      options: ['메모리 누수', 'SQL Injection과 하드코딩된 시크릿', '성능 저하', '타입 오류'],
-      correctIndex: 1,
-      explanation: 'AI는 동작하는 코드를 우선 생성하므로, 문자열 연결 쿼리나 하드코딩된 API 키 등의 보안 취약점이 포함될 수 있습니다.',
-    },
-    {
-      question: '다음 중 안전한 코드 패턴은?',
-      options: ['문자열 연결로 SQL 쿼리 작성', 'innerHTML로 사용자 입력 렌더링', '파라미터화된 쿼리 사용', 'API 키를 코드에 하드코딩'],
-      correctIndex: 2,
-      explanation: '파라미터화된 쿼리는 SQL Injection을 방지하는 표준적이고 안전한 방법입니다.',
-    },
-  ]}
-/>
+<Callout type="tip" title="Claude Code의 보안 지원">
+  Claude Code의 CLAUDE.md에 보안 규칙을 명시하면 AI가 안전한 코드를 생성할 확률이 높아집니다.
+  하지만 CLAUDE.md는 권고(advisory)이므로 100% 보장되지 않습니다.
+  커밋 전 린트/보안 스캔을 Hook으로 설정하면 확실한 보안 검증이 가능합니다.
+</Callout>
 
 <ChapterNav
   prev={{ title: 'Python API', path: '/docs/part-5--실전-예제-python-api' }}

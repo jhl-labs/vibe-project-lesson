@@ -4,7 +4,6 @@ import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { PlotlyChart } from '../../components/PlotlyChart';
 import { MermaidDiagram } from '../../components/MermaidDiagram';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 6: 모범 사례/효과 측정" />
@@ -51,12 +50,12 @@ import { ChapterNav } from '../../components/ChapterNav';
       y: [87, 67, 83, 67, 62],
       type: 'bar',
       marker: {
-        color: ['#818cf8', '#a78bfa', '#6366f1', '#a78bfa', '#c4b5fd'],
-        line: { color: '#475569', width: 1 },
+        color: ['#da7756', '#e8a98e', '#c4613e', '#e8a98e', '#f0cec0'],
+        line: { color: '#d4cdc4', width: 1 },
       },
       text: ['87%', '67%', '83%', '67%', '62%'],
       textposition: 'outside',
-      textfont: { color: '#f1f5f9', size: 13 },
+      textfont: { color: '#2d2a26', size: 13 },
       hovertemplate: '%{x}: %{y}% 절감<extra></extra>',
     },
   ]}
@@ -100,7 +99,7 @@ import { ChapterNav } from '../../components/ChapterNav';
       x: ['PR 작성 시간\n(시간)', 'PR당 수정 요청\n(회)', '테스트 커버리지\n(%)', '문서화 완성도\n(%)'],
       y: [4, 3, 55, 40],
       type: 'bar',
-      marker: { color: '#475569', line: { color: '#64748b', width: 1 } },
+      marker: { color: '#8c857c', line: { color: '#d4cdc4', width: 1 } },
       hovertemplate: '%{x}: %{y}<extra>도입 전</extra>',
     },
     {
@@ -108,7 +107,7 @@ import { ChapterNav } from '../../components/ChapterNav';
       x: ['PR 작성 시간\n(시간)', 'PR당 수정 요청\n(회)', '테스트 커버리지\n(%)', '문서화 완성도\n(%)'],
       y: [2, 1.5, 75, 85],
       type: 'bar',
-      marker: { color: '#818cf8', line: { color: '#a5b4fc', width: 1 } },
+      marker: { color: '#da7756', line: { color: '#e8a98e', width: 1 } },
       hovertemplate: '%{x}: %{y}<extra>도입 후</extra>',
     },
   ]}
@@ -152,23 +151,11 @@ import { ChapterNav } from '../../components/ChapterNav';
 - 장기적인 트렌드 관찰
 - 정성적 피드백의 가치 인정
 
-<Quiz
-  title="효과 측정 이해도 확인"
-  questions={[
-    {
-      question: 'AI 도구 효과 측정 시 가장 중요한 것은?',
-      options: ['코드 라인 수', '개인별 AI 사용량', '팀 전체의 품질과 생산성 균형', 'AI 도구 비용'],
-      correctIndex: 2,
-      explanation: '효과 측정은 팀 전체의 성과 향상에 집중해야 하며, 품질과 생산성의 균형을 유지하는 것이 중요합니다.',
-    },
-    {
-      question: '개선 사이클의 올바른 순서는?',
-      options: ['공유 → 측정 → 분석 → 개선', '측정 → 분석 → 개선 → 공유', '분석 → 개선 → 측정 → 공유', '개선 → 공유 → 측정 → 분석'],
-      correctIndex: 1,
-      explanation: 'MAIS 사이클은 측정(Measure) → 분석(Analyze) → 개선(Improve) → 공유(Share)의 순서로 반복합니다.',
-    },
-  ]}
-/>
+<Callout type="tip" title="Claude Code OTel로 자동 측정">
+  Claude Code의 OpenTelemetry 지원으로 `claude_code.lines_of_code.count`, `claude_code.cost.usage`,
+  `claude_code.active_time.total` 등의 메트릭을 자동 수집할 수 있습니다.
+  Part 1의 엔터프라이즈 보안 챕터에서 OTel 설정 방법을 참고하세요.
+</Callout>
 
 <ChapterNav
   prev={{ title: '팀 협업', path: '/docs/part-6--모범-사례-팀-협업' }}
