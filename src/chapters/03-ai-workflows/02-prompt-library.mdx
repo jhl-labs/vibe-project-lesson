@@ -2,7 +2,6 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 3: AI Agent 워크플로우/프롬프트 라이브러리" />
@@ -148,23 +147,6 @@ import { ChapterNav } from '../../components/ChapterNav';
   4. **출력 형식을 지정**: 원하는 결과물의 형태를 구체적으로 요구하세요
 </Callout>
 
-<Quiz
-  title="프롬프트 라이브러리 이해도 확인"
-  questions={[
-    {
-      question: '프롬프트 라이브러리의 주요 장점은?',
-      options: ['코드 자동 실행', '일관된 고품질 결과물 생산', '자동 배포', '실시간 모니터링'],
-      correctIndex: 1,
-      explanation: '검증된 프롬프트 템플릿을 재사용하면 매번 처음부터 작성할 필요 없이 일관된 고품질 결과를 얻을 수 있습니다.',
-    },
-    {
-      question: '프롬프트 템플릿의 공통 구조에 포함되지 않는 것은?',
-      options: ['목적 (Purpose)', '지시사항 (Instructions)', '배포 설정 (Deploy)', '출력 형식 (Output Format)'],
-      correctIndex: 2,
-      explanation: '프롬프트 템플릿은 목적, 컨텍스트, 지시사항, 출력 형식, 예시로 구성됩니다. 배포 설정은 포함되지 않습니다.',
-    },
-  ]}
-/>
 
 <ChapterNav
   prev={{ title: '슬래시 커맨드', path: '/docs/part-3--ai-agent-워크플로우-슬래시-커맨드' }}

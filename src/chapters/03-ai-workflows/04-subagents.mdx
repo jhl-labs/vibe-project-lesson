@@ -3,7 +3,6 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { MermaidDiagram } from '../../components/MermaidDiagram';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 3: AI Agent 워크플로우/서브에이전트" />
@@ -14,7 +13,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## 개요
 
-서브에이전트는 `.agent/subagents/` 디렉토리에 정의된 **전문 분야별 AI 에이전트**입니다. 각 서브에이전트는 독립된 컨텍스트와 전문 지식을 가지며, 복잡한 작업을 분업하여 처리합니다.
+서브에이전트는 **전문 분야별 AI 에이전트**입니다. Claude Code는 내부적으로 Task 도구를 통해 서브에이전트를 생성하며, 각 서브에이전트는 독립된 컨텍스트에서 작업을 수행합니다. `.agent/subagents/` 디렉토리에 역할별 정의를 저장하여 일관된 전문성을 유지합니다. Anthropic은 대화 초반에 서브에이전트를 적극 활용하여 컨텍스트를 보존하면서 세부 작업을 병렬 처리할 것을 권장합니다.
 
 <Callout type="info" title="핵심 개념">
   서브에이전트는 "한 명의 전문가"와 같습니다.
@@ -149,23 +148,10 @@ import { ChapterNav } from '../../components/ChapterNav';
   개발자가 결과를 종합하여 최종 판단합니다.
 </Callout>
 
-<Quiz
-  title="서브에이전트 이해도 확인"
-  questions={[
-    {
-      question: '서브에이전트의 핵심 특징은?',
-      options: ['하나의 만능 에이전트', '전문 분야별 독립된 AI 에이전트', '자동 배포 에이전트', '모니터링 에이전트'],
-      correctIndex: 1,
-      explanation: '서브에이전트는 아키텍트, 보안, 테스트, 문서화 등 전문 분야별로 독립된 컨텍스트와 전문 지식을 가진 AI 에이전트입니다.',
-    },
-    {
-      question: '서브에이전트 활용 시 최종 판단은 누가 하나요?',
-      options: ['Architect 서브에이전트', '모든 서브에이전트 합의', '개발자', 'Security 서브에이전트'],
-      correctIndex: 2,
-      explanation: '각 서브에이전트는 격리된 컨텍스트에서 작동하며, 개발자가 결과를 종합하여 최종 판단합니다.',
-    },
-  ]}
-/>
+<Callout type="tip" title="서브에이전트 권한 제어">
+  엔터프라이즈 환경에서는 Managed Settings의 deny 규칙으로 특정 서브에이전트를 차단할 수 있습니다.
+  예: `"deny": ["Task(Explore)", "Task(Plan)"]`
+</Callout>
 
 <ChapterNav
   prev={{ title: '스킬', path: '/docs/part-3--ai-agent-워크플로우-스킬' }}
