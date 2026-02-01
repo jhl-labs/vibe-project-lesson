@@ -44,4 +44,7 @@ addons.setConfig({
   sidebar: {
     showRoots: true,
   },
+  enableShortcuts: true,
+  initialActive: 'sidebar',
+  sidebarOnboardingChecklist: false,
 });

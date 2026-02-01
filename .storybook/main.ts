@@ -19,6 +19,9 @@ const config: StorybookConfig = {
     name: '@storybook/react-vite',
     options: {},
   },
+  core: {
+    disableWhatsNewNotifications: true,
+  },
   docs: {},
 };
 
