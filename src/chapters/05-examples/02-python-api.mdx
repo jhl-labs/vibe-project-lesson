@@ -1,0 +1,293 @@
+import { Meta } from '@storybook/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { FileTree } from '../../components/FileTree';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { Quiz } from '../../components/Quiz';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 5: 실전 예제/Python API" />
+
+# Python API 예제
+
+> FastAPI + SQLAlchemy + pytest 기반 Clean Architecture 구현
+
+## 프로젝트 구조
+
+<FileTree
+  title="examples/python-api/"
+  data={[
+    {
+      name: 'app/',
+      type: 'folder',
+      children: [
+        { name: 'main.py', type: 'file', description: 'FastAPI 앱 엔트리포인트' },
+        {
+          name: 'domain/',
+          type: 'folder',
+          description: '비즈니스 로직',
+          highlight: true,
+          children: [
+            {
+              name: 'user/',
+              type: 'folder',
+              children: [
+                { name: 'entity.py', type: 'file', description: 'User 엔터티' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'application/',
+          type: 'folder',
+          description: '유스케이스',
+          highlight: true,
+          children: [
+            {
+              name: 'user/',
+              type: 'folder',
+              children: [
+                { name: 'use_cases.py', type: 'file', description: '유스케이스' },
+                { name: 'dtos.py', type: 'file', description: 'DTO' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'infrastructure/',
+          type: 'folder',
+          children: [
+            {
+              name: 'database/',
+              type: 'folder',
+              children: [
+                { name: 'models.py', type: 'file', description: 'SQLAlchemy 모델' },
+                { name: 'repository.py', type: 'file', description: 'Repository 구현' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'presentation/',
+          type: 'folder',
+          children: [
+            {
+              name: 'api/',
+              type: 'folder',
+              children: [
+                { name: 'users.py', type: 'file', description: 'API 라우터' },
+              ],
+            },
+            {
+              name: 'schemas/',
+              type: 'folder',
+              children: [
+                { name: 'user.py', type: 'file', description: 'Pydantic 스키마' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'core/',
+          type: 'folder',
+          children: [
+            { name: 'config.py', type: 'file', description: '환경 설정' },
+            { name: 'database.py', type: 'file', description: 'DB 연결' },
+          ],
+        },
+      ],
+    },
+    { name: 'requirements.txt', type: 'file' },
+    { name: '.env.example', type: 'file' },
+  ]}
+/>
+
+## 레이어별 코드 분석
+
+### 1. Domain Layer
+
+<CodeBlock
+  code={`# app/domain/user/entity.py
+from dataclasses import dataclass
+from typing import Optional
+import uuid
+
+
+@dataclass
+class User:
+    id: str
+    email: str
+    name: str
+    status: str = "pending"
+
+    @classmethod
+    def create(cls, email: str, name: str) -> "User":
+        if "@" not in email:
+            raise ValueError(f"Invalid email: {email}")
+        return cls(
+            id=str(uuid.uuid4()),
+            email=email.lower(),
+            name=name,
+            status="pending",
+        )
+
+    def activate(self) -> None:
+        if self.status != "pending":
+            raise ValueError("Only pending users can be activated")
+        self.status = "active"`}
+  language="python"
+  filename="app/domain/user/entity.py"
+  highlightLines={[7, 8, 14, 15, 25, 26]}
+/>
+
+### 2. Application Layer
+
+<CodeBlock
+  code={`# app/application/user/use_cases.py
+from typing import Optional, Protocol
+
+from app.domain.user.entity import User
+from app.application.user.dtos import CreateUserDto, UserResponseDto
+
+
+class UserRepository(Protocol):
+    async def find_by_id(self, user_id: str) -> Optional[User]: ...
+    async def find_by_email(self, email: str) -> Optional[User]: ...
+    async def save(self, user: User) -> None: ...
+
+
+class CreateUserUseCase:
+    def __init__(self, user_repository: UserRepository):
+        self.user_repository = user_repository
+
+    async def execute(self, dto: CreateUserDto) -> UserResponseDto:
+        existing = await self.user_repository.find_by_email(dto.email)
+        if existing:
+            raise ValueError("Email already exists")
+
+        user = User.create(email=dto.email, name=dto.name)
+        await self.user_repository.save(user)
+
+        return UserResponseDto.from_entity(user)`}
+  language="python"
+  filename="app/application/user/use_cases.py"
+  highlightLines={[7, 8, 9, 10, 14, 18]}
+/>
+
+<Callout type="info" title="Python Protocol">
+  Python의 Protocol은 TypeScript의 Interface와 유사합니다.
+  구조적 서브타이핑(duck typing)으로 의존성 역전을 구현합니다.
+</Callout>
+
+### 3. Infrastructure Layer
+
+<CodeBlock
+  code={`# app/infrastructure/database/repository.py
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app.domain.user.entity import User
+from app.infrastructure.database.models import UserModel
+
+
+class SQLAlchemyUserRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def find_by_email(self, email: str):
+        result = await self.session.execute(
+            select(UserModel).where(UserModel.email == email)
+        )
+        row = result.scalar_one_or_none()
+        return self._to_domain(row) if row else None
+
+    async def save(self, user: User) -> None:
+        model = UserModel(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            status=user.status,
+        )
+        self.session.add(model)
+        await self.session.commit()
+
+    def _to_domain(self, model: UserModel) -> User:
+        return User(
+            id=model.id,
+            email=model.email,
+            name=model.name,
+            status=model.status,
+        )`}
+  language="python"
+  filename="app/infrastructure/database/repository.py"
+/>
+
+### 4. Presentation Layer
+
+<CodeBlock
+  code={`# app/presentation/api/users.py
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.application.user.use_cases import CreateUserUseCase
+from app.presentation.schemas.user import (
+    CreateUserRequest,
+    UserResponse,
+)
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.post("/", response_model=UserResponse, status_code=201)
+async def create_user(
+    request: CreateUserRequest,
+    use_case: CreateUserUseCase = Depends(get_create_user_use_case),
+):
+    try:
+        result = await use_case.execute(request.to_dto())
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))`}
+  language="python"
+  filename="app/presentation/api/users.py"
+/>
+
+## TypeScript vs Python 비교
+
+<ComparisonTable
+  title="TS API vs Python API 비교"
+  headers={['항목', 'TypeScript', 'Python']}
+  rows={[
+    { feature: '프레임워크', values: ['Express.js', 'FastAPI'] },
+    { feature: 'ORM', values: ['Prisma', 'SQLAlchemy'] },
+    { feature: '테스트', values: ['Jest', 'pytest'] },
+    { feature: '인터페이스', values: ['interface', 'Protocol'] },
+    { feature: '비동기', values: ['async/await', 'async/await'] },
+    { feature: '타입 시스템', values: ['정적 (컴파일)', '동적 (런타임 힌트)'] },
+    { feature: '데이터 클래스', values: ['class', '@dataclass'] },
+    { feature: '의존성 주입', values: ['생성자 주입', 'FastAPI Depends'] },
+    { feature: '네이밍', values: ['camelCase', 'snake_case'] },
+  ]}
+/>
+
+<Quiz
+  title="Python API 이해도 확인"
+  questions={[
+    {
+      question: 'Python에서 TypeScript의 interface에 해당하는 것은?',
+      options: ['abstract class', 'Protocol', 'dataclass', 'TypedDict'],
+      correctIndex: 1,
+      explanation: 'Python의 Protocol은 구조적 서브타이핑(structural subtyping)을 지원하며, TypeScript의 interface와 유사한 역할을 합니다.',
+    },
+    {
+      question: 'FastAPI의 의존성 주입 방식은?',
+      options: ['생성자 주입', 'Depends() 함수', 'decorator', 'middleware'],
+      correctIndex: 1,
+      explanation: 'FastAPI는 Depends() 함수를 통해 의존성 주입을 수행합니다. 라우터 함수의 파라미터에 Depends()를 사용합니다.',
+    },
+  ]}
+/>
+
+<ChapterNav
+  prev={{ title: 'TypeScript API', path: '/docs/part-5--실전-예제-typescript-api' }}
+  next={{ title: '보안', path: '/docs/part-6--모범-사례-보안' }}
+/>

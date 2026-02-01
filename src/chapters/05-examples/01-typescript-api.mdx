@@ -1,0 +1,350 @@
+import { Meta } from '@storybook/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { FileTree } from '../../components/FileTree';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { Quiz } from '../../components/Quiz';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 5: 실전 예제/TypeScript API" />
+
+# TypeScript API 예제
+
+> Express + Prisma + Jest 기반 Clean Architecture 구현
+
+## 프로젝트 구조
+
+<FileTree
+  title="examples/typescript-api/"
+  data={[
+    {
+      name: 'src/',
+      type: 'folder',
+      children: [
+        {
+          name: 'domain/',
+          type: 'folder',
+          description: '비즈니스 로직',
+          highlight: true,
+          children: [
+            {
+              name: 'user/',
+              type: 'folder',
+              children: [
+                { name: 'entity.ts', type: 'file', description: 'User 엔터티' },
+                { name: 'repository.ts', type: 'file', description: 'Repository 인터페이스' },
+                { name: 'value-objects.ts', type: 'file', description: '값 객체 (Email, Name)' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'application/',
+          type: 'folder',
+          description: '유스케이스',
+          highlight: true,
+          children: [
+            {
+              name: 'user/',
+              type: 'folder',
+              children: [
+                { name: 'create-user.ts', type: 'file', description: '사용자 생성 유스케이스' },
+                { name: 'get-user.ts', type: 'file', description: '사용자 조회 유스케이스' },
+                { name: 'dtos.ts', type: 'file', description: 'DTO 정의' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'infrastructure/',
+          type: 'folder',
+          description: 'DB, 외부 API',
+          children: [
+            {
+              name: 'persistence/',
+              type: 'folder',
+              children: [
+                { name: 'prisma-user-repository.ts', type: 'file', description: 'Prisma 구현체' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'presentation/',
+          type: 'folder',
+          description: 'HTTP 컨트롤러',
+          children: [
+            {
+              name: 'http/',
+              type: 'folder',
+              children: [
+                { name: 'user-controller.ts', type: 'file', description: 'REST API' },
+                { name: 'user-dto.ts', type: 'file', description: '요청/응답 DTO' },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'tests/',
+      type: 'folder',
+      children: [
+        { name: 'user.test.ts', type: 'file', description: '단위 테스트' },
+        { name: 'user.integration.test.ts', type: 'file', description: '통합 테스트' },
+      ],
+    },
+    { name: 'package.json', type: 'file' },
+    { name: 'tsconfig.json', type: 'file' },
+    { name: 'prisma/', type: 'folder', children: [{ name: 'schema.prisma', type: 'file' }] },
+  ]}
+/>
+
+## 레이어별 코드 분석
+
+### 1. Domain Layer - 엔터티
+
+<CodeBlock
+  code={`// src/domain/user/entity.ts
+import { Email } from './value-objects';
+
+export class User {
+  private constructor(
+    public readonly id: string,
+    public readonly email: Email,
+    public readonly name: string,
+    private _status: 'pending' | 'active' | 'inactive'
+  ) {}
+
+  static create(data: { email: string; name: string }): User {
+    const email = Email.create(data.email);
+    return new User(
+      crypto.randomUUID(),
+      email,
+      data.name,
+      'pending'
+    );
+  }
+
+  get status() { return this._status; }
+
+  activate(): void {
+    if (this._status !== 'pending') {
+      throw new Error('Only pending users can be activated');
+    }
+    this._status = 'active';
+  }
+}`}
+  language="typescript"
+  filename="src/domain/user/entity.ts"
+  highlightLines={[6, 7, 8, 9, 12, 22]}
+/>
+
+<Callout type="info" title="Domain Layer 특징">
+  - 외부 의존성 없음 (프레임워크, DB 등에 의존하지 않음)
+  - 비즈니스 규칙 캡슐화 (activate()는 pending 상태에서만 가능)
+  - 값 객체(Email)로 유효성 검증
+</Callout>
+
+### 2. Domain Layer - 값 객체
+
+<CodeBlock
+  code={`// src/domain/user/value-objects.ts
+export class Email {
+  private constructor(public readonly value: string) {}
+
+  static create(email: string): Email {
+    if (!email.match(/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/)) {
+      throw new Error(\`Invalid email: \${email}\`);
+    }
+    return new Email(email.toLowerCase());
+  }
+
+  equals(other: Email): boolean {
+    return this.value === other.value;
+  }
+}`}
+  language="typescript"
+  filename="src/domain/user/value-objects.ts"
+/>
+
+### 3. Application Layer - 유스케이스
+
+<CodeBlock
+  code={`// src/application/user/create-user.ts
+import { User } from '../../domain/user/entity';
+import { IUserRepository } from '../../domain/user/repository';
+import { CreateUserDto, UserResponseDto } from './dtos';
+
+export class CreateUserUseCase {
+  constructor(private userRepository: IUserRepository) {}
+
+  async execute(dto: CreateUserDto): Promise<UserResponseDto> {
+    // 비즈니스 검증
+    const existing = await this.userRepository.findByEmail(dto.email);
+    if (existing) {
+      throw new Error('Email already exists');
+    }
+
+    // 엔터티 생성
+    const user = User.create({ email: dto.email, name: dto.name });
+    
+    // 저장
+    await this.userRepository.save(user);
+
+    return UserResponseDto.from(user);
+  }
+}`}
+  language="typescript"
+  filename="src/application/user/create-user.ts"
+  highlightLines={[7, 11, 17, 20]}
+/>
+
+### 4. Infrastructure Layer - Repository 구현
+
+<CodeBlock
+  code={`// src/infrastructure/persistence/prisma-user-repository.ts
+import { PrismaClient } from '@prisma/client';
+import { User } from '../../domain/user/entity';
+import { IUserRepository } from '../../domain/user/repository';
+
+export class PrismaUserRepository implements IUserRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async findById(id: string): Promise<User | null> {
+    const row = await this.prisma.user.findUnique({ where: { id } });
+    return row ? this.toDomain(row) : null;
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const row = await this.prisma.user.findUnique({ where: { email } });
+    return row ? this.toDomain(row) : null;
+  }
+
+  async save(user: User): Promise<void> {
+    await this.prisma.user.upsert({
+      where: { id: user.id },
+      create: {
+        id: user.id,
+        email: user.email.value,
+        name: user.name,
+        status: user.status,
+      },
+      update: {
+        email: user.email.value,
+        name: user.name,
+        status: user.status,
+      },
+    });
+  }
+
+  private toDomain(row: any): User {
+    // DB row를 도메인 엔터티로 변환
+    return User.reconstitute(row);
+  }
+}`}
+  language="typescript"
+  filename="src/infrastructure/persistence/prisma-user-repository.ts"
+  highlightLines={[6, 10, 20]}
+/>
+
+### 5. Presentation Layer - 컨트롤러
+
+<CodeBlock
+  code={`// src/presentation/http/user-controller.ts
+import { Router, Request, Response } from 'express';
+import { CreateUserUseCase } from '../../application/user/create-user';
+
+export class UserController {
+  public router = Router();
+
+  constructor(private createUserUseCase: CreateUserUseCase) {
+    this.router.post('/users', this.create.bind(this));
+    this.router.get('/users/:id', this.getById.bind(this));
+  }
+
+  private async create(req: Request, res: Response) {
+    try {
+      const result = await this.createUserUseCase.execute(req.body);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  }
+}`}
+  language="typescript"
+  filename="src/presentation/http/user-controller.ts"
+/>
+
+### 6. 테스트
+
+<CodeBlock
+  code={`// tests/user.test.ts
+import { CreateUserUseCase } from '../src/application/user/create-user';
+import { IUserRepository } from '../src/domain/user/repository';
+
+describe('CreateUserUseCase', () => {
+  let useCase: CreateUserUseCase;
+  let mockRepo: jest.Mocked<IUserRepository>;
+
+  beforeEach(() => {
+    mockRepo = {
+      findById: jest.fn(),
+      findByEmail: jest.fn().mockResolvedValue(null),
+      save: jest.fn(),
+    };
+    useCase = new CreateUserUseCase(mockRepo);
+  });
+
+  it('should create user with valid data', async () => {
+    const result = await useCase.execute({
+      email: 'test@example.com',
+      name: 'Test User',
+    });
+    
+    expect(result.email).toBe('test@example.com');
+    expect(mockRepo.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('should throw error for duplicate email', async () => {
+    mockRepo.findByEmail.mockResolvedValue({} as any);
+    
+    await expect(
+      useCase.execute({ email: 'test@example.com', name: 'Test' })
+    ).rejects.toThrow('Email already exists');
+  });
+});`}
+  language="typescript"
+  filename="tests/user.test.ts"
+/>
+
+<Callout type="tip" title="테스트 패턴">
+  - **AAA 패턴**: Arrange(준비) → Act(실행) → Assert(검증)
+  - **의존성 주입**: Repository를 Mock으로 교체하여 단위 테스트
+  - **경계 테스트**: 정상 케이스와 에러 케이스 모두 테스트
+</Callout>
+
+<Quiz
+  title="TypeScript API 이해도 확인"
+  questions={[
+    {
+      question: 'Domain Layer의 User 엔터티에서 외부 라이브러리를 import하지 않는 이유는?',
+      options: ['성능 최적화', 'Clean Architecture의 의존성 규칙', '파일 크기 줄이기', 'TypeScript 제한'],
+      correctIndex: 1,
+      explanation: 'Clean Architecture에서 Domain Layer는 가장 안쪽 레이어로, 외부 프레임워크나 라이브러리에 의존하지 않아야 합니다.',
+    },
+    {
+      question: 'Application Layer의 UseCase가 IUserRepository 인터페이스에 의존하는 이유는?',
+      options: ['코드가 짧아서', '의존성 역전 원칙 (DIP)', '타입 안전성', '성능 향상'],
+      correctIndex: 1,
+      explanation: '의존성 역전 원칙(DIP)에 따라 Application Layer는 구체적인 구현(Prisma)이 아닌 추상화(Interface)에 의존합니다.',
+    },
+  ]}
+/>
+
+<ChapterNav
+  prev={{ title: 'GitHub Actions', path: '/docs/part-4--mcp와-통합-github-actions' }}
+  next={{ title: 'Python API', path: '/docs/part-5--실전-예제-python-api' }}
+/>
