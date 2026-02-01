@@ -3,7 +3,6 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { MermaidDiagram } from '../../components/MermaidDiagram';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 4: MCP와 통합/GitHub Actions" />
@@ -215,23 +214,10 @@ ANTHROPIC_API_KEY=sk-ant-api03-...
   filename="GitHub Secrets 설정"
 />
 
-<Quiz
-  title="GitHub Actions 이해도 확인"
-  questions={[
-    {
-      question: 'Claude PR Review 워크플로우의 트리거는?',
-      options: ['매일 스케줄', 'PR 생성/업데이트', '수동 실행', 'main 브랜치 머지'],
-      correctIndex: 1,
-      explanation: 'claude-pr-review.yml은 PR이 생성되거나 업데이트될 때(opened, synchronize) 자동으로 실행됩니다.',
-    },
-    {
-      question: 'Claude GitHub Actions 사용 시 필수 시크릿은?',
-      options: ['GITHUB_TOKEN', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'AWS_SECRET_KEY'],
-      correctIndex: 1,
-      explanation: 'Claude API를 사용하기 위해 ANTHROPIC_API_KEY가 필수이며, GitHub Repository Secrets에 설정해야 합니다.',
-    },
-  ]}
-/>
+<Callout type="info" title="claude-code-action 공식 Action">
+  `anthropics/claude-code-action@v1`은 Anthropic이 공식 제공하는 GitHub Action입니다.
+  2025년 9월 Claude Code 2.0과 함께 v1.0이 출시되었으며, CLAUDE.md와 프로젝트 컨텍스트를 자동으로 인식합니다.
+</Callout>
 
 <ChapterNav
   prev={{ title: 'MCP 개요', path: '/docs/part-4--mcp와-통합-mcp-개요' }}

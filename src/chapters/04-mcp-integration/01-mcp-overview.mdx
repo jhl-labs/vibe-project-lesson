@@ -4,7 +4,6 @@ import { CodeBlock } from '../../components/CodeBlock';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { MermaidDiagram } from '../../components/MermaidDiagram';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
 
@@ -16,7 +15,7 @@ import { templateFiles } from '../../data/template-files';
 
 ## MCP란?
 
-**MCP(Model Context Protocol)**는 AI 에이전트가 외부 도구 및 서비스와 통신하기 위한 **개방형 표준 프로토콜**입니다. Claude Code에서 MCP를 통해 파일 시스템, Git, 데이터베이스, 외부 API 등 다양한 서비스에 접근할 수 있습니다.
+**MCP(Model Context Protocol)**는 Anthropic이 2024년 말 공개한 **개방형 표준 프로토콜**로, AI 에이전트가 외부 도구 및 서비스와 **JSON-RPC 2.0** 기반으로 양방향 통신합니다. Claude Code뿐 아니라 Cursor, GitHub Copilot 등 주요 AI 코딩 도구가 MCP를 지원합니다.
 
 <Callout type="info" title="비유">
   MCP는 AI 에이전트의 "USB 포트"와 같습니다.
@@ -137,23 +136,10 @@ claude`}
   filename="MCP 설정 순서"
 />
 
-<Quiz
-  title="MCP 이해도 확인"
-  questions={[
-    {
-      question: 'MCP의 역할은?',
-      options: ['코드 컴파일', 'AI 에이전트와 외부 도구 간의 통신 프로토콜', '보안 스캐너', '패키지 매니저'],
-      correctIndex: 1,
-      explanation: 'MCP(Model Context Protocol)는 AI 에이전트가 외부 도구 및 서비스(파일 시스템, Git, DB 등)와 통신하기 위한 개방형 표준 프로토콜입니다.',
-    },
-    {
-      question: '.mcp.json 파일의 보안 관리로 올바른 것은?',
-      options: ['Git에 커밋하여 공유', '.gitignore에 추가하고 환경 변수로 시크릿 관리', '팀 Slack에 공유', '프로덕션 DB 직접 연결'],
-      correctIndex: 1,
-      explanation: '.mcp.json에는 토큰 등 민감 정보가 포함될 수 있으므로 .gitignore에 추가하고, 시크릿은 환경 변수로 관리해야 합니다.',
-    },
-  ]}
-/>
+<Callout type="info" title="MCP 설정 범위">
+  Claude Code에서 MCP 서버는 **프로젝트 레벨**(`.mcp.json`)과 **사용자 레벨**(`~/.claude/settings.json`)로 구분하여 관리할 수 있습니다.
+  엔터프라이즈에서는 Managed Settings의 `allowedMcpServers`/`deniedMcpServers`로 허용 서버를 제한할 수 있습니다.
+</Callout>
 
 <ChapterNav
   prev={{ title: '서브에이전트', path: '/docs/part-3--ai-agent-워크플로우-서브에이전트' }}

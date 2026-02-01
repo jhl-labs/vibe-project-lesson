@@ -3,7 +3,6 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { FileTree } from '../../components/FileTree';
 import { ComparisonTable } from '../../components/ComparisonTable';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 5: 실전 예제/Python API" />
@@ -269,23 +268,6 @@ async def create_user(
   ]}
 />
 
-<Quiz
-  title="Python API 이해도 확인"
-  questions={[
-    {
-      question: 'Python에서 TypeScript의 interface에 해당하는 것은?',
-      options: ['abstract class', 'Protocol', 'dataclass', 'TypedDict'],
-      correctIndex: 1,
-      explanation: 'Python의 Protocol은 구조적 서브타이핑(structural subtyping)을 지원하며, TypeScript의 interface와 유사한 역할을 합니다.',
-    },
-    {
-      question: 'FastAPI의 의존성 주입 방식은?',
-      options: ['생성자 주입', 'Depends() 함수', 'decorator', 'middleware'],
-      correctIndex: 1,
-      explanation: 'FastAPI는 Depends() 함수를 통해 의존성 주입을 수행합니다. 라우터 함수의 파라미터에 Depends()를 사용합니다.',
-    },
-  ]}
-/>
 
 <ChapterNav
   prev={{ title: 'TypeScript API', path: '/docs/part-5--실전-예제-typescript-api' }}
