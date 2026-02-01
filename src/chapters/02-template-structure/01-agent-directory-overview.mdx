@@ -1,0 +1,146 @@
+import { Meta } from '@storybook/blocks';
+import { Callout } from '../../components/Callout';
+import { FileTree } from '../../components/FileTree';
+import { CodeBlock } from '../../components/CodeBlock';
+import { Quiz } from '../../components/Quiz';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 2: 프로젝트 템플릿 구조/.agent 디렉토리 개요" />
+
+# .agent/ 디렉토리 개요
+
+> AI 에이전트를 위한 프로젝트 지식 베이스
+
+## .agent/ 디렉토리란?
+
+`.agent/` 디렉토리는 AI 에이전트(Claude Code, Cursor, Roo Code 등)가 프로젝트를 깊이 이해하고 효과적으로 작업하기 위한 **지식 베이스**입니다.
+
+<Callout type="info" title="핵심 개념">
+  CLAUDE.md가 "요약본"이라면, .agent/ 디렉토리는 "상세 매뉴얼"입니다.
+  프로젝트의 아키텍처, 코딩 규칙, 프롬프트 템플릿, 스킬, 서브에이전트 등 상세 정보를 체계적으로 관리합니다.
+</Callout>
+
+## 전체 구조
+
+<FileTree
+  title=".agent/ 디렉토리 구조"
+  data={[
+    {
+      name: '.agent/',
+      type: 'folder',
+      highlight: true,
+      children: [
+        { name: 'architecture.md', type: 'file', description: '아키텍처 설명서' },
+        { name: 'commands.md', type: 'file', description: '슬래시 커맨드 가이드' },
+        { name: 'context.md', type: 'file', description: '프로젝트 컨텍스트' },
+        { name: 'conventions.md', type: 'file', description: '코딩 규칙' },
+        { name: 'guidelines.md', type: 'file', description: 'AI 사용 가이드라인' },
+        {
+          name: 'prompts/',
+          type: 'folder',
+          description: '프롬프트 템플릿 (15개)',
+          children: [
+            { name: 'README.md', type: 'file', description: '프롬프트 라이브러리 개요' },
+            { name: 'api-design.md', type: 'file', description: 'API 설계' },
+            { name: 'bug-fix.md', type: 'file', description: '버그 수정' },
+            { name: 'code-review.md', type: 'file', description: '코드 리뷰' },
+            { name: 'feature-implement.md', type: 'file', description: '기능 구현' },
+            { name: 'test-generation.md', type: 'file', description: '테스트 생성' },
+            { name: '...', type: 'file', description: '+ 9개 더' },
+          ],
+        },
+        {
+          name: 'skills/',
+          type: 'folder',
+          description: '실행 가능한 스킬 (5개)',
+          children: [
+            { name: 'code-review.md', type: 'file', description: '/review' },
+            { name: 'doc-gen.md', type: 'file', description: '/doc' },
+            { name: 'refactor.md', type: 'file', description: '/refactor' },
+            { name: 'security-scan.md', type: 'file', description: '/security' },
+            { name: 'test-gen.md', type: 'file', description: '/test' },
+          ],
+        },
+        {
+          name: 'subagents/',
+          type: 'folder',
+          description: '전문 서브에이전트 (4개)',
+          children: [
+            { name: 'architect.md', type: 'file', description: '아키텍처 설계' },
+            { name: 'documentation.md', type: 'file', description: '문서 작성' },
+            { name: 'security.md', type: 'file', description: '보안 분석' },
+            { name: 'test.md', type: 'file', description: '테스트 전략' },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+## 각 파일의 역할
+
+### 메인 설정 파일
+
+| 파일 | 역할 | 주요 내용 |
+|------|------|----------|
+| `context.md` | 프로젝트 컨텍스트 | 기술 스택, 도메인 지식, 환경 정보 |
+| `conventions.md` | 코딩 규칙 | 네이밍, 스타일, Git 규칙 |
+| `architecture.md` | 아키텍처 | 레이어 구조, 의존성 방향, 데이터 흐름 |
+| `guidelines.md` | AI 사용 가이드라인 | 허용/금지 사항, 검증 절차 |
+| `commands.md` | 슬래시 커맨드 | 10개 커스텀 커맨드 정의 |
+
+### 디렉토리별 역할
+
+| 디렉토리 | 파일 수 | 역할 |
+|----------|--------|------|
+| `prompts/` | 15개 | 상황별 프롬프트 템플릿 |
+| `skills/` | 5개 | 슬래시 커맨드로 실행 가능한 스킬 |
+| `subagents/` | 4개 | 전문 분야별 서브에이전트 정의 |
+
+## CLAUDE.md와의 관계
+
+<CodeBlock
+  code={`# CLAUDE.md에서 .agent/ 파일 참조
+## 참고 문서
+- \`.agent/context.md\` - 상세 프로젝트 컨텍스트
+- \`.agent/conventions.md\` - 코딩 컨벤션 상세
+- \`docs/adr/\` - 아키텍처 결정 기록`}
+  language="markdown"
+  filename="CLAUDE.md"
+/>
+
+<Callout type="tip" title="참조 방식">
+  CLAUDE.md에 간략한 규칙을 적고, 상세 내용은 .agent/ 파일을 참조하도록 구성하면
+  Claude가 필요할 때 상세 정보를 찾아볼 수 있습니다.
+</Callout>
+
+## 다른 AI 도구에서의 활용
+
+| AI 도구 | 참조 방식 |
+|---------|----------|
+| **Claude Code** | CLAUDE.md에서 참조, 대화 중 직접 파일 읽기 |
+| **Cursor** | `.cursorrules`에서 참조, @files로 직접 참조 |
+| **Roo Code** | `.roo/` 설정에서 참조 |
+
+<Quiz
+  title=".agent/ 디렉토리 이해도 확인"
+  questions={[
+    {
+      question: '.agent/ 디렉토리의 핵심 역할은?',
+      options: ['빌드 설정 관리', 'AI 에이전트를 위한 프로젝트 지식 베이스', '테스트 파일 저장', 'CI/CD 설정'],
+      correctIndex: 1,
+      explanation: '.agent/ 디렉토리는 AI 에이전트가 프로젝트를 이해하고 효과적으로 작업하기 위한 지식 베이스입니다.',
+    },
+    {
+      question: '.agent/skills/ 디렉토리의 파일들은 무엇을 정의하나요?',
+      options: ['팀원 스킬 매트릭스', '슬래시 커맨드로 실행 가능한 AI 스킬', '언어별 코딩 스킬', '기술 면접 질문'],
+      correctIndex: 1,
+      explanation: 'skills/ 디렉토리에는 /review, /test, /doc 등 슬래시 커맨드로 실행할 수 있는 AI 스킬이 정의되어 있습니다.',
+    },
+  ]}
+/>
+
+<ChapterNav
+  prev={{ title: 'CLAUDE.md 딥다이브', path: '/docs/part-1--기초-claude-md-딥다이브' }}
+  next={{ title: '컨텍스트와 컨벤션', path: '/docs/part-2--프로젝트-템플릿-구조-컨텍스트와-컨벤션' }}
+/>

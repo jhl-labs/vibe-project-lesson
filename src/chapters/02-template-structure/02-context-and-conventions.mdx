@@ -1,0 +1,116 @@
+import { Meta } from '@storybook/blocks';
+import { Callout } from '../../components/Callout';
+import { TemplateFileViewer } from '../../components/TemplateFileViewer';
+import { CodeBlock } from '../../components/CodeBlock';
+import { Quiz } from '../../components/Quiz';
+import { ChapterNav } from '../../components/ChapterNav';
+import { templateFiles } from '../../data/template-files';
+
+<Meta title="Part 2: 프로젝트 템플릿 구조/컨텍스트와 컨벤션" />
+
+# 컨텍스트와 컨벤션
+
+> 프로젝트 정보와 코딩 규칙 정의
+
+## context.md - 프로젝트 컨텍스트
+
+`context.md`는 프로젝트의 전반적인 정보를 AI 에이전트에게 제공하는 파일입니다.
+
+### 주요 섹션
+
+| 섹션 | 내용 |
+|------|------|
+| 프로젝트 개요 | 이름, 버전, 상태, 목적 |
+| 기술 스택 | 언어, 프레임워크, DB, 개발 도구 |
+| 아키텍처 개요 | 시스템 구성도, 핵심 모듈 |
+| 도메인 지식 | 비즈니스 용어, 규칙 |
+| 현재 상태 | 완료/진행 중 작업, 알려진 이슈 |
+| 외부 연동 | API, 인증 방식 |
+| 환경 정보 | 환경 구분, 환경 변수 |
+
+### 실제 파일 분석
+
+<TemplateFileViewer
+  filename=".agent/context.md"
+  content={templateFiles['.agent/context.md']}
+  language="markdown"
+  annotations={[
+    { lineStart: 1, lineEnd: 4, text: '프로젝트 컨텍스트 파일의 헤더입니다. AI 에이전트가 이 파일의 목적을 이해할 수 있도록 합니다.' },
+    { lineStart: 6, lineEnd: 24, text: '프로젝트 기본 정보를 정의합니다. <placeholder> 형태로 되어 있어 실제 프로젝트에 맞게 수정해야 합니다.' },
+    { lineStart: 26, lineEnd: 46, text: '기술 스택 섹션입니다. 핵심 기술과 개발 도구를 테이블로 정리하여 AI가 기술적 맥락을 이해하도록 합니다.' },
+    { lineStart: 48, lineEnd: 83, text: '아키텍처 개요와 핵심 모듈입니다. ASCII 다이어그램으로 시스템 구성을 시각적으로 표현합니다.' },
+    { lineStart: 84, lineEnd: 98, text: '도메인 지식 섹션입니다. 비즈니스 용어와 규칙을 정의하여 AI가 도메인 맥락에 맞는 코드를 생성하도록 합니다.' },
+    { lineStart: 131, lineEnd: 153, text: '환경 정보와 환경 변수 섹션입니다. 각 환경별 URL과 필수 환경 변수를 정의합니다.' },
+  ]}
+/>
+
+<Callout type="tip" title="작성 팁">
+  context.md는 새 팀원이 프로젝트에 온보딩할 때 필요한 정보와 동일합니다.
+  "이 정보가 없으면 AI가 잘못된 결정을 내릴 수 있는가?"를 기준으로 내용을 선별하세요.
+</Callout>
+
+---
+
+## conventions.md - 코딩 규칙
+
+`conventions.md`는 프로젝트의 코딩 스타일과 규칙을 정의합니다.
+
+### 주요 섹션
+
+| 섹션 | 내용 |
+|------|------|
+| 일반 원칙 | DRY, KISS, YAGNI, 가독성 우선 |
+| 네이밍 규칙 | 파일, 클래스, 함수, 변수, 상수 |
+| 코드 스타일 | 들여쓰기, 포맷팅, Import 순서 |
+| 타입 시스템 | Interface, Type, Null 처리 |
+| 에러 처리 | 에러 클래스, Try-Catch 패턴 |
+| 비동기 코드 | Async/Await, 병렬 처리 |
+| 주석 | 작성 시점, JSDoc |
+| Git 규칙 | 커밋 메시지, 브랜치 전략 |
+
+### 실제 파일 분석
+
+<TemplateFileViewer
+  filename=".agent/conventions.md"
+  content={templateFiles['.agent/conventions.md']}
+  language="markdown"
+  annotations={[
+    { lineStart: 1, lineEnd: 19, text: '일반 원칙과 함수 설계 규칙입니다. 가독성 우선, DRY, KISS, YAGNI 4대 원칙을 정의하고 함수의 크기/파라미터 제한을 설정합니다.' },
+    { lineStart: 21, lineEnd: 56, text: '네이밍 규칙입니다. 파일, 클래스, 인터페이스, 함수, 변수, 상수 등 각 코드 요소별 네이밍 규칙을 테이블과 예제로 정의합니다.' },
+    { lineStart: 81, lineEnd: 120, text: '코드 스타일 섹션입니다. 들여쓰기, 포맷팅, Import 순서를 코드 예제와 함께 정의합니다.' },
+    { lineStart: 166, lineEnd: 206, text: '에러 처리 패턴입니다. 커스텀 에러 클래스와 구체적인 Try-Catch 패턴을 코드로 보여줍니다.' },
+    { lineStart: 292, lineEnd: 335, text: 'Git 규칙입니다. Conventional Commits 형식과 브랜치 전략을 정의합니다.' },
+  ]}
+/>
+
+## context.md vs conventions.md
+
+| 항목 | context.md | conventions.md |
+|------|-----------|---------------|
+| **목적** | 프로젝트가 "무엇"인지 | 코드를 "어떻게" 작성할지 |
+| **변경 빈도** | 프로젝트 초기에 설정 | 지속적으로 개선 |
+| **참조 시점** | 새 기능 설계 시 | 코드 작성/리뷰 시 |
+| **예시 내용** | "PostgreSQL 15 사용" | "함수는 30줄 이내" |
+
+<Quiz
+  title="컨텍스트와 컨벤션 이해도 확인"
+  questions={[
+    {
+      question: 'context.md에 포함되어야 할 정보는?',
+      options: ['코드 들여쓰기 규칙', '프로젝트 기술 스택과 도메인 지식', '커밋 메시지 형식', '함수 네이밍 규칙'],
+      correctIndex: 1,
+      explanation: 'context.md는 프로젝트의 "무엇"에 대한 정보(기술 스택, 도메인, 환경)를 담고, conventions.md는 "어떻게"에 대한 규칙을 담습니다.',
+    },
+    {
+      question: 'conventions.md의 Conventional Commits에서 새 기능 추가 시 사용하는 type은?',
+      options: ['fix', 'feat', 'chore', 'docs'],
+      correctIndex: 1,
+      explanation: 'feat는 새로운 기능 추가를 나타내는 커밋 타입입니다. fix는 버그 수정, docs는 문서 변경, chore는 빌드/설정 변경에 사용합니다.',
+    },
+  ]}
+/>
+
+<ChapterNav
+  prev={{ title: '.agent 디렉토리 개요', path: '/docs/part-2--프로젝트-템플릿-구조-agent-디렉토리-개요' }}
+  next={{ title: '아키텍처', path: '/docs/part-2--프로젝트-템플릿-구조-아키텍처' }}
+/>
