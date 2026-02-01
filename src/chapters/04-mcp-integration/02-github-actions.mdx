@@ -2,6 +2,7 @@ import { Meta } from '@storybook/blocks';
 import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
@@ -151,6 +152,37 @@ jobs:
           ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`}
   language="yaml"
   filename="claude-doc-sync.yml"
+/>
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph TRIGGER["🎯 트리거"]
+      PR["PR 생성/업데이트"]
+      ISSUE["이슈 생성"]
+      SCHED["스케줄 (주간)"]
+      MERGE["main 머지"]
+    end
+    subgraph CLAUDE["🤖 Claude Actions"]
+      REVIEW["PR Review<br/>코드 리뷰 자동화"]
+      TRIAGE["Issue Triage<br/>자동 분류/라벨링"]
+      SUGGEST["Code Suggest<br/>코드 개선 제안"]
+      DOCSYNC["Doc Sync<br/>문서 동기화"]
+    end
+    subgraph OUTPUT["📋 산출물"]
+      RC["리뷰 코멘트"]
+      LB["라벨, 담당자"]
+      SC["제안 코멘트"]
+      SR["동기화 리포트"]
+    end
+    PR --> REVIEW --> RC
+    PR --> SUGGEST --> SC
+    ISSUE --> TRIAGE --> LB
+    SCHED --> DOCSYNC --> SR
+    style TRIGGER fill:#0f172a,stroke:#475569,color:#f1f5f9
+    style CLAUDE fill:#1e293b,stroke:#818cf8,color:#f1f5f9
+    style OUTPUT fill:#0f172a,stroke:#34d399,color:#f1f5f9`}
+  title="Claude GitHub Actions CI/CD 파이프라인"
+  caption="각 트리거에 따라 적절한 Claude Action이 실행되고 산출물을 생성합니다"
 />
 
 ## 기타 CI/CD 워크플로우

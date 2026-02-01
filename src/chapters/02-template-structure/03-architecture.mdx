@@ -3,6 +3,7 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
 import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
@@ -26,31 +27,37 @@ import { templateFiles } from '../../data/template-files';
 
 ## 4레이어 구조
 
-<CodeBlock
-  code={`┌─────────────────────────────────────────────────────────────┐
-│                     Presentation Layer                       │
-│   REST API  │   GraphQL API  │   gRPC Service               │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Application Layer                         │
-│            Use Cases / Application Services                  │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Domain Layer                            │
-│     Entities  │  Value Objects  │  Domain Services           │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Infrastructure Layer                        │
-│   Repository  │  External APIs  │  Message Queue  │  Cache  │
-└─────────────────────────────────────────────────────────────┘`}
-  language="text"
-  filename="Clean Architecture 4레이어"
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph PL["🌐 Presentation Layer"]
+      REST["REST API"]
+      GraphQL["GraphQL API"]
+      gRPC["gRPC Service"]
+    end
+    subgraph AL["⚙️ Application Layer"]
+      UC["Use Cases"]
+      AS["Application Services"]
+    end
+    subgraph DL["💎 Domain Layer"]
+      E["Entities"]
+      VO["Value Objects"]
+      DS["Domain Services"]
+    end
+    subgraph IL["🔧 Infrastructure Layer"]
+      Repo["Repository"]
+      ExtAPI["External APIs"]
+      MQ["Message Queue"]
+      Cache["Cache"]
+    end
+    PL --> AL
+    AL --> DL
+    IL --> DL
+    style PL fill:#1e3a5f,stroke:#818cf8,color:#f1f5f9
+    style AL fill:#1e3a5f,stroke:#a78bfa,color:#f1f5f9
+    style DL fill:#1e3a5f,stroke:#34d399,color:#f1f5f9
+    style IL fill:#1e3a5f,stroke:#fbbf24,color:#f1f5f9`}
+  title="Clean Architecture 4레이어"
+  caption="의존성은 항상 안쪽(Domain)을 향합니다. Infrastructure는 Domain에 의존합니다."
 />
 
 <Callout type="important" title="의존성 방향">
@@ -77,33 +84,30 @@ import { templateFiles } from '../../data/template-files';
 
 ## 데이터 흐름
 
-<CodeBlock
-  code={`Client Request
-     │
-     ▼
-┌─────────────────┐
-│   Controller    │ ─── 입력 검증, 인증 확인, DTO 변환
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   Use Case      │ ─── 비즈니스 오케스트레이션, 트랜잭션 경계
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Domain Service  │ ─── 비즈니스 로직 실행, 규칙 강제
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   Repository    │ ─── 데이터 영속화, 외부 시스템 통합
-└────────┬────────┘
-         │
-         ▼
-    Database`}
-  language="text"
-  filename="요청 처리 흐름"
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant C as 🖥️ Client
+    participant CT as Controller
+    participant UC as Use Case
+    participant DS as Domain Service
+    participant R as Repository
+    participant DB as 💾 Database
+    C->>CT: HTTP Request
+    Note right of CT: 입력 검증, 인증 확인, DTO 변환
+    CT->>UC: Command/Query
+    Note right of UC: 비즈니스 오케스트레이션, 트랜잭션 경계
+    UC->>DS: 도메인 메서드 호출
+    Note right of DS: 비즈니스 로직 실행, 규칙 강제
+    DS->>R: 데이터 접근
+    Note right of R: 데이터 영속화
+    R->>DB: SQL Query
+    DB-->>R: Result Set
+    R-->>DS: Entity
+    DS-->>UC: Domain Result
+    UC-->>CT: Response DTO
+    CT-->>C: HTTP Response`}
+  title="요청 처리 데이터 흐름"
+  caption="클라이언트 요청이 각 레이어를 거쳐 처리되는 과정"
 />
 
 ## 실제 architecture.md 파일

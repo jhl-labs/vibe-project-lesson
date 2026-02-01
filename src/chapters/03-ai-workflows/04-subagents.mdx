@@ -2,6 +2,7 @@ import { Meta } from '@storybook/blocks';
 import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
@@ -113,32 +114,31 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## 서브에이전트 활용 패턴
 
-### 병렬 실행
+### 서브에이전트 오케스트레이션
 
-<CodeBlock
-  code={`# 여러 서브에이전트를 동시에 활용하는 시나리오
-
-## 새 기능 개발 시
-1. Architect → 설계 검토, ADR 작성
-2. (병렬) Security → 보안 분석
-          Test → 테스트 전략 수립
-          Documentation → 문서 초안
-3. 개발자 → 종합 검토 후 구현`}
-  language="text"
-  filename="병렬 실행 패턴"
-/>
-
-### 순차 실행
-
-<CodeBlock
-  code={`# 코드 리뷰 시 순차 활용
-
-1. Security → 보안 취약점 1차 스캔
-2. Test → 테스트 커버리지 확인
-3. Documentation → 문서 동기화 검증
-4. 개발자 → 종합 리뷰 결정`}
-  language="text"
-  filename="순차 실행 패턴"
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant D as 👤 개발자
+    participant A as 🏛️ Architect
+    participant S as 🔒 Security
+    participant T as 🧪 Test
+    participant DOC as 📝 Documentation
+    D->>A: 1. 설계 검토 요청
+    A-->>D: ADR, 설계안
+    Note over D: 설계 승인 후 병렬 실행
+    par 병렬 실행
+      D->>S: 2a. 보안 분석
+      S-->>D: 취약점 리포트
+    and
+      D->>T: 2b. 테스트 전략
+      T-->>D: 테스트 코드
+    and
+      D->>DOC: 2c. 문서 초안
+      DOC-->>D: API 문서
+    end
+    Note over D: 3. 종합 검토 후 구현`}
+  title="서브에이전트 오케스트레이션 패턴"
+  caption="Architect의 설계 검토 후, Security/Test/Documentation이 병렬로 실행됩니다"
 />
 
 ### 격리된 컨텍스트

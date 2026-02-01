@@ -3,6 +3,7 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
 import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
@@ -24,21 +25,45 @@ import { templateFiles } from '../../data/template-files';
 
 ## 구조
 
-<CodeBlock
-  code={`┌─────────────┐     MCP Protocol     ┌─────────────┐
-│             │ ◄──────────────────► │  Filesystem │
-│             │                      └─────────────┘
-│             │     MCP Protocol     ┌─────────────┐
-│  Claude     │ ◄──────────────────► │     Git     │
-│  Code       │                      └─────────────┘
-│             │     MCP Protocol     ┌─────────────┐
-│             │ ◄──────────────────► │   GitHub    │
-│             │                      └─────────────┘
-│             │     MCP Protocol     ┌─────────────┐
-│             │ ◄──────────────────► │  Database   │
-└─────────────┘                      └─────────────┘`}
-  language="text"
-  filename="MCP 아키텍처"
+<MermaidDiagram
+  chart={`flowchart LR
+    CC["🤖 Claude Code<br/>(MCP Client)"]
+    FS["📁 Filesystem<br/>Server"]
+    GIT["🔀 Git<br/>Server"]
+    GH["🐙 GitHub<br/>Server"]
+    DB["💾 Database<br/>Server"]
+    FE["🌐 Fetch<br/>Server"]
+    CC <-->|MCP Protocol| FS
+    CC <-->|MCP Protocol| GIT
+    CC <-->|MCP Protocol| GH
+    CC <-->|MCP Protocol| DB
+    CC <-->|MCP Protocol| FE
+    style CC fill:#6366f1,stroke:#818cf8,color:#fff
+    style FS fill:#1e293b,stroke:#34d399,color:#f1f5f9
+    style GIT fill:#1e293b,stroke:#34d399,color:#f1f5f9
+    style GH fill:#1e293b,stroke:#fbbf24,color:#f1f5f9
+    style DB fill:#1e293b,stroke:#f87171,color:#f1f5f9
+    style FE fill:#1e293b,stroke:#38bdf8,color:#f1f5f9`}
+  title="MCP 아키텍처"
+  caption="Claude Code가 MCP 프로토콜을 통해 다양한 외부 도구 서버와 양방향 통신합니다"
+/>
+
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant U as 👤 사용자
+    participant CC as 🤖 Claude Code
+    participant MCP as MCP Server
+    participant EXT as 🔧 외부 시스템
+    U->>CC: 작업 요청
+    CC->>CC: 컨텍스트 분석
+    CC->>MCP: Tool 호출 (JSON-RPC)
+    MCP->>EXT: API 호출 / 명령 실행
+    EXT-->>MCP: 결과 반환
+    MCP-->>CC: Tool 결과 (JSON-RPC)
+    CC->>CC: 결과 기반 추론
+    CC-->>U: 응답 (코드/설명)`}
+  title="MCP 통신 흐름"
+  caption="사용자 요청 → Claude Code 분석 → MCP 서버 호출 → 외부 시스템 작업 → 결과 반환"
 />
 
 ## .mcp.json 설정

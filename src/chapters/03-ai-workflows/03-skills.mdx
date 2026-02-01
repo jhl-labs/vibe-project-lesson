@@ -3,6 +3,8 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
+import { PlotlyChart } from '../../components/PlotlyChart';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
@@ -36,46 +38,61 @@ import { templateFiles } from '../../data/template-files';
 
 ### 리뷰 프로세스
 
-<CodeBlock
-  code={`Phase 1: 분석
-  - 변경된 파일 목록 확인
-  - 변경 유형 분류 (기능/버그/리팩토링)
-  - 영향 범위 파악
-
-Phase 2: 검토
-  - 기능 정확성 확인
-  - 코드 품질 검사 (컨벤션, DRY, KISS)
-  - 보안 취약점 스캔
-  - 성능 이슈 확인
-  - 테스트 커버리지 확인
-
-Phase 3: 피드백
-  - 🚨 필수 수정 (Blocker)
-  - 💡 권장 사항 (Suggestion)
-  - ❓ 질문 (Question)
-  - ✨ 좋은 점 (Praise)`}
-  language="text"
-  filename="Code Review 프로세스"
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph P1["Phase 1: 분석"]
+      A1["변경 파일 목록 확인"]
+      A2["변경 유형 분류<br/>(기능/버그/리팩토링)"]
+      A3["영향 범위 파악"]
+      A1 --> A2 --> A3
+    end
+    subgraph P2["Phase 2: 검토"]
+      B1["기능 정확성"]
+      B2["코드 품질<br/>(컨벤션, DRY, KISS)"]
+      B3["보안 취약점"]
+      B4["성능 이슈"]
+      B5["테스트 커버리지"]
+    end
+    subgraph P3["Phase 3: 피드백"]
+      C1["🚨 필수 수정<br/>(Blocker)"]
+      C2["💡 권장 사항<br/>(Suggestion)"]
+      C3["❓ 질문<br/>(Question)"]
+      C4["✨ 좋은 점<br/>(Praise)"]
+    end
+    P1 --> P2 --> P3
+    style P1 fill:#1e293b,stroke:#38bdf8,color:#f1f5f9
+    style P2 fill:#1e293b,stroke:#a78bfa,color:#f1f5f9
+    style P3 fill:#1e293b,stroke:#34d399,color:#f1f5f9`}
+  title="Code Review 프로세스"
+  caption="3단계(분석 → 검토 → 피드백)로 체계적인 코드 리뷰를 수행합니다"
 />
 
 ## Test Generation 스킬 상세
 
 ### 테스트 피라미드
 
-<CodeBlock
-  code={`         /\\
-        /  \\
-       / E2E\\        10%
-      /  (UI) \\
-     /─────────\\
-    / Integration\\   20%
-   /   (Service)  \\
-  /────────────────\\
- /    Unit Tests    \\  70%
-/    (Functions)     \\
-──────────────────────`}
-  language="text"
-  filename="테스트 피라미드"
+<PlotlyChart
+  title="테스트 피라미드 비율"
+  data={[
+    {
+      labels: ['Unit Tests (70%)', 'Integration Tests (20%)', 'E2E Tests (10%)'],
+      values: [70, 20, 10],
+      type: 'pie',
+      hole: 0.4,
+      marker: {
+        colors: ['#818cf8', '#a78bfa', '#c4b5fd'],
+        line: { color: '#1e293b', width: 2 },
+      },
+      textinfo: 'label+percent',
+      textfont: { color: '#f1f5f9', size: 12 },
+      hovertemplate: '%{label}<br>비율: %{percent}<extra></extra>',
+    },
+  ]}
+  layout={{
+    margin: { t: 20, b: 20, l: 20, r: 20 },
+    showlegend: false,
+  }}
+  height={320}
 />
 
 ### FIRST 원칙

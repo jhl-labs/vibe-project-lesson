@@ -3,6 +3,7 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
 import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
@@ -136,17 +137,22 @@ Closes #123`}
 
 ## 커맨드 조합 워크플로우
 
-<CodeBlock
-  code={`# 일반적인 개발 워크플로우
-/review → /test → /commit → /pr
-
-# 보안 중심 워크플로우
-/security → /review --focus security → /commit
-
-# 문서 중심 워크플로우
-/doc → /changelog → /commit`}
-  language="bash"
-  filename="커맨드 조합"
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph DEV["🔧 일반 개발"]
+      R1["/review"] --> T1["/test"] --> C1["/commit"] --> P1["/pr"]
+    end
+    subgraph SEC["🔒 보안 중심"]
+      S2["/security"] --> R2["/review<br/>--focus security"] --> C2["/commit"]
+    end
+    subgraph DOC["📝 문서 중심"]
+      D3["/doc"] --> CL3["/changelog"] --> C3["/commit"]
+    end
+    style DEV fill:#0f172a,stroke:#818cf8,color:#f1f5f9
+    style SEC fill:#0f172a,stroke:#f87171,color:#f1f5f9
+    style DOC fill:#0f172a,stroke:#34d399,color:#f1f5f9`}
+  title="커맨드 조합 워크플로우"
+  caption="상황에 따라 다른 커맨드 조합으로 효율적인 워크플로우를 구성합니다"
 />
 
 ## 실제 commands.md 파일

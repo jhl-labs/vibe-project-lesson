@@ -192,3 +192,18 @@
 .sbdocs strong {
   color: var(--color-text-primary) !important;
 }
+
+/* Mermaid diagram containers */
+.mermaid-container svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Plotly chart containers */
+.plotly-container .js-plotly-plot {
+  width: 100% !important;
+}
+
+.plotly-container .js-plotly-plot .plotly .modebar {
+  display: none !important;
+}

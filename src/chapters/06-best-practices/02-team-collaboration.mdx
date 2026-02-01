@@ -2,6 +2,7 @@ import { Meta } from '@storybook/blocks';
 import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
+import { DataTable } from '../../components/DataTable';
 import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
@@ -75,12 +76,23 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ### 효과적인 AI 활용을 위한 교육 체계
 
-| 단계 | 내용 | 대상 |
-|------|------|------|
-| **기초** | 바이브 코딩 개념, 도구 설치 | 전체 팀 |
-| **실전** | 프롬프트 작성법, 커맨드 활용 | 개발자 |
-| **심화** | 커스터마이징, 보안 검증 | 시니어/리드 |
-| **관리** | 가이드라인 수립, 효과 측정 | 매니저 |
+<DataTable
+  title="AI 활용 교육 로드맵"
+  searchable={true}
+  columns={[
+    { key: 'stage', header: '단계' },
+    { key: 'content', header: '교육 내용' },
+    { key: 'target', header: '대상' },
+    { key: 'duration', header: '기간' },
+    { key: 'goal', header: '목표' },
+  ]}
+  data={[
+    { stage: '기초', content: '바이브 코딩 개념, 도구 설치, 기본 사용법', target: '전체 팀', duration: '1주', goal: '기본 명령어 실행 가능' },
+    { stage: '실전', content: '프롬프트 작성법, 슬래시 커맨드 활용', target: '개발자', duration: '2주', goal: '일상 업무에 AI 활용' },
+    { stage: '심화', content: '커스터마이징, 보안 검증, 스킬 제작', target: '시니어/리드', duration: '2주', goal: '팀 맞춤 설정 구축' },
+    { stage: '관리', content: '가이드라인 수립, 효과 측정, ROI 분석', target: '매니저', duration: '지속', goal: '조직 차원 AI 전략 수립' },
+  ]}
+/>
 
 ### 지식 공유
 
