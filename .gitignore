@@ -198,3 +198,6 @@ docker-compose.override.yml
 # .agent/tmp/
 CLAUDE.local.md
 .mcp.json
+
+*storybook.log
+storybook-static/
