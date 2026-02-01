@@ -2,8 +2,6 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
-import { FileTree } from '../../components/FileTree';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 1: 기초/Claude Code란?" />
@@ -14,142 +12,157 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## 개요
 
-**Claude Code**는 Anthropic이 개발한 **CLI(Command Line Interface) 기반의 AI 코딩 에이전트**입니다. 터미널에서 직접 실행하여 파일 시스템 접근, 코드 생성/수정, Git 작업, 테스트 실행 등 개발 워크플로우 전반을 지원합니다.
+**Claude Code**는 Anthropic이 개발한 **CLI(Command Line Interface) 기반의 AI 코딩 에이전트**입니다. 2025년 2월 리서치 프리뷰로 공개된 후, 2025년 5월 Claude 4와 함께 정식 출시(GA)되었습니다. 터미널에서 직접 실행하여 파일 시스템 접근, 코드 생성/수정, Git 작업, 테스트 실행 등 개발 워크플로우 전반을 자율적으로 수행합니다.
 
 <Callout type="info" title="핵심 포인트">
-  Claude Code는 단순한 코드 자동완성 도구가 아닙니다. 
+  Claude Code는 단순한 코드 자동완성 도구가 아닙니다.
   프로젝트의 전체 컨텍스트를 이해하고, 자율적으로 작업을 수행할 수 있는 **AI 에이전트**입니다.
+  2025년 한 해 동안 **176건의 업데이트**가 이루어졌으며, 매출은 **5.5배 성장**(2025년 7월 기준)했습니다.
 </Callout>
 
-## 설치 및 구독
+## 설치
+
+2025년 11월부터 **네이티브 설치**가 기본 권장 방식입니다. Node.js가 필요 없으며, 자동 업데이트를 지원합니다.
 
 <CodeBlock
-  code={`# Claude Code 설치
-npm install -g @anthropic-ai/claude-code
+  code={`# macOS / Linux
+curl -fsSL https://claude.ai/install.sh | bash
+
+# Windows (PowerShell)
+irm https://claude.ai/install.ps1 | iex
+
+# 설치 확인
+claude --version
 
 # 실행
 claude
 
-# 특정 디렉토리에서 실행
-claude --cwd /path/to/project`}
+# 기존 npm 설치에서 마이그레이션
+claude install`}
   language="bash"
-  filename="설치 명령어"
+  filename="네이티브 설치 (권장)"
 />
 
-### 구독 플랜
+<Callout type="warning" title="npm 설치는 deprecated">
+  `npm install -g @anthropic-ai/claude-code`는 더 이상 권장되지 않습니다.
+  PATH 이슈, 플랫폼 호환성 문제가 있으며, 네이티브 설치로 마이그레이션하면 기존 설정이 그대로 유지됩니다.
+</Callout>
 
-| 플랜 | 가격 | 특징 |
-|------|------|------|
-| **Pro** | $20/월 | 기본 사용량, Claude 3.5 Sonnet |
-| **Max** | $100/월 | 대량 사용, Claude 3.5 Opus, 우선 처리 |
+## 구독 플랜
+
+Claude Code는 Claude Pro/Max 구독 또는 Anthropic API 키로 사용할 수 있습니다.
+
+| 플랜 | 가격 | Claude Code 사용량 | 주요 모델 |
+|------|------|-------------------|-----------|
+| **Pro** | $20/월 | 기본 (45 메시지/5시간) | Sonnet 4.5 |
+| **Max 5x** | $100/월 | Pro의 5배 | Sonnet 4.5 + Opus 4.5 |
+| **Max 20x** | $200/월 | Pro의 20배 | Sonnet 4.5 + Opus 4.5 |
+| **Teams** | $150/월/석 | 팀 관리 + 대량 사용 | 전체 모델 |
+| **API** | 종량제 | 무제한 (비용 비례) | 전체 모델 |
+
+<Callout type="tip" title="비용 참고">
+  Anthropic에 따르면 Claude Code 사용자의 평균 비용은 **하루 $6**, 90%의 개발자가 **하루 $12 이하**입니다.
+  Max 구독은 API 직접 사용 대비 약 **18배 저렴**하다는 분석도 있습니다.
+</Callout>
 
 ## 핵심 기능
 
-### 1. 파일 시스템 접근
+### 1. 파일 시스템 직접 접근
 
 Claude Code는 프로젝트 디렉토리 내의 파일을 직접 읽고 쓸 수 있습니다:
 
-- 프로젝트 구조 파악
-- 기존 코드 분석
-- 새 파일 생성 및 기존 파일 수정
-- 설정 파일 관리
+- 프로젝트 구조 자동 파악
+- 기존 코드 분석 및 이해
+- 새 파일 생성, 기존 파일 수정
+- 명령어 실행 (빌드, 테스트, 린트 등)
 
 ### 2. CLAUDE.md 기반 프로젝트 컨텍스트
 
-프로젝트 루트의 `CLAUDE.md` 파일을 자동으로 읽어 프로젝트 규칙과 컨벤션을 이해합니다.
+프로젝트 루트의 `CLAUDE.md` 파일을 자동으로 읽어 프로젝트 규칙과 컨벤션을 이해합니다. 프로젝트별, 사용자별, 글로벌 수준의 계층적 설정을 지원합니다.
 
 ### 3. MCP (Model Context Protocol)
 
-외부 서버와의 연동을 통해 기능을 확장합니다:
-- 파일 시스템, Git, GitHub API
-- 데이터베이스 (PostgreSQL, SQLite)
-- 브라우저 자동화 (Puppeteer)
-- 외부 API 호출
+Anthropic이 2024년 말 공개한 오픈 표준으로, 외부 도구와의 양방향 통신을 지원합니다:
+- **파일 시스템 / Git / GitHub API** 연동
+- **데이터베이스** (PostgreSQL, SQLite 등)
+- **브라우저 자동화** (Puppeteer)
+- **외부 API / SaaS** 연동 (Notion, Slack 등)
+- 프로젝트/사용자/글로벌 3단계 스코프로 관리
 
-### 4. Subagent (서브에이전트)
+### 4. Skills & 슬래시 커맨드
 
-복잡한 작업을 여러 전문 에이전트에게 위임할 수 있습니다:
-- 아키텍트 에이전트
-- 보안 분석 에이전트
-- 테스트 전략 에이전트
-- 문서화 에이전트
+Claude Code v2.1.3부터 슬래시 커맨드와 스킬이 **통합**되었습니다. `.claude/commands/` 또는 `.claude/skills/` 디렉토리에 마크다운 파일을 작성하면 `/명령어`로 호출할 수 있습니다.
 
-### 5. Hooks & Plugins
+| 유형 | 설명 | 예시 |
+|------|------|------|
+| **내장 커맨드** | Claude Code 기본 제공 | `/init`, `/clear`, `/compact`, `/cost`, `/hooks`, `/config` |
+| **커스텀 스킬** | 프로젝트별 워크플로우 정의 | `/review`, `/test`, `/deploy` |
+| **포크 컨텍스트** | 독립된 서브에이전트로 실행 | `context: fork` 프론트매터 사용 |
 
-특정 이벤트에 반응하는 자동화 스크립트를 설정할 수 있습니다.
+### 5. Subagent (서브에이전트)
 
-### 6. 내장 슬래시 커맨드
+복잡한 작업을 여러 전문 에이전트에게 위임할 수 있습니다. Anthropic은 특히 대화 초반에 서브에이전트를 적극 활용할 것을 권장합니다 — 컨텍스트를 보존하면서 세부 작업을 병렬 처리할 수 있기 때문입니다.
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/init` | CLAUDE.md 자동 생성 |
-| `/clear` | 대화 기록 초기화 |
-| `/help` | 도움말 표시 |
-| `/compact` | 컨텍스트 압축 |
-| `/cost` | 토큰 사용량 확인 |
+### 6. Hooks
+
+특정 이벤트에 반응하는 자동화 스크립트입니다:
+- **PreToolUse**: 도구 호출 전 실행 (예: 위험한 명령어 경고)
+- **PostToolUse**: 도구 호출 후 실행 (예: 출력 포맷팅)
+- **PermissionRequest**: 권한 요청 시 실행
+- `/hooks` 커맨드로 인터랙티브하게 설정 가능
 
 ## 다른 도구와의 비교
 
 <ComparisonTable
-  title="AI 코딩 도구 비교"
-  headers={['기능', 'Claude Code', 'GitHub Copilot', 'Cursor', 'Windsurf']}
+  title="AI 코딩 도구 비교 (2026년 기준)"
+  headers={['기능', 'Claude Code', 'GitHub Copilot', 'Cursor']}
   rows={[
-    { feature: '터미널 기반', values: ['yes', 'no', 'no', 'no'] },
-    { feature: 'IDE 통합', values: ['VS Code 확장', 'yes', 'yes', 'yes'] },
-    { feature: '파일 시스템 접근', values: ['yes', 'partial', 'yes', 'yes'] },
-    { feature: 'MCP 프로토콜', values: ['yes', 'no', 'yes', 'no'] },
-    { feature: '서브에이전트', values: ['yes', 'no', 'no', 'partial'] },
-    { feature: 'Git 통합', values: ['yes', 'partial', 'partial', 'partial'] },
-    { feature: '자율 실행', values: ['yes', 'no', 'partial', 'partial'] },
-    { feature: 'CLAUDE.md', values: ['yes', 'no', 'no', 'no'] },
-    { feature: '커스텀 커맨드', values: ['yes', 'no', 'partial', 'no'] },
+    { feature: '인터페이스', values: ['터미널 CLI + 웹', 'IDE 확장 + CLI', 'AI IDE (VS Code 포크)'] },
+    { feature: 'MCP 지원', values: ['yes', 'yes', 'yes'] },
+    { feature: '파일 시스템 직접 접근', values: ['yes', 'yes', 'yes'] },
+    { feature: '서브에이전트', values: ['yes', 'partial', 'no'] },
+    { feature: 'Git 통합', values: ['yes', 'yes', 'partial'] },
+    { feature: '자율 실행 (Agent)', values: ['yes', 'yes', 'yes'] },
+    { feature: '프로젝트 컨텍스트 파일', values: ['CLAUDE.md', '.github/copilot-instructions.md', '.cursorrules'] },
+    { feature: '커스텀 커맨드/스킬', values: ['yes', 'partial', 'partial'] },
+    { feature: '가격 (개인)', values: ['$20~/월', '$10/월', '$20/월'] },
   ]}
 />
+
+<Callout type="info" title="도구 선택 기준">
+  "어떤 도구가 최고인가?"보다 "지금 이 문제에 어떤 도구가 적합한가?"가 더 나은 질문입니다.
+  Claude Code는 **터미널 워크플로우, 깊은 추론, 디버깅, 아키텍처 설계**에 강점이 있고,
+  Copilot은 **빠른 자동완성과 GitHub 통합**, Cursor는 **프로젝트 전체를 이해하는 멀티파일 편집**에 강합니다.
+</Callout>
 
 ## 워크플로우 예시
 
 <CodeBlock
-  code={`# 1. 프로젝트 디렉토리로 이동하여 Claude Code 실행
+  code={`# 1. 프로젝트 디렉토리에서 Claude Code 실행
 claude
 
 # 2. 자연어로 작업 요청
-> "사용자 인증 API를 Express.js로 구현해줘. JWT를 사용하고 
+> "사용자 인증 API를 Express.js로 구현해줘. JWT를 사용하고
    리프레시 토큰도 지원해야 해."
 
-# 3. Claude가 파일 생성/수정을 제안하면 확인
+# 3. Claude가 파일을 생성/수정하면 diff를 확인하고 승인
 
-# 4. 추가 요청
-> "/test src/services/auth-service.ts"
+# 4. 테스트 작성 요청
+> "auth-service.ts에 대한 유닛 테스트를 작성해줘"
 
-# 5. 커밋
-> "/commit"`}
+# 5. 커밋 (커스텀 스킬 또는 직접 요청)
+> "변경사항을 커밋해줘"`}
   language="bash"
   filename="기본 워크플로우"
 />
 
-<Quiz
-  title="Claude Code 이해도 확인"
-  questions={[
-    {
-      question: 'Claude Code의 가장 큰 특징은?',
-      options: ['IDE 플러그인', 'CLI 기반 AI 에이전트', '코드 자동완성', '웹 기반 도구'],
-      correctIndex: 1,
-      explanation: 'Claude Code는 터미널에서 직접 실행하는 CLI 기반의 AI 코딩 에이전트로, 파일 시스템에 직접 접근하여 자율적으로 작업을 수행합니다.',
-    },
-    {
-      question: 'MCP(Model Context Protocol)의 역할은?',
-      options: ['코드 포맷팅', '외부 서버와의 연동을 통한 기능 확장', '보안 검사', '성능 최적화'],
-      correctIndex: 1,
-      explanation: 'MCP는 외부 서버(파일 시스템, Git, DB, API 등)와의 연동을 위한 프로토콜로, Claude Code의 기능을 확장합니다.',
-    },
-    {
-      question: 'Claude Code가 프로젝트 규칙을 이해하기 위해 사용하는 파일은?',
-      options: ['.eslintrc', 'CLAUDE.md', 'package.json', '.gitignore'],
-      correctIndex: 1,
-      explanation: 'CLAUDE.md 파일에 프로젝트의 규칙, 컨벤션, 기술 스택 등을 정의하면 Claude Code가 자동으로 로드하여 활용합니다.',
-    },
-  ]}
-/>
+## 지원 환경
+
+| OS | 요구 사항 |
+|-----|----------|
+| **macOS** | 13.0 (Ventura) 이상 |
+| **Linux** | Ubuntu 20.04+ / Debian 10+ |
+| **Windows** | Windows 10 1809+ (네이티브, WSL 불필요) |
 
 <ChapterNav
   prev={{ title: '바이브 코딩이란?', path: '/docs/part-1--기초-바이브-코딩이란' }}
