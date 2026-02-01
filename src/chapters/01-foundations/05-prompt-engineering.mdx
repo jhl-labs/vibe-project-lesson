@@ -1,0 +1,244 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 1: 기초/프롬프트 엔지니어링" />
+
+# 프롬프트 엔지니어링 기초
+
+> Claude Code와 효과적으로 소통하는 핵심 원칙
+
+## 왜 프롬프트가 중요한가
+
+<Callout type="info" title="핵심 원리">
+  같은 AI 모델이라도 프롬프트의 품질에 따라 결과가 완전히 달라집니다.
+  Claude Code에서 프롬프트는 곧 **작업 지시서**입니다.
+</Callout>
+
+Claude Code는 터미널에서 자연어로 지시하는 도구입니다. "좋은 코드를 얻는 것"은 "좋은 지시를 내리는 것"에서 시작합니다. Anthropic 공식 문서에서는 프롬프트 엔지니어링 기법을 **가장 범용적인 것부터 전문적인 것** 순서로 시도할 것을 권장합니다.
+
+## Anthropic 공식 프롬프트 기법
+
+<ComparisonTable
+  title="공식 프롬프트 엔지니어링 기법 (권장 순서)"
+  headers={['순서', '기법', '설명']}
+  rows={[
+    { feature: '1', values: ['Be clear and direct', '명확하고 직접적인 지시'] },
+    { feature: '2', values: ['Use examples (multishot)', '예제를 통해 원하는 출력 형태 시연'] },
+    { feature: '3', values: ['Let Claude think (CoT)', '단계별 사고를 유도하여 정확도 향상'] },
+    { feature: '4', values: ['Use XML tags', 'XML 태그로 프롬프트 구조화'] },
+    { feature: '5', values: ['Give Claude a role', '시스템 프롬프트로 역할 부여'] },
+    { feature: '6', values: ['Chain complex prompts', '복잡한 작업을 여러 단계로 분할'] },
+    { feature: '7', values: ['Long context tips', '긴 컨텍스트 처리 최적화'] },
+  ]}
+/>
+
+## Claude Code 핵심 워크플로우
+
+Anthropic 공식 베스트 프랙티스 문서에서 제시하는 Claude Code의 핵심 워크플로우입니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    E["Explore\n코드베이스 탐색"] --> P["Plan\n계획 수립"]
+    P --> I["Implement\n구현"]
+    I --> C["Commit\n커밋"]
+    style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style P fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style I fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="Explore → Plan → Code → Commit"
+  caption="공식 문서 권장: 탐색 → 계획 → 구현 → 커밋의 4단계 워크플로우"
+/>
+
+### 단계별 프롬프트 예시
+
+<CodeBlock
+  code={`# 1단계: Explore - 코드베이스 탐색
+"인증 시스템이 토큰 갱신을 어떻게 처리하는지 src/auth/ 디렉토리를 조사해줘"
+
+# 2단계: Plan - 계획 수립 (Shift+Tab으로 Plan Mode 진입)
+"조사 결과를 바탕으로 리프레시 토큰 로테이션 구현 계획을 세워줘"
+
+# 3단계: Implement - 구현
+"계획대로 구현해줘. 기존 auth 미들웨어 패턴을 따르고,
+실패 케이스 테스트도 함께 작성해줘"
+
+# 4단계: Commit
+"변경사항을 리뷰하고 커밋해줘"`}
+  language="text"
+  filename="4단계 워크플로우 프롬프트"
+/>
+
+## 효과적인 프롬프트 작성법
+
+### 1. 명확하고 직접적으로 지시하기
+
+<ComparisonTable
+  title="프롬프트 품질 비교"
+  headers={['구분', '나쁜 프롬프트', '좋은 프롬프트']}
+  rows={[
+    { feature: '테스트 작성', values: ['foo.py에 테스트 추가해줘', 'foo.py의 edge case 테스트를 작성해줘. 사용자가 로그아웃된 상태를 커버하고 mock은 사용하지 마'] },
+    { feature: '버그 수정', values: ['로그인 버그 고쳐줘', '세션 타임아웃 후 로그인이 실패하는 버그가 있어. src/auth/의 토큰 갱신 플로우를 확인하고, 재현하는 실패 테스트를 먼저 작성한 뒤 수정해줘'] },
+    { feature: '기능 구현', values: ['이메일 검증 함수 만들어줘', 'validateEmail 함수를 작성해줘. user@example.com은 true, invalid는 false, user@.com은 false가 되어야 해. 구현 후 테스트를 실행해줘'] },
+  ]}
+/>
+
+<Callout type="tip" title="공식 권장: 검증 수단을 함께 제공하세요">
+  Anthropic이 제시하는 **단일 최고 레버리지 팁**은 "Claude가 스스로 검증할 수 있게 하라"입니다.
+  테스트 케이스, 예상 출력, 스크린샷 등 검증 수단을 프롬프트에 포함하면
+  Claude가 자기 검증 루프(self-verification loop)를 수행하여 품질이 크게 향상됩니다.
+</Callout>
+
+### 2. 구체적 컨텍스트 제공하기
+
+<CodeBlock
+  code={`# 파일 참조: @ 기호로 특정 파일 지정
+"@src/api/users.ts 의 createUser 함수에 입력 검증을 추가해줘"
+
+# 제약 조건 명시
+"Express.js 미들웨어 패턴을 따르고, Zod로 스키마 검증해줘.
+기존 validateInput 유틸을 재사용해"
+
+# 이미지 붙여넣기 (디자인 참고)
+# 터미널에 스크린샷을 직접 붙여넣으면 Claude가 인식합니다
+
+# 데이터 파이프
+cat error.log | claude "이 에러 로그를 분석해줘"
+pbpaste | claude "이 코드를 리뷰해줘"`}
+  language="bash"
+  filename="컨텍스트 제공 방법"
+/>
+
+### 3. 동기와 이유 설명하기
+
+Claude 4.x 모델은 지시의 이유를 설명하면 해당 의도를 **일반화**하여 더 나은 결과를 생성합니다.
+
+<CodeBlock
+  code={`# 이유 없이 지시
+"절대 console.log를 사용하지 마"
+
+# 이유와 함께 지시 (더 효과적)
+"console.log 대신 구조화된 로거를 사용해줘.
+프로덕션에서 JSON 형식 로그를 수집하고 있어서
+console.log는 파싱이 안 되고 로그 레벨 구분도 안 돼"`}
+  language="text"
+  filename="동기 제공의 효과"
+/>
+
+### 4. 행동 동사를 명확하게 사용하기
+
+<ComparisonTable
+  title="행동 동사에 따른 Claude의 반응"
+  headers={['프롬프트', 'Claude의 행동', '결과']}
+  rows={[
+    { feature: '"변경을 제안해줘"', values: ['제안만 텍스트로 출력', '코드 변경 없음'] },
+    { feature: '"이 함수를 수정해줘"', values: ['실제 파일 편집 실행', '코드 변경됨'] },
+    { feature: '"성능을 분석해줘"', values: ['분석 리포트 출력', '읽기만 수행'] },
+    { feature: '"성능을 개선해줘"', values: ['코드 수정 실행', '실제 최적화'] },
+  ]}
+/>
+
+## 컨텍스트 관리
+
+Claude Code에서 가장 중요한 자원은 **컨텍스트 윈도우**입니다. 공식 문서에 따르면 컨텍스트가 가득 차면 성능이 저하됩니다.
+
+### 컨텍스트 관리 전략
+
+<CodeBlock
+  code={`# 작업 간 컨텍스트 초기화
+/clear
+
+# 수동 압축 (보존할 내용 지정 가능)
+/compact API 변경사항에 집중해서 압축해줘
+
+# 서브에이전트로 탐색 위임 (메인 컨텍스트 보존)
+"서브에이전트를 사용해서 인증 시스템이 토큰 갱신을 어떻게 처리하는지 조사해줘"
+
+# 작업 단위별 세션 분리
+# Session A: 구현
+# Session B: 리뷰 (새로운 컨텍스트에서 편향 없이 리뷰)`}
+  language="bash"
+  filename="컨텍스트 관리 명령어"
+/>
+
+<Callout type="warning" title="피해야 할 패턴">
+  Anthropic 공식 문서에서 경고하는 일반적 실패 패턴:
+
+  - **Kitchen Sink 세션**: 하나의 세션에 무관한 작업을 계속 쌓는 것 → `/clear`로 분리
+  - **반복 교정**: 같은 이슈로 2번 이상 교정했으면 → `/clear` 후 더 나은 프롬프트로 새 시작
+  - **과도한 CLAUDE.md**: 너무 긴 CLAUDE.md는 Claude가 무시함 → 핵심만 간결하게
+  - **검증 없는 신뢰**: 항상 테스트, 타입 체크 등 검증 수단을 함께 제공
+</Callout>
+
+## Claude 4.x 전용 팁
+
+### Opus 4.5 과잉 설계 방지
+
+Opus 4.5는 불필요한 추상화나 추가 파일을 생성하는 경향이 있습니다. CLAUDE.md에 다음을 추가하면 효과적입니다:
+
+<CodeBlock
+  code={`# CLAUDE.md에 추가
+과도한 엔지니어링을 피하세요. 직접 요청되었거나 명확히 필요한 변경만 하세요.
+솔루션을 단순하고 집중적으로 유지하세요.`}
+  language="markdown"
+  filename="CLAUDE.md 과잉 설계 방지"
+/>
+
+### Extended Thinking 활용
+
+복잡한 문제에서 Claude가 단계별로 사고하게 하려면:
+
+<CodeBlock
+  code={`# 단계적 사고 유도
+"이 문제를 해결하기 전에 먼저 가능한 접근 방식들을 나열하고,
+각각의 장단점을 평가한 뒤 최선의 방법을 선택해줘"
+
+# Plan Mode 활용 (Shift+Tab)
+# Plan Mode에서는 Claude가 코드를 수정하지 않고
+# 탐색과 계획만 수행합니다`}
+  language="text"
+  filename="단계적 사고 유도"
+/>
+
+## 고급 패턴
+
+### 인터뷰 패턴
+
+대규모 기능 구현 시, Claude에게 먼저 질문을 받는 방식입니다.
+
+<CodeBlock
+  code={`# Claude에게 인터뷰를 요청
+"사용자 알림 시스템을 구현하려고 해.
+구현을 시작하기 전에 내가 결정해야 할 사항들을 질문해줘"
+
+# Claude가 질문 → 개발자가 답변 → 스펙 확정
+# 이후 새 세션에서 확정된 스펙으로 구현`}
+  language="text"
+  filename="인터뷰 패턴"
+/>
+
+### Writer/Reviewer 패턴
+
+<CodeBlock
+  code={`# Session A (Writer): 구현
+"사용자 알림 시스템을 구현해줘. 스펙은 다음과 같아..."
+
+# Session B (Reviewer): 리뷰
+"src/notifications/ 디렉토리의 코드를 리뷰해줘.
+보안 취약점, 에러 처리 누락, 테스트 커버리지를 확인해줘"`}
+  language="text"
+  filename="Writer/Reviewer 분리 패턴"
+/>
+
+<Callout type="tip" title="CLAUDE.md에 압축 보존 지시">
+  `/compact` 실행 시 중요한 컨텍스트가 유실될 수 있습니다.
+  CLAUDE.md에 "압축 시 반드시 보존할 내용"을 명시하면 `/compact` 후에도 핵심 맥락이 유지됩니다.
+</Callout>
+
+<ChapterNav
+  prev={{ title: '엔터프라이즈 보안', path: '/docs/part-1--기초-엔터프라이즈-보안' }}
+  next={{ title: '.agent 디렉토리 개요', path: '/docs/part-2--프로젝트-템플릿-구조-agent-디렉토리-개요' }}
+/>

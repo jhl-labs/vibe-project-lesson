@@ -1,0 +1,283 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 5: 실전 예제/End-to-End 워크플로우" />
+
+# End-to-End 워크플로우
+
+> 요구사항부터 PR 머지까지, Claude Code로 전체 개발 사이클 수행하기
+
+## 시나리오
+
+기존 Express.js API 프로젝트에 **"사용자 프로필 이미지 업로드"** 기능을 추가하는 실전 워크플로우입니다. 이 예제는 Part 1에서 배운 프롬프트 기법, Part 3의 워크플로우 도구들, Part 4의 MCP 통합을 모두 활용합니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    A["1. 요구사항\n분석"] --> B["2. 설계\n(Plan Mode)"]
+    B --> C["3. 구현"]
+    C --> D["4. 테스트"]
+    D --> E["5. 코드 리뷰"]
+    E --> F["6. PR 생성"]
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style F fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="End-to-End 워크플로우 6단계"
+  caption="Anthropic 공식 권장: Explore → Plan → Implement → Commit"
+/>
+
+## 1단계: 요구사항 분석 (Explore)
+
+먼저 기존 코드베이스를 탐색하여 현재 구조를 파악합니다.
+
+<CodeBlock
+  code={`# 인터뷰 패턴: Claude에게 질문을 먼저 받기
+> 사용자 프로필 이미지 업로드 기능을 추가하려고 해.
+> 구현을 시작하기 전에 내가 결정해야 할 사항들을 질문해줘.
+
+# Claude의 질문 예시:
+# 1. 이미지 저장소: 로컬 파일 시스템 vs S3 vs CloudFlare R2?
+# 2. 이미지 크기 제한과 허용 포맷은?
+# 3. 리사이즈/썸네일 생성이 필요한가?
+# 4. 기존 User 모델에 profileImageUrl 필드를 추가하면 되는가?
+# 5. 인증된 사용자만 업로드 가능한가?
+
+# 개발자 답변 후 → Claude가 스펙 정리`}
+  language="text"
+  filename="1단계: 요구사항 인터뷰"
+/>
+
+<CodeBlock
+  code={`# 서브에이전트로 코드베이스 탐색 (메인 컨텍스트 보존)
+> 서브에이전트를 사용해서 현재 프로젝트의 파일 업로드 관련 코드가 있는지,
+> User 모델 구조는 어떤지, 인증 미들웨어는 어떻게 구현되어 있는지 조사해줘.`}
+  language="text"
+  filename="서브에이전트로 탐색"
+/>
+
+<Callout type="tip" title="컨텍스트 보존 전략">
+  탐색을 서브에이전트에 위임하면 메인 세션의 컨텍스트가 깨끗하게 유지됩니다.
+  탐색 결과만 요약되어 돌아오므로 이후 구현 단계에서 컨텍스트가 부족해지는 문제를 방지합니다.
+</Callout>
+
+## 2단계: 설계 (Plan Mode)
+
+`Shift+Tab` (또는 `Ctrl+G`)으로 Plan Mode에 진입합니다. Plan Mode에서는 Claude가 파일을 수정하지 않고 **읽기와 계획만** 수행합니다.
+
+<CodeBlock
+  code={`# Plan Mode 진입 후
+> 다음 요구사항으로 구현 계획을 세워줘:
+> - S3에 이미지 저장 (aws-sdk v3 사용)
+> - 최대 5MB, JPEG/PNG/WebP만 허용
+> - Sharp로 200x200 썸네일 생성
+> - User 모델에 profileImageUrl 필드 추가
+> - 인증된 사용자만 업로드 가능
+> - 기존 auth 미들웨어 패턴을 따를 것
+
+# Claude의 계획 출력 예시:
+# 1. 새 파일: src/infrastructure/storage/s3-client.ts
+# 2. 새 파일: src/application/user/upload-avatar.use-case.ts
+# 3. 수정: src/domain/user/entity.ts (profileImageUrl 필드 추가)
+# 4. 수정: prisma/schema.prisma (User 모델 수정)
+# 5. 새 파일: src/presentation/api/users/upload-avatar.ts
+# 6. 새 파일: src/__tests__/upload-avatar.test.ts
+
+# 계획 승인 후 Shift+Tab으로 구현 모드로 전환`}
+  language="text"
+  filename="2단계: Plan Mode에서 설계"
+/>
+
+## 3단계: 구현 (Implement)
+
+계획이 승인되면 단계별로 구현합니다.
+
+<CodeBlock
+  code={`# 3-1. 도메인 레이어 수정
+> 계획의 1단계를 실행해줘. User 엔터티에 profileImageUrl 필드를 추가하고
+> Prisma 스키마도 업데이트해줘. 마이그레이션은 아직 실행하지 마.
+
+# 3-2. 인프라 레이어 구현
+> S3 클라이언트를 구현해줘. 기존 src/infrastructure/ 패턴을 따르고,
+> 환경 변수로 버킷명과 리전을 설정할 수 있게 해줘.
+
+# 3-3. 유스케이스 구현
+> 이미지 업로드 유스케이스를 구현해줘.
+> - 파일 크기 5MB 제한
+> - JPEG, PNG, WebP만 허용
+> - Sharp로 200x200 썸네일 생성
+> - 원본과 썸네일 모두 S3에 저장
+> 구현 후 테스트를 실행해줘.
+
+# 3-4. API 라우터 구현
+> @src/presentation/api/users/ 패턴을 따라 업로드 엔드포인트를 추가해줘.
+> multer로 multipart/form-data를 처리하고, 기존 authMiddleware를 사용해.`}
+  language="text"
+  filename="3단계: 단계별 구현 프롬프트"
+/>
+
+<Callout type="warning" title="검증 수단을 항상 포함하세요">
+  각 단계에서 "구현 후 테스트를 실행해줘"를 포함하면
+  Claude가 자기 검증 루프(self-verification loop)를 수행합니다.
+  이것이 Anthropic이 권장하는 **단일 최고 레버리지 팁**입니다.
+</Callout>
+
+### 구현 결과 예시
+
+<CodeBlock
+  code={`// src/application/user/upload-avatar.use-case.ts
+import sharp from 'sharp';
+import { S3Client } from '../../infrastructure/storage/s3-client';
+import { UserRepository } from '../../domain/user/repository';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const THUMBNAIL_SIZE = 200;
+
+export class UploadAvatarUseCase {
+  constructor(
+    private userRepo: UserRepository,
+    private s3: S3Client,
+  ) {}
+
+  async execute(userId: string, file: { buffer: Buffer; mimetype: string; size: number }) {
+    // 검증
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error('File size exceeds 5MB limit');
+    }
+    if (!ALLOWED_TYPES.includes(file.mimetype)) {
+      throw new Error('Only JPEG, PNG, and WebP are allowed');
+    }
+
+    // 썸네일 생성
+    const thumbnail = await sharp(file.buffer)
+      .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, { fit: 'cover' })
+      .toBuffer();
+
+    const ext = file.mimetype.split('/')[1];
+    const key = \`avatars/\${userId}/original.\${ext}\`;
+    const thumbKey = \`avatars/\${userId}/thumb.\${ext}\`;
+
+    // S3 업로드 (원본 + 썸네일)
+    await Promise.all([
+      this.s3.upload(key, file.buffer, file.mimetype),
+      this.s3.upload(thumbKey, thumbnail, file.mimetype),
+    ]);
+
+    // DB 업데이트
+    const imageUrl = this.s3.getPublicUrl(key);
+    await this.userRepo.updateProfileImage(userId, imageUrl);
+
+    return { imageUrl, thumbnailUrl: this.s3.getPublicUrl(thumbKey) };
+  }
+}`}
+  language="typescript"
+  filename="src/application/user/upload-avatar.use-case.ts"
+  highlightLines={[6, 7, 18, 19, 21, 22, 27, 28, 35, 36, 37]}
+/>
+
+## 4단계: 테스트
+
+<CodeBlock
+  code={`# 테스트 작성 요청 (구체적으로!)
+> upload-avatar.use-case.ts의 테스트를 작성해줘.
+> 다음 케이스를 커버해:
+> 1. 정상 업로드 (JPEG 1MB)
+> 2. 파일 크기 초과 (6MB)
+> 3. 허용하지 않는 파일 타입 (GIF)
+> 4. S3 업로드 실패 시 에러 처리
+> 5. 썸네일이 200x200으로 생성되는지
+>
+> S3Client는 mock하고, sharp은 실제 동작을 테스트해.
+> 테스트 작성 후 실행까지 해줘.`}
+  language="text"
+  filename="4단계: 테스트 작성 프롬프트"
+/>
+
+## 5단계: 코드 리뷰 (새 세션)
+
+Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
+
+<CodeBlock
+  code={`# 새 터미널/세션에서 리뷰
+> git diff main 의 변경사항을 리뷰해줘. 다음을 중점적으로 확인해:
+> 1. 보안: 파일 업로드 시 취약점 (파일명 인젝션, MIME 위장 등)
+> 2. 에러 처리: 모든 실패 경로가 적절히 처리되는지
+> 3. 성능: 대용량 파일 처리 시 메모리 이슈가 없는지
+> 4. 테스트 커버리지: 엣지 케이스가 충분히 커버되는지`}
+  language="text"
+  filename="5단계: 새 세션에서 코드 리뷰"
+/>
+
+<Callout type="info" title="Writer/Reviewer 패턴">
+  구현한 세션과 **다른 세션**에서 리뷰하면, 새로운 컨텍스트의 Claude가
+  구현 과정의 편향 없이 객관적으로 코드를 평가합니다.
+  이것은 Anthropic 공식 베스트 프랙티스에서 권장하는 패턴입니다.
+</Callout>
+
+## 6단계: PR 생성
+
+<CodeBlock
+  code={`# 리뷰 반영 후 커밋 & PR 생성
+> 변경사항을 커밋하고 PR을 생성해줘.
+> PR 설명에 다음을 포함해:
+> - 기능 요약
+> - 변경된 파일 목록과 이유
+> - 테스트 방법
+> - AI 사용 내역
+
+# Claude가 자동으로:
+# 1. git add & commit (Conventional Commits 형식)
+# 2. git push
+# 3. gh pr create (GitHub CLI)`}
+  language="text"
+  filename="6단계: PR 생성"
+/>
+
+## 전체 프롬프트 요약
+
+<ComparisonTable
+  title="단계별 핵심 프롬프트 패턴"
+  headers={['단계', '핵심 기법', '목적']}
+  rows={[
+    { feature: '1. 요구사항', values: ['인터뷰 패턴 + 서브에이전트 탐색', '정확한 스펙 확정 + 컨텍스트 보존'] },
+    { feature: '2. 설계', values: ['Plan Mode (Shift+Tab)', '코드 수정 없이 계획만 수립'] },
+    { feature: '3. 구현', values: ['단계별 분할 + 검증 포함', '각 단계를 독립적으로 검증'] },
+    { feature: '4. 테스트', values: ['구체적 테스트 케이스 명시', '엣지 케이스까지 커버'] },
+    { feature: '5. 리뷰', values: ['Writer/Reviewer 패턴', '편향 없는 객관적 리뷰'] },
+    { feature: '6. PR', values: ['AI 사용 내역 포함', '투명한 AI 활용 기록'] },
+  ]}
+/>
+
+## 실패 시 대처
+
+<CodeBlock
+  code={`# 같은 이슈로 2번 이상 실패했을 때
+/clear
+# 더 나은 프롬프트로 새 세션 시작
+
+# 특정 체크포인트로 되돌리기
+/rewind
+
+# 구현 중 방향이 잘못되었을 때
+# Esc를 눌러 즉시 중단 → 방향 수정 후 재지시`}
+  language="bash"
+  filename="실패 대처 명령어"
+/>
+
+<Callout type="tip" title="Hooks 활용으로 품질 자동화">
+  Part 3에서 배운 Hooks를 설정하면 이 워크플로우가 더 강력해집니다:
+  - `PostToolUse` + `Edit|Write` → 자동 포맷팅 (Prettier)
+  - `Stop` + `agent` → 매 응답 후 자동 테스트 실행
+  - `PreToolUse` + `Bash` → 위험 명령 차단
+</Callout>
+
+<ChapterNav
+  prev={{ title: '프론트엔드 프로젝트', path: '/docs/part-5--실전-예제-프론트엔드-프로젝트' }}
+  next={{ title: '보안', path: '/docs/part-6--모범-사례-보안' }}
+/>

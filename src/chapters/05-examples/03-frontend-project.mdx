@@ -1,0 +1,458 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { FileTree } from '../../components/FileTree';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 5: 실전 예제/프론트엔드 프로젝트" />
+
+# 프론트엔드 프로젝트 예제
+
+> React + TypeScript + Tailwind CSS 기반 대시보드 컴포넌트 구현
+
+## 프로젝트 구조
+
+<FileTree
+  title="examples/react-dashboard/"
+  data={[
+    {
+      name: 'src/',
+      type: 'folder',
+      children: [
+        {
+          name: 'components/',
+          type: 'folder',
+          description: 'UI 컴포넌트',
+          highlight: true,
+          children: [
+            {
+              name: 'ui/',
+              type: 'folder',
+              description: '기본 UI 요소',
+              children: [
+                { name: 'Button.tsx', type: 'file', description: '버튼 컴포넌트' },
+                { name: 'Card.tsx', type: 'file', description: '카드 컴포넌트' },
+                { name: 'Input.tsx', type: 'file', description: '입력 필드' },
+              ],
+            },
+            {
+              name: 'dashboard/',
+              type: 'folder',
+              description: '대시보드 전용',
+              children: [
+                { name: 'StatCard.tsx', type: 'file', description: '통계 카드' },
+                { name: 'Chart.tsx', type: 'file', description: '차트 래퍼' },
+                { name: 'DataGrid.tsx', type: 'file', description: '데이터 그리드' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'hooks/',
+          type: 'folder',
+          description: '커스텀 훅',
+          children: [
+            { name: 'useDebounce.ts', type: 'file' },
+            { name: 'useFetch.ts', type: 'file' },
+          ],
+        },
+        {
+          name: 'types/',
+          type: 'folder',
+          children: [
+            { name: 'dashboard.ts', type: 'file', description: '타입 정의' },
+          ],
+        },
+        {
+          name: '__tests__/',
+          type: 'folder',
+          description: '테스트',
+          children: [
+            { name: 'StatCard.test.tsx', type: 'file' },
+            { name: 'DataGrid.test.tsx', type: 'file' },
+          ],
+        },
+      ],
+    },
+    { name: 'tailwind.config.ts', type: 'file' },
+    { name: 'tsconfig.json', type: 'file' },
+  ]}
+/>
+
+## Claude Code 워크플로우
+
+이 예제에서는 Claude Code로 프론트엔드 컴포넌트를 생성하는 실제 워크플로우를 보여줍니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    A["타입 정의"] --> B["컴포넌트\n구현"]
+    B --> C["스타일링"]
+    C --> D["테스트\n작성"]
+    D --> E["접근성\n검증"]
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="프론트엔드 컴포넌트 개발 순서"
+  caption="타입 먼저 정의하면 Claude가 타입에 맞는 정확한 코드를 생성합니다"
+/>
+
+## 1단계: 타입 정의
+
+<CodeBlock
+  code={`// src/types/dashboard.ts
+export interface StatCardProps {
+  title: string;
+  value: number | string;
+  change?: {
+    value: number;
+    type: 'increase' | 'decrease';
+  };
+  icon?: React.ReactNode;
+  loading?: boolean;
+}
+
+export interface DataGridColumn<T> {
+  key: keyof T;
+  header: string;
+  width?: string;
+  sortable?: boolean;
+  render?: (value: T[keyof T], row: T) => React.ReactNode;
+}
+
+export interface DataGridProps<T> {
+  columns: DataGridColumn<T>[];
+  data: T[];
+  loading?: boolean;
+  onRowClick?: (row: T) => void;
+  emptyMessage?: string;
+}`}
+  language="typescript"
+  filename="src/types/dashboard.ts"
+  highlightLines={[2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14]}
+/>
+
+<Callout type="tip" title="프롬프트 팁: 타입을 먼저 알려주세요">
+  Claude Code에 컴포넌트 구현을 요청할 때 타입 정의 파일을 `@` 기호로 참조하면
+  정확한 props와 인터페이스에 맞는 코드를 생성합니다.
+  예: `"@src/types/dashboard.ts 의 StatCardProps에 맞는 StatCard 컴포넌트를 만들어줘"`
+</Callout>
+
+## 2단계: 컴포넌트 구현
+
+### StatCard 컴포넌트
+
+<CodeBlock
+  code={`// src/components/dashboard/StatCard.tsx
+import { type StatCardProps } from '../../types/dashboard';
+
+export function StatCard({ title, value, change, icon, loading }: StatCardProps) {
+  if (loading) {
+    return (
+      <div className="rounded-lg border bg-white p-6 animate-pulse">
+        <div className="h-4 w-24 bg-gray-200 rounded" />
+        <div className="mt-3 h-8 w-16 bg-gray-200 rounded" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border bg-white p-6 shadow-sm
+                    transition-shadow hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-gray-600">{title}</p>
+        {icon && <span className="text-gray-400">{icon}</span>}
+      </div>
+      <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
+      {change && (
+        <div className="mt-2 flex items-center gap-1">
+          <span
+            className={\`text-sm font-medium \${
+              change.type === 'increase' ? 'text-green-600' : 'text-red-600'
+            }\`}
+          >
+            {change.type === 'increase' ? '↑' : '↓'} {Math.abs(change.value)}%
+          </span>
+          <span className="text-sm text-gray-500">vs 지난달</span>
+        </div>
+      )}
+    </div>
+  );
+}`}
+  language="tsx"
+  filename="src/components/dashboard/StatCard.tsx"
+  highlightLines={[4, 7, 16, 17, 24, 25, 26, 27]}
+/>
+
+### DataGrid 컴포넌트
+
+<CodeBlock
+  code={`// src/components/dashboard/DataGrid.tsx
+import { useState, useMemo } from 'react';
+import { type DataGridProps, type DataGridColumn } from '../../types/dashboard';
+
+type SortConfig = {
+  key: string;
+  direction: 'asc' | 'desc';
+} | null;
+
+export function DataGrid<T extends Record<string, unknown>>({
+  columns,
+  data,
+  loading,
+  onRowClick,
+  emptyMessage = '데이터가 없습니다',
+}: DataGridProps<T>) {
+  const [sortConfig, setSortConfig] = useState<SortConfig>(null);
+
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return data;
+    return [...data].sort((a, b) => {
+      const aVal = a[sortConfig.key];
+      const bVal = b[sortConfig.key];
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [data, sortConfig]);
+
+  const handleSort = (column: DataGridColumn<T>) => {
+    if (!column.sortable) return;
+    const key = column.key as string;
+    setSortConfig((prev) =>
+      prev?.key === key
+        ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' }
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-lg border bg-white">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex gap-4 border-b p-4 animate-pulse">
+            <div className="h-4 flex-1 bg-gray-200 rounded" />
+            <div className="h-4 flex-1 bg-gray-200 rounded" />
+            <div className="h-4 flex-1 bg-gray-200 rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-lg border bg-white">
+      <table className="w-full text-left text-sm">
+        <thead className="border-b bg-gray-50 text-gray-600">
+          <tr>
+            {columns.map((col) => (
+              <th
+                key={col.key as string}
+                className={\`px-4 py-3 font-medium \${
+                  col.sortable ? 'cursor-pointer select-none hover:bg-gray-100' : ''
+                }\`}
+                style={col.width ? { width: col.width } : undefined}
+                onClick={() => handleSort(col)}
+              >
+                <span className="flex items-center gap-1">
+                  {col.header}
+                  {col.sortable && sortConfig?.key === col.key && (
+                    <span>{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>
+                  )}
+                </span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sortedData.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500">
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : (
+            sortedData.map((row, idx) => (
+              <tr
+                key={idx}
+                className={\`border-b transition-colors last:border-0
+                  \${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}\`}
+                onClick={() => onRowClick?.(row)}
+              >
+                {columns.map((col) => (
+                  <td key={col.key as string} className="px-4 py-3 text-gray-900">
+                    {col.render
+                      ? col.render(row[col.key], row)
+                      : String(row[col.key] ?? '')}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}`}
+  language="tsx"
+  filename="src/components/dashboard/DataGrid.tsx"
+/>
+
+## 3단계: 커스텀 훅
+
+<CodeBlock
+  code={`// src/hooks/useDebounce.ts
+import { useState, useEffect } from 'react';
+
+export function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// src/hooks/useFetch.ts
+import { useState, useEffect } from 'react';
+
+interface UseFetchResult<T> {
+  data: T | null;
+  error: string | null;
+  loading: boolean;
+}
+
+export function useFetch<T>(url: string): UseFetchResult<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+
+    fetch(url, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
+        return res.json();
+      })
+      .then(setData)
+      .catch((err) => {
+        if (err.name !== 'AbortError') setError(err.message);
+      })
+      .finally(() => setLoading(false));
+
+    return () => controller.abort();
+  }, [url]);
+
+  return { data, error, loading };
+}`}
+  language="typescript"
+  filename="src/hooks/useDebounce.ts & useFetch.ts"
+  highlightLines={[4, 8, 9, 25, 31, 44]}
+/>
+
+## 4단계: 테스트
+
+<CodeBlock
+  code={`// src/__tests__/StatCard.test.tsx
+import { render, screen } from '@testing-library/react';
+import { StatCard } from '../components/dashboard/StatCard';
+
+describe('StatCard', () => {
+  it('renders title and value', () => {
+    render(<StatCard title="총 매출" value="₩12,340,000" />);
+
+    expect(screen.getByText('총 매출')).toBeInTheDocument();
+    expect(screen.getByText('₩12,340,000')).toBeInTheDocument();
+  });
+
+  it('renders increase change indicator', () => {
+    render(
+      <StatCard
+        title="사용자 수"
+        value={1234}
+        change={{ value: 12.5, type: 'increase' }}
+      />
+    );
+
+    expect(screen.getByText(/12.5%/)).toBeInTheDocument();
+    expect(screen.getByText(/↑/)).toBeInTheDocument();
+  });
+
+  it('renders decrease change indicator', () => {
+    render(
+      <StatCard
+        title="이탈률"
+        value="3.2%"
+        change={{ value: 0.8, type: 'decrease' }}
+      />
+    );
+
+    expect(screen.getByText(/0.8%/)).toBeInTheDocument();
+    expect(screen.getByText(/↓/)).toBeInTheDocument();
+  });
+
+  it('shows loading skeleton', () => {
+    const { container } = render(<StatCard title="로딩 중" value="" loading />);
+
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+  });
+});`}
+  language="tsx"
+  filename="src/__tests__/StatCard.test.tsx"
+/>
+
+## 5단계: 접근성 체크리스트
+
+<ComparisonTable
+  title="프론트엔드 접근성 점검"
+  headers={['항목', '설명', '적용 방법']}
+  rows={[
+    { feature: '키보드 내비게이션', values: ['모든 인터랙션이 키보드로 가능', 'tabIndex, onKeyDown 처리'] },
+    { feature: '스크린 리더', values: ['시각 정보에 대체 텍스트 제공', 'aria-label, role 속성'] },
+    { feature: '색상 대비', values: ['WCAG AA 기준 4.5:1 이상', 'Tailwind 기본 색상 활용'] },
+    { feature: '로딩 상태', values: ['비동기 상태를 명확히 전달', 'aria-busy, 스켈레톤 UI'] },
+  ]}
+/>
+
+## Claude Code 프롬프트 예시
+
+<CodeBlock
+  code={`# 타입 기반 컴포넌트 생성
+"@src/types/dashboard.ts 의 DataGridProps에 맞는 DataGrid 컴포넌트를
+만들어줘. Tailwind CSS로 스타일링하고, 정렬 기능을 포함해.
+빈 상태와 로딩 상태도 처리해줘"
+
+# 기존 패턴 따라 새 컴포넌트 생성
+"@src/components/dashboard/StatCard.tsx 패턴을 따라서
+ProgressBar 컴포넌트를 만들어줘. props는 value(0-100), label, color"
+
+# 테스트 작성
+"@src/components/dashboard/DataGrid.tsx 의 테스트를 작성해줘.
+정렬, 빈 상태, 행 클릭, 커스텀 렌더러를 커버해줘.
+Testing Library를 사용하고 mock은 최소화해"
+
+# 접근성 개선
+"@src/components/dashboard/ 아래 모든 컴포넌트의 접근성을 검토해줘.
+키보드 내비게이션과 스크린 리더 지원을 개선해줘"`}
+  language="text"
+  filename="Claude Code 프론트엔드 프롬프트"
+/>
+
+<Callout type="info" title="프론트엔드에서 Claude Code 활용 팁">
+  - **이미지 붙여넣기**: 디자인 스크린샷을 터미널에 붙여넣으면 Claude가 시각적으로 인식합니다
+  - **기존 컴포넌트 참조**: `@` 기호로 기존 컴포넌트를 참조하면 일관된 패턴을 따릅니다
+  - **타입 먼저**: props 타입을 먼저 정의하면 Claude가 더 정확한 코드를 생성합니다
+  - **테스트 병행**: "구현 후 테스트를 실행해줘"를 습관적으로 포함하세요
+</Callout>
+
+<ChapterNav
+  prev={{ title: 'Python API', path: '/docs/part-5--실전-예제-python-api' }}
+  next={{ title: 'End-to-End 워크플로우', path: '/docs/part-5--실전-예제-end-to-end-워크플로우' }}
+/>

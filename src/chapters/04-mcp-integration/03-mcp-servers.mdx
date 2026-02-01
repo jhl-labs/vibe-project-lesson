@@ -1,0 +1,264 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { DataTable } from '../../components/DataTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 4: MCP와 통합/MCP 서버 활용" />
+
+# MCP 서버 활용
+
+> 실전 MCP 서버 연동으로 Claude Code의 능력 확장하기
+
+## MCP 서버 생태계
+
+MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하는 플러그인입니다. 2025년 9월에 공식 MCP Registry가 프리뷰로 출시되었고, 2025년 12월 Anthropic은 MCP를 Linux Foundation 산하 **Agentic AI Foundation (AAIF)**에 기부하여 오픈 거버넌스 체제로 전환했습니다.
+
+<Callout type="info" title="MCP 서버를 찾는 곳">
+  - **공식 Registry**: [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/)
+  - **GitHub Reference Servers**: [github.com/modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers)
+  - **커뮤니티 목록**: [github.com/punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
+</Callout>
+
+## 주요 공식 MCP 서버
+
+<DataTable
+  title="Reference MCP 서버 (modelcontextprotocol/servers)"
+  searchable={true}
+  columns={[
+    { key: 'name', header: '서버' },
+    { key: 'description', header: '설명' },
+    { key: 'useCase', header: '활용 사례' },
+  ]}
+  data={[
+    { name: 'Filesystem', description: '보안 파일 작업 (접근 제어 설정 가능)', useCase: '외부 디렉토리 파일 읽기/쓰기' },
+    { name: 'Git', description: 'Git 리포지토리 읽기, 검색, 조작', useCase: '다른 저장소 코드 참조' },
+    { name: 'Memory', description: '지식 그래프 기반 영속 메모리', useCase: '세션 간 정보 유지' },
+    { name: 'Fetch', description: '웹 콘텐츠 가져오기 및 LLM용 변환', useCase: 'API 문서, 웹 페이지 참조' },
+    { name: 'Sequential Thinking', description: '동적 문제 해결 사고 시퀀스', useCase: '복잡한 추론 작업' },
+    { name: 'Time', description: '시간 및 타임존 변환', useCase: '시간대 변환, 날짜 계산' },
+    { name: 'Everything', description: '레퍼런스/테스트 서버', useCase: 'MCP 서버 개발 참고' },
+  ]}
+/>
+
+### 주요 서드파티 서버
+
+| 서버 | 제공 | 설명 |
+|------|------|------|
+| **GitHub** | GitHub | 이슈, PR, 코드 검색 |
+| **Sentry** | Sentry | 에러 모니터링, 이슈 조회 |
+| **Notion** | Notion | 문서 읽기/쓰기 |
+| **Atlassian** | Atlassian | Jira/Confluence 연동 |
+| **Prisma** | Prisma | 데이터베이스 스키마 관리 |
+| **PostgreSQL** | Bytebase | DB 쿼리 실행 |
+
+## 전송 방식 (Transport)
+
+<ComparisonTable
+  title="MCP 전송 방식 비교"
+  headers={['방식', '통신 방법', '용도', '상태']}
+  rows={[
+    { feature: 'stdio', values: ['표준 입출력 (stdin/stdout)', '로컬 프로세스, CLI 도구', '활성'] },
+    { feature: 'Streamable HTTP', values: ['단일 HTTP 엔드포인트', '원격 서버, 클라우드 서비스', '활성 (권장)'] },
+    { feature: 'SSE', values: ['Server-Sent Events', '원격 서버 (구버전)', '사용 중단됨'] },
+  ]}
+/>
+
+<Callout type="warning" title="SSE는 사용 중단됨">
+  SSE(Server-Sent Events) 전송 방식은 2025-03-26 MCP 스펙부터 Streamable HTTP로 대체되었습니다.
+  기존 SSE 서버는 하위 호환성을 위해 동작하지만, 새 서버는 Streamable HTTP를 사용하세요.
+</Callout>
+
+## 설정 방법
+
+### CLI로 추가 (`claude mcp add`)
+
+<CodeBlock
+  code={`# stdio 서버 (로컬 프로세스)
+claude mcp add <name> -- <command> [args...]
+
+# HTTP 서버 (원격, 권장)
+claude mcp add --transport http <name> <url>
+
+# 주요 옵션
+# --transport: stdio | http | sse
+# --scope: local(기본) | project | user
+# --env KEY=value: 환경 변수 설정
+# --header "Key: value": HTTP 헤더 설정`}
+  language="bash"
+  filename="claude mcp add 구문"
+/>
+
+### 실전 설정 예시
+
+<CodeBlock
+  code={`# GitHub MCP (HTTP)
+claude mcp add --transport http github https://api.githubcopilot.com/mcp/
+
+# Notion MCP (HTTP)
+claude mcp add --transport http notion https://mcp.notion.com/mcp
+
+# Sentry MCP (HTTP)
+claude mcp add --transport http sentry https://mcp.sentry.dev/mcp
+
+# PostgreSQL (stdio)
+claude mcp add --transport stdio db -- \
+  npx -y @bytebase/dbhub \
+  --dsn "postgresql://readonly:pass@db.example.com:5432/analytics"
+
+# Filesystem (stdio, 특정 디렉토리만 허용)
+claude mcp add --transport stdio files -- \
+  npx -y @modelcontextprotocol/server-filesystem \
+  /path/to/allowed/directory
+
+# Memory (stdio)
+claude mcp add --transport stdio memory -- \
+  npx -y @modelcontextprotocol/server-memory
+
+# 인증이 필요한 HTTP 서버
+claude mcp add --transport http secure-api \
+  https://api.example.com/mcp \
+  --header "Authorization: Bearer \${API_TOKEN}"`}
+  language="bash"
+  filename="MCP 서버 추가 예시"
+/>
+
+### JSON으로 직접 추가
+
+<CodeBlock
+  code={`# JSON 형식으로 한번에 설정
+claude mcp add-json weather-api '{
+  "type": "http",
+  "url": "https://api.weather.com/mcp",
+  "headers": {
+    "Authorization": "Bearer \${WEATHER_API_KEY}"
+  }
+}'`}
+  language="bash"
+  filename="JSON으로 MCP 서버 추가"
+/>
+
+### .mcp.json 파일 (팀 공유용)
+
+<CodeBlock
+  code={`// 프로젝트 루트의 .mcp.json (저장소에 커밋하여 팀 공유)
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
+    "internal-api": {
+      "type": "http",
+      "url": "\${API_BASE_URL:-https://api.internal.com}/mcp",
+      "headers": {
+        "Authorization": "Bearer \${INTERNAL_API_KEY}"
+      }
+    }
+  }
+}`}
+  language="json"
+  filename=".mcp.json"
+/>
+
+<Callout type="tip" title="환경 변수 확장">
+  `.mcp.json`에서 `$&#123;VAR&#125;` 형식으로 환경 변수를 참조할 수 있습니다.
+  `$&#123;VAR:-default&#125;` 형식으로 기본값도 설정 가능합니다.
+  `command`, `args`, `env`, `url`, `headers` 필드 모두에서 사용할 수 있습니다.
+</Callout>
+
+## 스코프 관리
+
+<MermaidDiagram
+  chart={`flowchart TB
+    U["User scope\n~/.claude.json\n모든 프로젝트, 개인"]
+    P["Project scope\n.mcp.json\n팀 공유 (커밋)"]
+    L["Local scope\n~/.claude.json 내 프로젝트별\n개인, 기본값"]
+    M["Managed MCP\n관리자 제어\n조직 전체"]
+    M --> L
+    P --> L
+    U --> L
+    L --> R["최종 설정\n(Local 우선)"]
+    style M fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style P fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style U fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style L fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style R fill:#faf9f7,stroke:#8c857c,color:#2d2a26`}
+  title="MCP 설정 우선순위"
+  caption="Local > Project > User 순으로 우선순위가 적용됩니다"
+/>
+
+| 스코프 | 저장 위치 | 용도 | 명령어 |
+|--------|----------|------|--------|
+| **local** (기본) | `~/.claude.json` 내 프로젝트 경로 | 개인 프로젝트 설정 | `claude mcp add` |
+| **project** | `.mcp.json` (프로젝트 루트) | 팀 공유 | `claude mcp add --scope project` |
+| **user** | `~/.claude.json` | 전역 개인 설정 | `claude mcp add --scope user` |
+
+## MCP 서버 관리
+
+<CodeBlock
+  code={`# 서버 목록 확인
+claude mcp list
+
+# 특정 서버 상세 정보
+claude mcp get <name>
+
+# 서버 제거
+claude mcp remove <name>
+
+# Claude Desktop 설정 가져오기
+claude mcp add-from-claude-desktop
+
+# 프로젝트 승인 상태 초기화
+claude mcp reset-project-choices
+
+# Claude Code를 MCP 서버로 실행 (다른 도구에서 사용)
+claude mcp serve`}
+  language="bash"
+  filename="MCP 관리 명령어"
+/>
+
+## 환경 변수
+
+| 변수 | 설명 |
+|------|------|
+| `MCP_TIMEOUT=10000` | MCP 서버 시작 타임아웃 (밀리초) |
+| `MAX_MCP_OUTPUT_TOKENS=50000` | MCP 출력 토큰 한도 |
+
+## 엔터프라이즈: Managed MCP
+
+조직 관리자는 Managed MCP 설정 파일로 모든 사용자에게 MCP 서버를 강제 배포할 수 있습니다.
+
+<CodeBlock
+  code={`// Linux: /etc/claude-code/managed-mcp.json
+// macOS: /Library/Application Support/ClaudeCode/managed-mcp.json
+{
+  "mcpServers": {
+    "company-internal-api": {
+      "type": "http",
+      "url": "https://mcp.internal.company.com/api",
+      "headers": {
+        "Authorization": "Bearer \${COMPANY_MCP_TOKEN}"
+      }
+    }
+  }
+}`}
+  language="json"
+  filename="Managed MCP 설정"
+/>
+
+<Callout type="tip" title="Claude Code 자체를 MCP 서버로 사용">
+  `claude mcp serve` 명령으로 Claude Code 자체를 MCP 서버로 노출할 수 있습니다.
+  Claude Desktop이나 다른 MCP 클라이언트에서 Claude Code의 코드 편집 능력을 활용할 수 있습니다.
+</Callout>
+
+<ChapterNav
+  prev={{ title: 'GitHub Actions', path: '/docs/part-4--mcp와-통합-github-actions' }}
+  next={{ title: 'TypeScript API', path: '/docs/part-5--실전-예제-typescript-api' }}
+/>
