@@ -117,25 +117,25 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 <MermaidDiagram
   chart={`sequenceDiagram
-    participant D as 👤 개발자
-    participant A as 🏛️ Architect
-    participant S as 🔒 Security
-    participant T as 🧪 Test
-    participant DOC as 📝 Documentation
-    D->>A: 1. 설계 검토 요청
+    participant D as Developer
+    participant A as Architect
+    participant S as Security
+    participant T as Test
+    participant DOC as Docs
+    D->>A: 설계 검토 요청
     A-->>D: ADR, 설계안
     Note over D: 설계 승인 후 병렬 실행
     par 병렬 실행
-      D->>S: 2a. 보안 분석
+      D->>S: 보안 분석
       S-->>D: 취약점 리포트
     and
-      D->>T: 2b. 테스트 전략
+      D->>T: 테스트 전략
       T-->>D: 테스트 코드
     and
-      D->>DOC: 2c. 문서 초안
+      D->>DOC: 문서 초안
       DOC-->>D: API 문서
     end
-    Note over D: 3. 종합 검토 후 구현`}
+    Note over D: 종합 검토 후 구현`}
   title="서브에이전트 오케스트레이션 패턴"
   caption="Architect의 설계 검토 후, Security/Test/Documentation이 병렬로 실행됩니다"
 />

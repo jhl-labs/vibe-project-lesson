@@ -102,6 +102,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
           display: 'flex',
           justifyContent: 'center',
           overflow: 'auto',
+          minHeight: '200px',
         }}
       >
         {error ? (
@@ -109,7 +110,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
             Mermaid Error: {error}
           </div>
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: svg }} />
+          <div style={{ width: '100%' }} dangerouslySetInnerHTML={{ __html: svg }} />
         )}
       </div>
       {caption && (
