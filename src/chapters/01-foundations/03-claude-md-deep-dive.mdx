@@ -3,7 +3,6 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { FileTree } from '../../components/FileTree';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
-import { Quiz } from '../../components/Quiz';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
 
@@ -15,40 +14,65 @@ import { templateFiles } from '../../data/template-files';
 
 ## CLAUDE.md란?
 
-`CLAUDE.md`는 Claude Code가 대화 시작 시 **자동으로 로드하는 지침서**입니다. 프로젝트의 규칙, 컨벤션, 기술 스택, 보안 정책 등을 정의하여 Claude가 프로젝트에 맞는 코드를 생성하도록 안내합니다.
+`CLAUDE.md`는 Claude Code가 대화 시작 시 **자동으로 로드하는 메모리 파일**입니다. 프로젝트의 규칙, 컨벤션, 기술 스택, 보안 정책 등을 정의하여 Claude가 프로젝트에 맞는 코드를 생성하도록 안내합니다.
 
-<Callout type="important" title="핵심">
+<Callout type="important" title="왜 중요한가?">
   CLAUDE.md는 Claude Code에게 "이 프로젝트에서는 이렇게 해라"라고 알려주는 설정 파일입니다.
-  잘 작성된 CLAUDE.md는 AI의 코드 품질을 크게 향상시킵니다.
+  잘 작성된 CLAUDE.md는 AI의 코드 품질을 크게 향상시킵니다. 반대로, 너무 길거나 모호하면
+  중요한 규칙이 무시되는 **"fading memory" 현상**이 발생할 수 있습니다.
 </Callout>
 
-## 자동 로드 메커니즘
+## 메모리 계층 구조
 
-Claude Code는 다음 순서로 CLAUDE.md 파일을 찾아 로드합니다:
-
-### 계층 구조
+Claude Code는 여러 수준의 메모리 파일을 계층적으로 로드합니다. 현재 작업 디렉토리에서 시작하여 **루트 디렉토리까지 재귀적으로 탐색**하며 CLAUDE.md 파일을 찾습니다.
 
 <FileTree
-  title="CLAUDE.md 탐색 순서"
+  title="CLAUDE.md 로딩 계층 (위에서 아래로 우선순위)"
   data={[
+    {
+      name: 'Enterprise 정책',
+      type: 'folder',
+      description: '조직 전체 (macOS: /Library/Application Support/ClaudeCode/)',
+      children: [
+        { name: 'CLAUDE.md', type: 'file', description: '회사 전체 보안 정책, 표준', highlight: true },
+      ],
+    },
     {
       name: '~/.claude/',
       type: 'folder',
+      description: '글로벌 (모든 프로젝트)',
       children: [
-        { name: 'CLAUDE.md', type: 'file', description: '글로벌 설정 (모든 프로젝트)', highlight: true },
+        { name: 'CLAUDE.md', type: 'file', description: '개인 선호 설정 (언어, 스타일)', highlight: true },
       ],
     },
     {
       name: 'project-root/',
       type: 'folder',
+      description: '프로젝트',
       children: [
-        { name: 'CLAUDE.md', type: 'file', description: '프로젝트 설정 (Git 추적)', highlight: true },
-        { name: 'CLAUDE.local.md', type: 'file', description: '개인 설정 (.gitignore)', highlight: true },
+        { name: 'CLAUDE.md', type: 'file', description: '팀 공유 프로젝트 설정 (Git 추적)', highlight: true },
+        { name: 'CLAUDE.local.md', type: 'file', description: '개인 프로젝트 설정 (자동 .gitignore)', highlight: true },
         {
           name: '.claude/',
           type: 'folder',
           children: [
-            { name: 'CLAUDE.md', type: 'file', description: '대체 위치 (프로젝트 설정)' },
+            { name: 'CLAUDE.md', type: 'file', description: '대체 위치 (CLAUDE.md와 동일)' },
+            {
+              name: 'rules/',
+              type: 'folder',
+              description: '조건부 규칙 파일들',
+              children: [
+                { name: 'frontend.md', type: 'file', description: 'paths: src/components/**' },
+                { name: 'backend.md', type: 'file', description: 'paths: src/api/**' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'src/components/',
+          type: 'folder',
+          children: [
+            { name: 'CLAUDE.md', type: 'file', description: '서브트리 메모리 (해당 파일 작업 시 lazy load)' },
           ],
         },
       ],
@@ -56,18 +80,75 @@ Claude Code는 다음 순서로 CLAUDE.md 파일을 찾아 로드합니다:
   ]}
 />
 
-### 적용 우선순위
+| 레벨 | 파일 | 범위 | Git 추적 | 로드 시점 |
+|------|------|------|----------|-----------|
+| Enterprise | 시스템 디렉토리 `CLAUDE.md` | 조직 전체 | N/A | 항상 |
+| 글로벌 | `~/.claude/CLAUDE.md` | 모든 프로젝트 | X | 항상 |
+| 프로젝트 | `./CLAUDE.md` 또는 `./.claude/CLAUDE.md` | 현재 프로젝트 | O | 항상 |
+| 규칙 | `.claude/rules/*.md` | 조건부 적용 | O | 항상 (paths 매칭 시) |
+| 개인 | `./CLAUDE.local.md` | 현재 프로젝트 | X (자동 .gitignore) | 항상 |
+| 서브트리 | 하위 디렉토리의 `CLAUDE.md` | 특정 모듈 | O | 해당 파일 접근 시 |
 
-| 순서 | 파일 | 범위 | Git 추적 |
-|------|------|------|----------|
-| 1 | `~/.claude/CLAUDE.md` | 모든 프로젝트 | X |
-| 2 | `CLAUDE.md` (프로젝트 루트) | 현재 프로젝트 | O |
-| 3 | `CLAUDE.local.md` | 현재 프로젝트 (개인) | X |
+## Rules 디렉토리
 
-<Callout type="tip" title="팁">
-  - 글로벌 설정에는 언어 선호도, 공통 스타일 등을 설정하세요
-  - 프로젝트 설정에는 기술 스택, 아키텍처, 보안 정책을 설정하세요
-  - 개인 설정(CLAUDE.local.md)은 .gitignore에 추가하세요
+`.claude/rules/` 디렉토리를 사용하면 하나의 거대한 CLAUDE.md 대신 **모듈화된 규칙 파일**로 관리할 수 있습니다. YAML 프론트매터의 `paths` 필드로 특정 파일 패턴에만 적용되는 조건부 규칙을 정의할 수 있습니다.
+
+<CodeBlock
+  code={`# .claude/rules/react-components.md
+---
+paths:
+  - "src/components/**"
+  - "src/pages/**"
+---
+
+- React 컴포넌트는 함수형으로 작성
+- Props 인터페이스는 컴포넌트 파일 상단에 정의
+- CSS Module 사용, 인라인 스타일 금지
+- 컴포넌트 파일명은 PascalCase`}
+  language="markdown"
+  filename=".claude/rules/react-components.md"
+/>
+
+<CodeBlock
+  code={`# .claude/rules/api-endpoints.md
+---
+paths:
+  - "src/api/**"
+  - "src/routes/**"
+---
+
+- Express Router 사용
+- 모든 엔드포인트에 입력 검증 (zod)
+- 에러 응답은 RFC 7807 형식
+- 인증이 필요한 엔드포인트는 authMiddleware 적용`}
+  language="markdown"
+  filename=".claude/rules/api-endpoints.md"
+/>
+
+## 임포트 구문
+
+CLAUDE.md 파일에서 `@path/to/file` 구문으로 다른 파일을 임포트할 수 있습니다. 거대한 단일 파일 대신 모듈화된 구조를 유지하는 데 유용합니다.
+
+<CodeBlock
+  code={`# CLAUDE.md
+
+## 프로젝트 개요
+이 프로젝트는 TypeScript 기반의 REST API 서버입니다.
+
+## 상세 규칙
+@.agent/conventions.md
+@.agent/architecture.md
+@docs/api-standards.md
+
+## 개인별 설정 (홈 디렉토리 참조)
+@~/my-preferences.md`}
+  language="markdown"
+  filename="CLAUDE.md (임포트 예시)"
+/>
+
+<Callout type="info" title="임포트 경로">
+  상대 경로와 절대 경로 모두 사용 가능합니다. `~/` 접두사로 홈 디렉토리의 파일을 참조하면
+  팀원마다 다른 개인 설정을 Git에 커밋하지 않고도 적용할 수 있습니다.
 </Callout>
 
 ## 실제 CLAUDE.md 분석
@@ -88,36 +169,44 @@ Claude Code는 다음 순서로 CLAUDE.md 파일을 찾아 로드합니다:
   ]}
 />
 
-## CLAUDE.md 작성 모범 사례
+## 작성 모범 사례
 
-### 1. 간결하게 유지
+### 1. 간결하게 유지 — "fading memory" 방지
+
+CLAUDE.md가 너무 길어지면 중요한 규칙이 노이즈에 묻혀 무시됩니다. Anthropic 공식 문서에서도 **"over-specified CLAUDE.md"를 가장 큰 안티패턴**으로 꼽습니다.
 
 <CodeBlock
-  code={`# Good - 명확하고 간결
+  code={`# Good — 명확하고 간결
 ## 기술 스택
 - TypeScript 5.x (strict mode)
 - Express.js 4.x
 - PostgreSQL 15
 - Jest (테스트)
 
-# Bad - 너무 장황
+# Bad — 너무 장황
 ## 기술 스택
-이 프로젝트는 TypeScript를 사용합니다. TypeScript는 
+이 프로젝트는 TypeScript를 사용합니다. TypeScript는
 JavaScript의 상위 집합으로... (이하 생략)`}
   language="markdown"
   filename="작성 예시"
 />
 
+<Callout type="tip" title="정리 기준">
+  Claude가 이미 올바르게 하고 있는 것이라면 CLAUDE.md에서 **삭제**하세요.
+  반복적으로 실수하는 부분만 규칙으로 남기세요. 또는 반드시 지켜야 하는 규칙은 **Hook으로 전환**하세요
+  — Hook은 CLAUDE.md와 달리 100% 실행이 보장됩니다.
+</Callout>
+
 ### 2. 규칙은 구체적으로
 
 <CodeBlock
-  code={`# Good - 구체적인 규칙
+  code={`# Good — 구체적인 규칙
 - 함수 최대 길이: 30줄
 - 파라미터 최대: 3개
 - 파일명: kebab-case.ts
 - 상수: UPPER_SNAKE_CASE
 
-# Bad - 모호한 규칙  
+# Bad — 모호한 규칙
 - 깨끗한 코드를 작성하세요
 - 좋은 네이밍을 사용하세요`}
   language="markdown"
@@ -137,51 +226,36 @@ JavaScript의 상위 집합으로... (이하 생략)`}
 
 **필수:**
 - 환경 변수로 설정 관리
-- 모든 입력 검증
-- 적절한 에러 처리`}
+- 모든 입력 검증 (zod, joi 등)
+- 적절한 에러 처리 (스택 트레이스 노출 금지)`}
   language="markdown"
   filename="보안 규칙 예시"
 />
 
-### 4. 참조 파일 연결
+### 4. 유용한 커맨드
 
-<CodeBlock
-  code={`## 참고 문서
-- \`.agent/context.md\` - 상세 프로젝트 컨텍스트
-- \`.agent/conventions.md\` - 코딩 컨벤션 상세
-- \`docs/adr/\` - 아키텍처 결정 기록`}
-  language="markdown"
-  filename="참조 파일 예시"
-/>
+| 커맨드 | 설명 |
+|--------|------|
+| `/init` | 현재 프로젝트를 분석하여 CLAUDE.md 자동 생성 |
+| `/memory` | 시스템 에디터에서 메모리 파일 직접 편집 |
+| `#` 키 | 대화 중 메모리에 지침 빠르게 추가 |
+| `/compact` | 컨텍스트 압축 (긴 세션에서 메모리 효율화) |
+| `/clear` | 대화 초기화 (작업 전환 시) |
 
-<Callout type="info" title="/init 명령어">
-  Claude Code에서 `/init` 명령어를 실행하면 현재 프로젝트를 분석하여 CLAUDE.md를 자동 생성합니다.
-  이를 기반으로 프로젝트에 맞게 수정하세요.
+<Callout type="info" title="/init으로 시작하기">
+  Claude Code에서 `/init` 명령어를 실행하면 현재 프로젝트의 구조, 의존성, 설정 파일을 분석하여
+  CLAUDE.md 초안을 자동 생성합니다. 이를 기반으로 프로젝트에 맞게 다듬어 나가세요.
 </Callout>
 
-<Quiz
-  title="CLAUDE.md 이해도 확인"
-  questions={[
-    {
-      question: 'CLAUDE.md의 주요 역할은?',
-      options: ['코드 자동완성 설정', '프로젝트 빌드 설정', 'Claude Code에게 프로젝트 규칙을 알려주는 지침서', '테스트 설정 파일'],
-      correctIndex: 2,
-      explanation: 'CLAUDE.md는 Claude Code가 자동으로 로드하여 프로젝트의 규칙, 컨벤션, 보안 정책 등을 이해하는 지침서입니다.',
-    },
-    {
-      question: '개인 설정을 저장하기 위한 파일은?',
-      options: ['CLAUDE.md', 'CLAUDE.local.md', '.claude/CLAUDE.md', '~/.claude/CLAUDE.md'],
-      correctIndex: 1,
-      explanation: 'CLAUDE.local.md는 프로젝트 내 개인 설정을 저장하는 파일로, .gitignore에 추가하여 Git 추적에서 제외합니다.',
-    },
-    {
-      question: 'CLAUDE.md 작성 시 가장 중요한 원칙은?',
-      options: ['가능한 길게 작성', '간결하고 구체적으로 작성', '영어로만 작성', '매일 업데이트'],
-      correctIndex: 1,
-      explanation: 'CLAUDE.md의 모든 줄은 AI의 주의를 경쟁하므로, 간결하면서도 구체적인 규칙을 작성하는 것이 중요합니다.',
-    },
-  ]}
-/>
+## CLAUDE.md vs Hook vs Rules
+
+각 설정 방법의 적합한 용도가 다릅니다:
+
+| 방법 | 실행 보장 | 용도 | 예시 |
+|------|-----------|------|------|
+| **CLAUDE.md** | 권고 (advisory) | 일반적인 코딩 컨벤션, 프로젝트 구조 설명 | "함수는 30줄 이내" |
+| **Hook** | 보장 (deterministic) | 매번 반드시 실행해야 하는 작업 | 커밋 전 린트 실행, 포맷팅 |
+| **Rules** | 조건부 권고 | 특정 파일/디렉토리에만 적용되는 규칙 | "React 컴포넌트는 함수형" |
 
 <ChapterNav
   prev={{ title: 'Claude Code란?', path: '/docs/part-1--기초-claude-code란' }}
