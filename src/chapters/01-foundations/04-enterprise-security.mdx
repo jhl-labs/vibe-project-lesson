@@ -32,7 +32,7 @@ Claude Code는 파일 시스템 접근, 명령어 실행, 외부 네트워크 �
   title="계정 유형별 학습 데이터 정책"
   headers={['계정 유형', '학습 사용 여부', '데이터 보존 기간', '비고']}
   rows={[
-    { feature: 'Free / Pro / Max', values: ['기본 ON (옵트아웃 가능)', '학습 허용 시 5년 / 거부 시 30일', '개인 설정에서 비활성화'] },
+    { feature: 'Free / Pro / Max', values: ['Model Improvement 설정 시 사용', '학습 허용 시 5년 / 거부 시 30일', '설정에서 토글 제어'] },
     { feature: 'Team / Enterprise', values: ['no', '30일', '기본적으로 학습에 사용 안 됨'] },
     { feature: 'API 사용자', values: ['no', '30일', '기본적으로 학습에 사용 안 됨'] },
     { feature: 'Bedrock / Vertex', values: ['no', '클라우드 제공자 정책', 'Anthropic 서버 미경유'] },
@@ -57,7 +57,7 @@ Claude Code는 파일 시스템 접근, 명령어 실행, 외부 네트워크 �
 
 ### Zero Data Retention (ZDR)
 
-Enterprise 플랜에서는 **Zero Data Retention** 모드를 활성화할 수 있습니다. ZDR이 적용되면 Anthropic 서버에 대화 내용이 전혀 보존되지 않습니다. Enterprise 계약에서 별도로 요청해야 합니다.
+**Zero Data Retention** 모드를 활성화하면 Anthropic 서버에 대화 내용이 전혀 보존되지 않습니다. 적절히 구성된 API 키로 사용 가능하며, Enterprise 플랜에서 활용됩니다.
 
 ## 텔레메트리 수집 차단
 
@@ -537,8 +537,11 @@ Claude Code의 플러그인/MCP 서버 설치를 승인된 소스로만 제한�
   code={`{
   "strictKnownMarketplaces": [
     { "source": "github", "repo": "company-org/approved-plugins", "ref": "v2.0" },
+    { "source": "git", "url": "https://gitlab.company.com/tools/plugins.git" },
     { "source": "npm", "package": "@company/compliance-plugins" },
     { "source": "url", "url": "https://plugins.company.com/marketplace.json" },
+    { "source": "file", "path": "/usr/local/share/claude/marketplace.json" },
+    { "source": "directory", "path": "/usr/local/share/claude/plugins" },
     { "source": "hostPattern", "hostPattern": "^github\\\\.company\\\\.com$" }
   ]
 }`}
@@ -555,8 +558,9 @@ Anthropic은 다음과 같은 보안 인증을 보유하고 있습니다:
   headers={['인증', '상태', '설명']}
   rows={[
     { feature: 'SOC 2 Type 2', values: ['yes', '보안, 가용성, 처리 무결성, 기밀성, 개인정보 보호'] },
-    { feature: 'ISO 27001', values: ['yes', '정보보안 관리 체계'] },
-    { feature: '전송 암호화', values: ['TLS 1.2+', '모든 API 통신'] },
+    { feature: 'ISO 27001:2022', values: ['yes', '정보보안 관리 체계'] },
+    { feature: 'ISO 42001', values: ['yes', 'AI 관리 시스템'] },
+    { feature: '전송 암호화', values: ['TLS', '모든 API 통신 암호화'] },
     { feature: '저장 암호화', values: ['AES-256', '저장 데이터'] },
   ]}
 />
@@ -629,7 +633,6 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://collector:4317
 
 # === 기타 제어 ===
 CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1       # 백그라운드 작업 비활성화
-CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1     # 실험 기능 비활성화
 CLAUDE_CODE_HIDE_ACCOUNT_INFO=1              # 계정 정보 숨김`}
   language="bash"
   filename="엔터프라이즈 핵심 환경 변수"
