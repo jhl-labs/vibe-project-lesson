@@ -34,7 +34,7 @@ const initMermaid = () => {
       },
       fontFamily: "'Pretendard Variable', sans-serif",
       flowchart: { curve: 'basis', padding: 16 },
-      sequence: { actorMargin: 80, mirrorActors: false },
+      sequence: { actorMargin: 80, mirrorActors: false, useMaxWidth: true },
     });
     mermaidInitialized = true;
   }
