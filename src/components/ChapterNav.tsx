@@ -9,30 +9,56 @@ interface ChapterNavProps {
 const NavButton: React.FC<{
   direction: 'prev' | 'next';
   title: string;
-}> = ({ direction, title }) => {
+  path: string;
+}> = ({ direction, title, path }) => {
   const isPrev = direction === 'prev';
 
+  const handleClick = () => {
+    // path를 Storybook story ID로 변환
+    // MDX path 예: "/docs/part-1--기초-바이브-코딩이란"
+    // Storybook ID: "part-1-기초-바이브-코딩이란--docs"
+    let storyId = path.replace(/^\/docs\//, '');
+    // "part-1--기초" → "part-1-기초" (더블 하이픈을 싱글로)
+    storyId = storyId.replace(/--/g, '-');
+    // 끝에 --docs 붙이기
+    storyId = `${storyId}--docs`;
+
+    const targetUrl = `${window.location.origin}/?path=/docs/${storyId}`;
+    if (window.top) {
+      window.top.location.href = targetUrl;
+    } else {
+      window.location.href = targetUrl;
+    }
+  };
+
   return (
-    <div style={{
-      flex: 1,
-      padding: '16px 20px',
-      background: '#f0ece5',
-      border: '1px solid #e0d9cf',
-      borderRadius: '8px',
-      cursor: 'default',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      flexDirection: isPrev ? 'row' : 'row-reverse',
-      textAlign: isPrev ? 'left' : 'right',
-      transition: 'border-color 0.2s',
-    }}
-    onMouseOver={(e) => {
-      e.currentTarget.style.borderColor = '#da7756';
-    }}
-    onMouseOut={(e) => {
-      e.currentTarget.style.borderColor = '#e0d9cf';
-    }}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') handleClick();
+      }}
+      style={{
+        flex: 1,
+        padding: '16px 20px',
+        background: '#f0ece5',
+        border: '1px solid #e0d9cf',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        flexDirection: isPrev ? 'row' : 'row-reverse',
+        textAlign: isPrev ? 'left' : 'right',
+        transition: 'border-color 0.2s',
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.borderColor = '#da7756';
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.borderColor = '#e0d9cf';
+      }}
     >
       {isPrev
         ? <ChevronLeft size={18} color="#da7756" />
@@ -70,12 +96,12 @@ export const ChapterNav: React.FC<ChapterNavProps> = ({ prev, next }) => {
       borderTop: '1px solid #e0d9cf',
     }}>
       {prev ? (
-        <NavButton direction="prev" title={prev.title} />
+        <NavButton direction="prev" title={prev.title} path={prev.path} />
       ) : (
         <div style={{ flex: 1 }} />
       )}
       {next ? (
-        <NavButton direction="next" title={next.title} />
+        <NavButton direction="next" title={next.title} path={next.path} />
       ) : (
         <div style={{ flex: 1 }} />
       )}
