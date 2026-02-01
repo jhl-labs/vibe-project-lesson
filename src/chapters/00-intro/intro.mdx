@@ -29,10 +29,10 @@ import { ChapterNav } from '../../components/ChapterNav';
 | **Part 5** | 실전 예제 | TypeScript API, Python API |
 | **Part 6** | 모범 사례 | 보안, 팀 협업, 효과 측정 |
 
-## 교육 타임라인
+## AI 코딩 도구의 발전
 
 <Timeline
-  title="AI 코딩 도구의 발전"
+  title="주요 타임라인"
   events={[
     {
       date: '2021.06',
@@ -56,16 +56,37 @@ import { ChapterNav } from '../../components/ChapterNav';
       highlight: true,
     },
     {
-      date: '2025.03',
-      title: 'Claude Code CLI 출시',
-      description: 'Anthropic이 터미널 기반 AI 코딩 에이전트 공개',
+      date: '2025.02',
+      title: 'Claude Code 리서치 프리뷰 출시',
+      description: 'Anthropic이 터미널 기반 AI 코딩 에이전트를 프리뷰로 공개',
+      highlight: true,
+    },
+    {
+      date: '2025.05',
+      title: 'Claude Code GA & Claude 4 출시',
+      description: 'Claude Code 정식 출시, Claude Sonnet 4 / Opus 4와 함께 일반 공개',
+      highlight: true,
+    },
+    {
+      date: '2025.10',
+      title: 'Claude Code 웹 버전 출시',
+      description: '브라우저에서 GitHub 연동, 코드 편집, PR 생성이 가능한 웹 버전 공개',
+    },
+    {
+      date: '2025.11',
+      title: 'Claude Opus 4.5 & Native Installer',
+      description: 'Opus 4.5 모델 출시, Node.js 불필요한 네이티브 설치 방식 GA',
       highlight: true,
     },
     {
       date: '2025.11',
       title: 'Collins "Vibe Coding" 올해의 단어',
       description: 'Collins 사전이 올해의 단어로 선정',
-      highlight: true,
+    },
+    {
+      date: '2026.01',
+      title: 'Claude Code 2.1',
+      description: '스킬, 서브에이전트 오케스트레이션, 구조화된 워크플로우 기능 강화',
     },
   ]}
 />
@@ -79,9 +100,15 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 <Callout type="tip" title="실습 준비">
   교육을 최대한 활용하려면 다음을 준비하세요:
-  - Node.js 18+ 설치
-  - Claude Code CLI 설치 (`npm i -g @anthropic-ai/claude-code`)
+  - Claude Code 설치 (네이티브 설치 권장)
+    - **macOS / Linux**: `curl -fsSL https://claude.ai/install.sh | bash`
+    - **Windows**: `irm https://claude.ai/install.ps1 | iex`
+  - `claude` 명령어 실행 후 인증 (Claude Pro/Max 구독 또는 API 키)
   - 이 프로젝트 템플릿 클론
+</Callout>
+
+<Callout type="warning" title="npm 설치는 더 이상 권장되지 않습니다">
+  이전에 `npm i -g @anthropic-ai/claude-code`로 설치한 경우, `claude install` 명령어로 네이티브 설치로 마이그레이션하세요. 기존 설정 파일은 그대로 유지됩니다.
 </Callout>
 
 <ChapterNav
