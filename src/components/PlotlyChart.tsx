@@ -18,29 +18,29 @@ export const PlotlyChart: React.FC<PlotlyChartProps> = ({
   height = 400,
 }) => {
   const mergedLayout = useMemo<Partial<Plotly.Layout>>(() => ({
-    paper_bgcolor: '#1e293b',
-    plot_bgcolor: '#0f172a',
+    paper_bgcolor: '#f0ece5',
+    plot_bgcolor: '#faf9f7',
     font: {
       family: "'Pretendard Variable', sans-serif",
-      color: '#cbd5e1',
+      color: '#5c564e',
       size: 12,
     },
     margin: { t: 40, r: 24, b: 48, l: 48 },
     height,
     xaxis: {
-      gridcolor: '#334155',
-      linecolor: '#475569',
-      zerolinecolor: '#475569',
+      gridcolor: '#e0d9cf',
+      linecolor: '#d4cdc4',
+      zerolinecolor: '#d4cdc4',
       ...userLayout?.xaxis,
     } as Partial<Plotly.LayoutAxis>,
     yaxis: {
-      gridcolor: '#334155',
-      linecolor: '#475569',
-      zerolinecolor: '#475569',
+      gridcolor: '#e0d9cf',
+      linecolor: '#d4cdc4',
+      zerolinecolor: '#d4cdc4',
       ...userLayout?.yaxis,
     } as Partial<Plotly.LayoutAxis>,
     legend: {
-      font: { color: '#cbd5e1' },
+      font: { color: '#5c564e' },
       bgcolor: 'rgba(0,0,0,0)',
       ...userLayout?.legend,
     },
@@ -52,23 +52,23 @@ export const PlotlyChart: React.FC<PlotlyChartProps> = ({
   return (
     <div style={{
       margin: '16px 0',
-      border: '1px solid #334155',
+      border: '1px solid #e0d9cf',
       borderRadius: '8px',
       overflow: 'hidden',
     }}>
       {title && (
         <div style={{
           padding: '12px 16px',
-          background: '#1e293b',
-          borderBottom: '1px solid #334155',
-          color: '#e2e8f0',
+          background: '#f0ece5',
+          borderBottom: '1px solid #e0d9cf',
+          color: '#2d2a26',
           fontWeight: 600,
           fontSize: '14px',
         }}>
           {title}
         </div>
       )}
-      <div className="plotly-container" style={{ background: '#1e293b' }}>
+      <div className="plotly-container" style={{ background: '#f0ece5' }}>
         <Plot
           data={data}
           layout={mergedLayout}

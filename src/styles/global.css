@@ -2,38 +2,45 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Slate palette */
-  --color-bg-primary: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
-  --color-border: #475569;
-  --color-border-light: #334155;
+  /* Claude light palette */
+  --color-bg-primary: #faf9f7;
+  --color-bg-secondary: #f0ece5;
+  --color-bg-tertiary: #e0d9cf;
+  --color-border: #d4cdc4;
+  --color-border-light: #e0d9cf;
 
   /* Text */
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
+  --color-text-primary: #2d2a26;
+  --color-text-secondary: #5c564e;
+  --color-text-muted: #8c857c;
 
-  /* Accent */
-  --color-indigo: #818cf8;
-  --color-indigo-light: #a5b4fc;
-  --color-indigo-dark: #6366f1;
-  --color-violet: #a78bfa;
-  --color-violet-light: #c4b5fd;
+  /* Claude accent (coral) */
+  --color-accent: #da7756;
+  --color-accent-light: #e59b80;
+  --color-accent-dark: #c4613e;
+  --color-accent-secondary: #b8845a;
+  --color-accent-secondary-light: #d4a574;
 
   /* Semantic */
-  --color-info: #38bdf8;
-  --color-info-bg: rgba(56, 189, 248, 0.1);
-  --color-info-border: rgba(56, 189, 248, 0.3);
-  --color-warning: #fbbf24;
-  --color-warning-bg: rgba(251, 191, 36, 0.1);
-  --color-warning-border: rgba(251, 191, 36, 0.3);
-  --color-success: #34d399;
-  --color-success-bg: rgba(52, 211, 153, 0.1);
-  --color-success-border: rgba(52, 211, 153, 0.3);
-  --color-danger: #f87171;
-  --color-danger-bg: rgba(248, 113, 113, 0.1);
-  --color-danger-border: rgba(248, 113, 113, 0.3);
+  --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.08);
+  --color-info-border: rgba(59, 130, 246, 0.25);
+  --color-warning: #d97706;
+  --color-warning-bg: rgba(217, 119, 6, 0.08);
+  --color-warning-border: rgba(217, 119, 6, 0.25);
+  --color-success: #16a34a;
+  --color-success-bg: rgba(22, 163, 74, 0.08);
+  --color-success-border: rgba(22, 163, 74, 0.25);
+  --color-danger: #dc2626;
+  --color-danger-bg: rgba(220, 38, 38, 0.08);
+  --color-danger-border: rgba(220, 38, 38, 0.25);
+
+  /* Code block (stays dark for readability) */
+  --color-code-bg: #1e1e1e;
+  --color-code-header: #2d2d2d;
+  --color-code-border: #3d3d3d;
+  --color-code-text: #d4d4d4;
+  --color-code-muted: #858585;
 
   /* Font */
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
@@ -75,12 +82,12 @@
   font-size: 2rem !important;
   margin-top: var(--space-2xl) !important;
   margin-bottom: var(--space-lg) !important;
-  border-bottom: 2px solid var(--color-indigo-dark);
+  border-bottom: 2px solid var(--color-accent);
   padding-bottom: var(--space-sm);
 }
 
 .sbdocs h2 {
-  color: var(--color-indigo-light) !important;
+  color: var(--color-accent-dark) !important;
   font-weight: 600 !important;
   font-size: 1.5rem !important;
   margin-top: var(--space-xl) !important;
@@ -88,7 +95,7 @@
 }
 
 .sbdocs h3 {
-  color: var(--color-violet-light) !important;
+  color: var(--color-accent-secondary) !important;
   font-weight: 600 !important;
   font-size: 1.2rem !important;
   margin-top: var(--space-lg) !important;
@@ -102,12 +109,12 @@
 }
 
 .sbdocs a {
-  color: var(--color-indigo) !important;
+  color: var(--color-accent) !important;
   text-decoration: none !important;
 }
 
 .sbdocs a:hover {
-  color: var(--color-indigo-light) !important;
+  color: var(--color-accent-dark) !important;
   text-decoration: underline !important;
 }
 
@@ -125,7 +132,7 @@
 
 .sbdocs code {
   background: var(--color-bg-tertiary) !important;
-  color: var(--color-indigo-light) !important;
+  color: var(--color-accent-dark) !important;
   padding: 2px 6px !important;
   border-radius: var(--radius-sm) !important;
   font-family: var(--font-mono) !important;
@@ -133,8 +140,8 @@
 }
 
 .sbdocs pre {
-  background: var(--color-bg-primary) !important;
-  border: 1px solid var(--color-border-light) !important;
+  background: var(--color-code-bg) !important;
+  border: 1px solid var(--color-code-border) !important;
   border-radius: var(--radius-md) !important;
   padding: var(--space-md) !important;
 }
@@ -142,11 +149,11 @@
 .sbdocs pre code {
   background: none !important;
   padding: 0 !important;
-  color: var(--color-text-secondary) !important;
+  color: var(--color-code-text) !important;
 }
 
 .sbdocs blockquote {
-  border-left: 3px solid var(--color-indigo) !important;
+  border-left: 3px solid var(--color-accent) !important;
   background: var(--color-bg-secondary) !important;
   padding: var(--space-md) var(--space-lg) !important;
   margin: var(--space-md) 0 !important;
@@ -165,8 +172,8 @@
 }
 
 .sbdocs th {
-  background: var(--color-bg-tertiary) !important;
-  color: var(--color-indigo-light) !important;
+  background: var(--color-bg-secondary) !important;
+  color: var(--color-accent-dark) !important;
   padding: var(--space-sm) var(--space-md) !important;
   text-align: left !important;
   font-weight: 600 !important;
@@ -180,7 +187,7 @@
 }
 
 .sbdocs tr:nth-child(even) td {
-  background: rgba(30, 41, 59, 0.5) !important;
+  background: rgba(240, 236, 229, 0.5) !important;
 }
 
 .sbdocs hr {

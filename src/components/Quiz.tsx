@@ -57,8 +57,8 @@ export const Quiz: React.FC<QuizProps> = ({
     const pct = Math.round((score / questions.length) * 100);
     return (
       <div style={{
-        background: '#1e293b',
-        border: '1px solid #334155',
+        background: '#f0ece5',
+        border: '1px solid #e0d9cf',
         borderRadius: '8px',
         padding: '32px',
         margin: '16px 0',
@@ -67,20 +67,20 @@ export const Quiz: React.FC<QuizProps> = ({
         <div style={{
           fontSize: '48px',
           fontWeight: 700,
-          color: pct >= 80 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#f87171',
+          color: pct >= 80 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626',
           marginBottom: '8px',
         }}>
           {pct}%
         </div>
         <div style={{
-          color: '#e2e8f0',
+          color: '#2d2a26',
           fontSize: '16px',
           marginBottom: '4px',
         }}>
           {score}/{questions.length} 정답
         </div>
         <div style={{
-          color: '#94a3b8',
+          color: '#8c857c',
           fontSize: '14px',
           marginBottom: '24px',
         }}>
@@ -94,7 +94,7 @@ export const Quiz: React.FC<QuizProps> = ({
         <button
           onClick={handleReset}
           style={{
-            background: '#6366f1',
+            background: '#da7756',
             color: 'white',
             border: 'none',
             padding: '10px 24px',
@@ -116,8 +116,8 @@ export const Quiz: React.FC<QuizProps> = ({
 
   return (
     <div style={{
-      background: '#1e293b',
-      border: '1px solid #334155',
+      background: '#faf9f7',
+      border: '1px solid #e0d9cf',
       borderRadius: '8px',
       overflow: 'hidden',
       margin: '16px 0',
@@ -128,21 +128,21 @@ export const Quiz: React.FC<QuizProps> = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '12px 20px',
-        background: '#334155',
+        background: '#f0ece5',
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          color: '#e2e8f0',
+          color: '#2d2a26',
           fontWeight: 600,
           fontSize: '14px',
         }}>
-          <HelpCircle size={16} color="#818cf8" />
+          <HelpCircle size={16} color="#da7756" />
           {title}
         </div>
         <div style={{
-          color: '#94a3b8',
+          color: '#8c857c',
           fontSize: '12px',
         }}>
           {currentQ + 1} / {questions.length}
@@ -152,12 +152,12 @@ export const Quiz: React.FC<QuizProps> = ({
       {/* Progress bar */}
       <div style={{
         height: '3px',
-        background: '#0f172a',
+        background: '#e0d9cf',
       }}>
         <div style={{
           height: '100%',
           width: `${((currentQ + (showResult ? 1 : 0)) / questions.length) * 100}%`,
-          background: '#6366f1',
+          background: '#da7756',
           transition: 'width 0.3s',
         }} />
       </div>
@@ -165,7 +165,7 @@ export const Quiz: React.FC<QuizProps> = ({
       {/* Question */}
       <div style={{ padding: '24px 20px' }}>
         <div style={{
-          color: '#f1f5f9',
+          color: '#2d2a26',
           fontSize: '15px',
           fontWeight: 500,
           marginBottom: '20px',
@@ -179,20 +179,20 @@ export const Quiz: React.FC<QuizProps> = ({
           {q.options.map((opt, i) => {
             const isSelected = selected === i;
             const isAnswer = i === q.correctIndex;
-            let borderColor = '#334155';
+            let borderColor = '#e0d9cf';
             let bg = 'transparent';
 
             if (showResult) {
               if (isAnswer) {
-                borderColor = '#34d399';
-                bg = 'rgba(52, 211, 153, 0.1)';
+                borderColor = '#16a34a';
+                bg = 'rgba(22, 163, 74, 0.08)';
               } else if (isSelected && !isAnswer) {
-                borderColor = '#f87171';
-                bg = 'rgba(248, 113, 113, 0.1)';
+                borderColor = '#dc2626';
+                bg = 'rgba(220, 38, 38, 0.08)';
               }
             } else if (isSelected) {
-              borderColor = '#6366f1';
-              bg = 'rgba(99, 102, 241, 0.1)';
+              borderColor = '#da7756';
+              bg = 'rgba(218, 119, 86, 0.08)';
             }
 
             return (
@@ -212,12 +212,12 @@ export const Quiz: React.FC<QuizProps> = ({
                 }}
                 onMouseOver={(e) => {
                   if (!showResult) {
-                    e.currentTarget.style.borderColor = '#6366f1';
+                    e.currentTarget.style.borderColor = '#da7756';
                   }
                 }}
                 onMouseOut={(e) => {
                   if (!showResult && !isSelected) {
-                    e.currentTarget.style.borderColor = '#334155';
+                    e.currentTarget.style.borderColor = '#e0d9cf';
                   }
                 }}
               >
@@ -232,17 +232,17 @@ export const Quiz: React.FC<QuizProps> = ({
                   flexShrink: 0,
                   fontSize: '12px',
                   fontWeight: 600,
-                  color: '#94a3b8',
+                  color: '#8c857c',
                 }}>
                   {showResult && isAnswer
-                    ? <CheckCircle size={18} color="#34d399" />
+                    ? <CheckCircle size={18} color="#16a34a" />
                     : showResult && isSelected && !isAnswer
-                      ? <XCircle size={18} color="#f87171" />
+                      ? <XCircle size={18} color="#dc2626" />
                       : String.fromCharCode(65 + i)
                   }
                 </div>
                 <span style={{
-                  color: '#e2e8f0',
+                  color: '#2d2a26',
                   fontSize: '14px',
                 }}>
                   {opt}
@@ -258,15 +258,15 @@ export const Quiz: React.FC<QuizProps> = ({
             marginTop: '16px',
             padding: '16px',
             background: isCorrect
-              ? 'rgba(52, 211, 153, 0.08)'
-              : 'rgba(248, 113, 113, 0.08)',
+              ? 'rgba(22, 163, 74, 0.06)'
+              : 'rgba(220, 38, 38, 0.06)',
             border: `1px solid ${isCorrect
-              ? 'rgba(52, 211, 153, 0.3)'
-              : 'rgba(248, 113, 113, 0.3)'}`,
+              ? 'rgba(22, 163, 74, 0.2)'
+              : 'rgba(220, 38, 38, 0.2)'}`,
             borderRadius: '6px',
           }}>
             <div style={{
-              color: isCorrect ? '#34d399' : '#f87171',
+              color: isCorrect ? '#16a34a' : '#dc2626',
               fontWeight: 600,
               fontSize: '13px',
               marginBottom: '6px',
@@ -274,7 +274,7 @@ export const Quiz: React.FC<QuizProps> = ({
               {isCorrect ? '정답입니다!' : '틀렸습니다'}
             </div>
             <div style={{
-              color: '#cbd5e1',
+              color: '#5c564e',
               fontSize: '13px',
               lineHeight: '1.6',
             }}>
@@ -289,7 +289,7 @@ export const Quiz: React.FC<QuizProps> = ({
             <button
               onClick={handleNext}
               style={{
-                background: '#6366f1',
+                background: '#da7756',
                 color: 'white',
                 border: 'none',
                 padding: '8px 20px',

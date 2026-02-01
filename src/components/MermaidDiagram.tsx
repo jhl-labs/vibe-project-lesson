@@ -13,24 +13,24 @@ const initMermaid = () => {
   if (!mermaidInitialized) {
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'dark',
+      theme: 'default',
       themeVariables: {
-        primaryColor: '#6366f1',
-        primaryTextColor: '#f1f5f9',
-        primaryBorderColor: '#818cf8',
-        lineColor: '#94a3b8',
-        secondaryColor: '#334155',
-        tertiaryColor: '#1e293b',
-        background: '#0f172a',
-        mainBkg: '#1e293b',
-        nodeBorder: '#818cf8',
-        clusterBkg: '#1e293b',
-        clusterBorder: '#475569',
-        titleColor: '#f1f5f9',
-        edgeLabelBackground: '#1e293b',
-        noteTextColor: '#f1f5f9',
-        noteBkgColor: '#334155',
-        noteBorderColor: '#475569',
+        primaryColor: '#fdf2ee',
+        primaryTextColor: '#2d2a26',
+        primaryBorderColor: '#da7756',
+        lineColor: '#8c857c',
+        secondaryColor: '#f0ece5',
+        tertiaryColor: '#faf9f7',
+        background: '#faf9f7',
+        mainBkg: '#fdf2ee',
+        nodeBorder: '#da7756',
+        clusterBkg: '#f0ece5',
+        clusterBorder: '#d4cdc4',
+        titleColor: '#2d2a26',
+        edgeLabelBackground: '#faf9f7',
+        noteTextColor: '#2d2a26',
+        noteBkgColor: '#f0ece5',
+        noteBorderColor: '#d4cdc4',
       },
       fontFamily: "'Pretendard Variable', sans-serif",
       flowchart: { curve: 'basis', padding: 16 },
@@ -77,16 +77,16 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
   return (
     <div style={{
       margin: '16px 0',
-      border: '1px solid #334155',
+      border: '1px solid #e0d9cf',
       borderRadius: '8px',
       overflow: 'hidden',
     }}>
       {title && (
         <div style={{
           padding: '12px 16px',
-          background: '#1e293b',
-          borderBottom: '1px solid #334155',
-          color: '#e2e8f0',
+          background: '#f0ece5',
+          borderBottom: '1px solid #e0d9cf',
+          color: '#2d2a26',
           fontWeight: 600,
           fontSize: '14px',
         }}>
@@ -98,14 +98,14 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
         className="mermaid-container"
         style={{
           padding: '24px',
-          background: '#0f172a',
+          background: '#faf9f7',
           display: 'flex',
           justifyContent: 'center',
           overflow: 'auto',
         }}
       >
         {error ? (
-          <div style={{ color: '#f87171', fontSize: '13px', fontFamily: 'monospace' }}>
+          <div style={{ color: '#dc2626', fontSize: '13px', fontFamily: 'monospace' }}>
             Mermaid Error: {error}
           </div>
         ) : (
@@ -115,9 +115,9 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
       {caption && (
         <div style={{
           padding: '8px 16px',
-          background: '#1e293b',
-          borderTop: '1px solid #334155',
-          color: '#94a3b8',
+          background: '#f0ece5',
+          borderTop: '1px solid #e0d9cf',
+          color: '#8c857c',
           fontSize: '12px',
           textAlign: 'center',
           fontStyle: 'italic',

@@ -18,30 +18,30 @@ const config: Record<CalloutType, {
 }> = {
   info: {
     icon: <Info size={18} />,
-    color: '#38bdf8',
-    bg: 'rgba(56, 189, 248, 0.08)',
-    border: 'rgba(56, 189, 248, 0.3)',
+    color: '#3b82f6',
+    bg: 'rgba(59, 130, 246, 0.06)',
+    border: 'rgba(59, 130, 246, 0.2)',
     defaultTitle: '참고',
   },
   warning: {
     icon: <AlertTriangle size={18} />,
-    color: '#fbbf24',
-    bg: 'rgba(251, 191, 36, 0.08)',
-    border: 'rgba(251, 191, 36, 0.3)',
+    color: '#d97706',
+    bg: 'rgba(217, 119, 6, 0.06)',
+    border: 'rgba(217, 119, 6, 0.2)',
     defaultTitle: '주의',
   },
   tip: {
     icon: <Lightbulb size={18} />,
-    color: '#34d399',
-    bg: 'rgba(52, 211, 153, 0.08)',
-    border: 'rgba(52, 211, 153, 0.3)',
+    color: '#16a34a',
+    bg: 'rgba(22, 163, 74, 0.06)',
+    border: 'rgba(22, 163, 74, 0.2)',
     defaultTitle: '팁',
   },
   important: {
     icon: <AlertCircle size={18} />,
-    color: '#f87171',
-    bg: 'rgba(248, 113, 113, 0.08)',
-    border: 'rgba(248, 113, 113, 0.3)',
+    color: '#dc2626',
+    bg: 'rgba(220, 38, 38, 0.06)',
+    border: 'rgba(220, 38, 38, 0.2)',
     defaultTitle: '중요',
   },
 };
@@ -75,7 +75,7 @@ export const Callout: React.FC<CalloutProps> = ({
         <span>{title || c.defaultTitle}</span>
       </div>
       <div style={{
-        color: '#cbd5e1',
+        color: '#5c564e',
         fontSize: '14px',
         lineHeight: '1.7',
       }}>

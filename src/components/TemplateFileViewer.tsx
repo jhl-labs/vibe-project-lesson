@@ -44,27 +44,27 @@ export const TemplateFileViewer: React.FC<TemplateFileViewerProps> = ({
     <div style={{
       display: 'flex',
       gap: '0',
-      border: '1px solid #334155',
+      border: '1px solid #e0d9cf',
       borderRadius: '8px',
       overflow: 'hidden',
       margin: '16px 0',
-      background: '#0f172a',
+      background: '#1e1e1e',
     }}>
-      {/* Code panel */}
+      {/* Code panel - stays dark */}
       <div style={{ flex: '1 1 65%', minWidth: 0 }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 16px',
-          background: '#1e293b',
-          borderBottom: '1px solid #334155',
+          background: '#2d2d2d',
+          borderBottom: '1px solid #3d3d3d',
         }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            color: '#94a3b8',
+            color: '#858585',
             fontSize: '13px',
           }}>
             <FileCode size={14} />
@@ -76,7 +76,7 @@ export const TemplateFileViewer: React.FC<TemplateFileViewerProps> = ({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: copied ? '#34d399' : '#94a3b8',
+              color: copied ? '#16a34a' : '#858585',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -95,18 +95,18 @@ export const TemplateFileViewer: React.FC<TemplateFileViewerProps> = ({
             lineProps={(lineNumber) => ({
               style: {
                 background: highlightedLines.includes(lineNumber)
-                  ? 'rgba(99, 102, 241, 0.15)'
+                  ? 'rgba(218, 119, 86, 0.15)'
                   : 'transparent',
                 display: 'block',
                 borderLeft: highlightedLines.includes(lineNumber)
-                  ? '3px solid #6366f1'
+                  ? '3px solid #da7756'
                   : '3px solid transparent',
               },
             })}
             customStyle={{
               margin: 0,
               padding: '16px',
-              background: '#0f172a',
+              background: '#1e1e1e',
               fontSize: '12px',
               lineHeight: '1.6',
             }}
@@ -116,22 +116,22 @@ export const TemplateFileViewer: React.FC<TemplateFileViewerProps> = ({
         </div>
       </div>
 
-      {/* Annotations panel */}
+      {/* Annotations panel - light theme */}
       {annotations.length > 0 && (
         <div style={{
           flex: '0 0 35%',
-          borderLeft: '1px solid #334155',
-          background: '#1e293b',
+          borderLeft: '1px solid #e0d9cf',
+          background: '#f0ece5',
           overflow: 'auto',
           maxHeight: '660px',
         }}>
           <div style={{
             padding: '8px 16px',
-            borderBottom: '1px solid #334155',
+            borderBottom: '1px solid #e0d9cf',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            color: '#94a3b8',
+            color: '#5c564e',
             fontSize: '13px',
             fontWeight: 600,
           }}>
@@ -148,10 +148,10 @@ export const TemplateFileViewer: React.FC<TemplateFileViewerProps> = ({
                   borderRadius: '6px',
                   cursor: 'pointer',
                   background: activeAnnotation === idx
-                    ? 'rgba(99, 102, 241, 0.15)'
+                    ? 'rgba(218, 119, 86, 0.1)'
                     : 'transparent',
                   border: activeAnnotation === idx
-                    ? '1px solid rgba(99, 102, 241, 0.3)'
+                    ? '1px solid rgba(218, 119, 86, 0.3)'
                     : '1px solid transparent',
                   transition: 'all 0.15s',
                 }}
@@ -160,7 +160,7 @@ export const TemplateFileViewer: React.FC<TemplateFileViewerProps> = ({
                 }
                 onMouseOver={(e) => {
                   if (activeAnnotation !== idx) {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                    e.currentTarget.style.background = 'rgba(0,0,0,0.03)';
                   }
                 }}
                 onMouseOut={(e) => {
@@ -171,7 +171,7 @@ export const TemplateFileViewer: React.FC<TemplateFileViewerProps> = ({
               >
                 <div style={{
                   fontSize: '11px',
-                  color: '#818cf8',
+                  color: '#da7756',
                   marginBottom: '4px',
                   fontFamily: "'JetBrains Mono', monospace",
                 }}>
@@ -180,7 +180,7 @@ export const TemplateFileViewer: React.FC<TemplateFileViewerProps> = ({
                 </div>
                 <div style={{
                   fontSize: '13px',
-                  color: '#cbd5e1',
+                  color: '#5c564e',
                   lineHeight: '1.6',
                 }}>
                   {ann.text}

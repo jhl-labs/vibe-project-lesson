@@ -17,14 +17,14 @@ export const Timeline: React.FC<TimelineProps> = ({ events, title }) => {
   return (
     <div style={{
       margin: '16px 0',
-      background: '#1e293b',
-      border: '1px solid #334155',
+      background: '#f0ece5',
+      border: '1px solid #e0d9cf',
       borderRadius: '8px',
       padding: '20px 24px',
     }}>
       {title && (
         <div style={{
-          color: '#e2e8f0',
+          color: '#2d2a26',
           fontWeight: 600,
           fontSize: '15px',
           marginBottom: '20px',
@@ -40,7 +40,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events, title }) => {
           top: '8px',
           bottom: '8px',
           width: '2px',
-          background: '#334155',
+          background: '#d4cdc4',
         }} />
 
         {events.map((event, i) => (
@@ -60,14 +60,14 @@ export const Timeline: React.FC<TimelineProps> = ({ events, title }) => {
             }}>
               <Circle
                 size={16}
-                fill={event.highlight ? '#6366f1' : '#334155'}
-                color={event.highlight ? '#818cf8' : '#475569'}
+                fill={event.highlight ? '#da7756' : '#d4cdc4'}
+                color={event.highlight ? '#c4613e' : '#8c857c'}
               />
             </div>
             <div>
               <div style={{
                 fontSize: '12px',
-                color: event.highlight ? '#818cf8' : '#64748b',
+                color: event.highlight ? '#c4613e' : '#8c857c',
                 fontFamily: "'JetBrains Mono', monospace",
                 marginBottom: '4px',
               }}>
@@ -75,7 +75,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events, title }) => {
               </div>
               <div style={{
                 fontSize: '14px',
-                color: event.highlight ? '#e2e8f0' : '#cbd5e1',
+                color: event.highlight ? '#2d2a26' : '#5c564e',
                 fontWeight: event.highlight ? 600 : 500,
                 marginBottom: '4px',
               }}>
@@ -83,7 +83,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events, title }) => {
               </div>
               <div style={{
                 fontSize: '13px',
-                color: '#94a3b8',
+                color: '#8c857c',
                 lineHeight: '1.6',
               }}>
                 {event.description}

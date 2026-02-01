@@ -29,10 +29,10 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   return (
     <div style={{
       borderRadius: '8px',
-      border: '1px solid #334155',
+      border: '1px solid #3d3d3d',
       overflow: 'hidden',
       margin: '16px 0',
-      background: '#0f172a',
+      background: '#1e1e1e',
     }}>
       {filename && (
         <div style={{
@@ -40,15 +40,15 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 16px',
-          background: '#1e293b',
-          borderBottom: '1px solid #334155',
+          background: '#2d2d2d',
+          borderBottom: '1px solid #3d3d3d',
           fontSize: '13px',
         }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            color: '#94a3b8',
+            color: '#858585',
           }}>
             <FileCode size={14} />
             <span>{filename}</span>
@@ -59,7 +59,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: copied ? '#34d399' : '#94a3b8',
+              color: copied ? '#16a34a' : '#858585',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -69,10 +69,10 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
               transition: 'all 0.2s',
             }}
             onMouseOver={(e) => {
-              if (!copied) e.currentTarget.style.color = '#e2e8f0';
+              if (!copied) e.currentTarget.style.color = '#d4d4d4';
             }}
             onMouseOut={(e) => {
-              if (!copied) e.currentTarget.style.color = '#94a3b8';
+              if (!copied) e.currentTarget.style.color = '#858585';
             }}
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -93,7 +93,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: copied ? '#34d399' : '#94a3b8',
+              color: copied ? '#16a34a' : '#858585',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -118,18 +118,18 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
         lineProps={(lineNumber) => ({
           style: {
             background: highlightLines.includes(lineNumber)
-              ? 'rgba(99, 102, 241, 0.15)'
+              ? 'rgba(218, 119, 86, 0.15)'
               : 'transparent',
             display: 'block',
             borderLeft: highlightLines.includes(lineNumber)
-              ? '3px solid #6366f1'
+              ? '3px solid #da7756'
               : '3px solid transparent',
           },
         })}
         customStyle={{
           margin: 0,
           padding: '16px',
-          background: '#0f172a',
+          background: '#1e1e1e',
           fontSize: '13px',
           lineHeight: '1.6',
         }}

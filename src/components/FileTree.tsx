@@ -33,35 +33,35 @@ const TreeItem: React.FC<{
           cursor: isFolder ? 'pointer' : 'default',
           borderRadius: '4px',
           background: node.highlight
-            ? 'rgba(99, 102, 241, 0.12)'
+            ? 'rgba(218, 119, 86, 0.1)'
             : 'transparent',
           transition: 'background 0.15s',
         }}
         onClick={() => isFolder && setOpen(!open)}
         onMouseOver={(e) => {
           e.currentTarget.style.background = node.highlight
-            ? 'rgba(99, 102, 241, 0.2)'
-            : 'rgba(255,255,255,0.03)';
+            ? 'rgba(218, 119, 86, 0.16)'
+            : 'rgba(0,0,0,0.03)';
         }}
         onMouseOut={(e) => {
           e.currentTarget.style.background = node.highlight
-            ? 'rgba(99, 102, 241, 0.12)'
+            ? 'rgba(218, 119, 86, 0.1)'
             : 'transparent';
         }}
       >
         {isFolder && (
           open
-            ? <ChevronDown size={14} color="#94a3b8" />
-            : <ChevronRight size={14} color="#94a3b8" />
+            ? <ChevronDown size={14} color="#8c857c" />
+            : <ChevronRight size={14} color="#8c857c" />
         )}
         {isFolder
           ? (open
-            ? <FolderOpen size={16} color="#818cf8" />
-            : <Folder size={16} color="#818cf8" />)
-          : <FileText size={16} color="#94a3b8" />
+            ? <FolderOpen size={16} color="#da7756" />
+            : <Folder size={16} color="#da7756" />)
+          : <FileText size={16} color="#8c857c" />
         }
         <span style={{
-          color: node.highlight ? '#a5b4fc' : (isFolder ? '#e2e8f0' : '#cbd5e1'),
+          color: node.highlight ? '#c4613e' : (isFolder ? '#2d2a26' : '#5c564e'),
           fontSize: '13px',
           fontFamily: "'JetBrains Mono', monospace",
           fontWeight: node.highlight ? 600 : 400,
@@ -70,7 +70,7 @@ const TreeItem: React.FC<{
         </span>
         {node.description && (
           <span style={{
-            color: '#64748b',
+            color: '#8c857c',
             fontSize: '12px',
             marginLeft: '8px',
           }}>
@@ -88,19 +88,19 @@ const TreeItem: React.FC<{
 export const FileTree: React.FC<FileTreeProps> = ({ data, title }) => {
   return (
     <div style={{
-      background: '#0f172a',
-      border: '1px solid #334155',
+      background: '#faf9f7',
+      border: '1px solid #e0d9cf',
       borderRadius: '8px',
       padding: '12px 8px',
       margin: '16px 0',
     }}>
       {title && (
         <div style={{
-          color: '#94a3b8',
+          color: '#8c857c',
           fontSize: '12px',
           fontWeight: 600,
           padding: '0 8px 8px',
-          borderBottom: '1px solid #1e293b',
+          borderBottom: '1px solid #f0ece5',
           marginBottom: '8px',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',

@@ -16,8 +16,8 @@ const NavButton: React.FC<{
     <div style={{
       flex: 1,
       padding: '16px 20px',
-      background: '#1e293b',
-      border: '1px solid #334155',
+      background: '#f0ece5',
+      border: '1px solid #e0d9cf',
       borderRadius: '8px',
       cursor: 'default',
       display: 'flex',
@@ -28,20 +28,20 @@ const NavButton: React.FC<{
       transition: 'border-color 0.2s',
     }}
     onMouseOver={(e) => {
-      e.currentTarget.style.borderColor = '#6366f1';
+      e.currentTarget.style.borderColor = '#da7756';
     }}
     onMouseOut={(e) => {
-      e.currentTarget.style.borderColor = '#334155';
+      e.currentTarget.style.borderColor = '#e0d9cf';
     }}
     >
       {isPrev
-        ? <ChevronLeft size={18} color="#818cf8" />
-        : <ChevronRight size={18} color="#818cf8" />
+        ? <ChevronLeft size={18} color="#da7756" />
+        : <ChevronRight size={18} color="#da7756" />
       }
       <div>
         <div style={{
           fontSize: '11px',
-          color: '#64748b',
+          color: '#8c857c',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
           marginBottom: '4px',
@@ -50,7 +50,7 @@ const NavButton: React.FC<{
         </div>
         <div style={{
           fontSize: '14px',
-          color: '#e2e8f0',
+          color: '#2d2a26',
           fontWeight: 500,
         }}>
           {title}
@@ -67,7 +67,7 @@ export const ChapterNav: React.FC<ChapterNavProps> = ({ prev, next }) => {
       gap: '16px',
       marginTop: '48px',
       paddingTop: '24px',
-      borderTop: '1px solid #334155',
+      borderTop: '1px solid #e0d9cf',
     }}>
       {prev ? (
         <NavButton direction="prev" title={prev.title} />

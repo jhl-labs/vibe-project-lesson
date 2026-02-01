@@ -14,15 +14,15 @@ interface ComparisonTableProps {
 
 const renderValue = (value: string) => {
   if (value === 'yes') {
-    return <Check size={16} color="#34d399" />;
+    return <Check size={16} color="#16a34a" />;
   }
   if (value === 'no') {
-    return <X size={16} color="#f87171" />;
+    return <X size={16} color="#dc2626" />;
   }
   if (value === 'partial') {
-    return <Minus size={16} color="#fbbf24" />;
+    return <Minus size={16} color="#d97706" />;
   }
-  return <span style={{ color: '#cbd5e1', fontSize: '13px' }}>{value}</span>;
+  return <span style={{ color: '#5c564e', fontSize: '13px' }}>{value}</span>;
 };
 
 export const ComparisonTable: React.FC<ComparisonTableProps> = ({
@@ -33,16 +33,16 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
   return (
     <div style={{
       margin: '16px 0',
-      border: '1px solid #334155',
+      border: '1px solid #e0d9cf',
       borderRadius: '8px',
       overflow: 'hidden',
     }}>
       {title && (
         <div style={{
           padding: '12px 16px',
-          background: '#1e293b',
-          borderBottom: '1px solid #334155',
-          color: '#e2e8f0',
+          background: '#f0ece5',
+          borderBottom: '1px solid #e0d9cf',
+          color: '#2d2a26',
           fontWeight: 600,
           fontSize: '14px',
         }}>
@@ -60,11 +60,11 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
               {headers.map((h, i) => (
                 <th key={i} style={{
                   padding: '10px 16px',
-                  background: '#1e293b',
-                  color: '#a5b4fc',
+                  background: '#f0ece5',
+                  color: '#c4613e',
                   fontWeight: 600,
                   textAlign: i === 0 ? 'left' : 'center',
-                  borderBottom: '1px solid #334155',
+                  borderBottom: '1px solid #e0d9cf',
                   whiteSpace: 'nowrap',
                 }}>
                   {h}
@@ -77,8 +77,8 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
               <tr key={ri}>
                 <td style={{
                   padding: '10px 16px',
-                  color: '#e2e8f0',
-                  borderBottom: '1px solid #1e293b',
+                  color: '#2d2a26',
+                  borderBottom: '1px solid #f0ece5',
                   fontWeight: 500,
                 }}>
                   {row.feature}
@@ -87,7 +87,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   <td key={vi} style={{
                     padding: '10px 16px',
                     textAlign: 'center',
-                    borderBottom: '1px solid #1e293b',
+                    borderBottom: '1px solid #f0ece5',
                   }}>
                     {renderValue(v)}
                   </td>

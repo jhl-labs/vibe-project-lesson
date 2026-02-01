@@ -1,37 +1,37 @@
 import { addons } from 'storybook/manager-api';
 import { create } from 'storybook/theming';
 
-const darkTheme = create({
-  base: 'dark',
+const claudeTheme = create({
+  base: 'light',
   brandTitle: 'Vibe Coding & Claude Code 교육',
   brandUrl: '/',
 
   // Colors
-  colorPrimary: '#818cf8',
-  colorSecondary: '#6366f1',
+  colorPrimary: '#da7756',
+  colorSecondary: '#c4613e',
 
   // UI
-  appBg: '#0f172a',
-  appContentBg: '#1e293b',
-  appPreviewBg: '#1e293b',
-  appBorderColor: '#334155',
+  appBg: '#f0ece5',
+  appContentBg: '#faf9f7',
+  appPreviewBg: '#faf9f7',
+  appBorderColor: '#d4cdc4',
   appBorderRadius: 8,
 
   // Text colors
-  textColor: '#e2e8f0',
-  textInverseColor: '#0f172a',
-  textMutedColor: '#94a3b8',
+  textColor: '#2d2a26',
+  textInverseColor: '#faf9f7',
+  textMutedColor: '#8c857c',
 
   // Toolbar
-  barTextColor: '#94a3b8',
-  barSelectedColor: '#818cf8',
-  barHoverColor: '#a5b4fc',
-  barBg: '#1e293b',
+  barTextColor: '#5c564e',
+  barSelectedColor: '#da7756',
+  barHoverColor: '#c4613e',
+  barBg: '#f0ece5',
 
   // Form
-  inputBg: '#0f172a',
-  inputBorder: '#334155',
-  inputTextColor: '#e2e8f0',
+  inputBg: '#faf9f7',
+  inputBorder: '#d4cdc4',
+  inputTextColor: '#2d2a26',
   inputBorderRadius: 6,
 
   // Font
@@ -40,7 +40,7 @@ const darkTheme = create({
 });
 
 addons.setConfig({
-  theme: darkTheme,
+  theme: claudeTheme,
   sidebar: {
     showRoots: true,
   },

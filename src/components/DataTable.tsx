@@ -63,22 +63,22 @@ export function DataTable<T extends Record<string, unknown>>({
   return (
     <div style={{
       margin: '16px 0',
-      border: '1px solid #334155',
+      border: '1px solid #e0d9cf',
       borderRadius: '8px',
       overflow: 'hidden',
     }}>
       {(title || searchable) && (
         <div style={{
           padding: '12px 16px',
-          background: '#1e293b',
-          borderBottom: '1px solid #334155',
+          background: '#f0ece5',
+          borderBottom: '1px solid #e0d9cf',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
         }}>
           {title && (
-            <span style={{ color: '#e2e8f0', fontWeight: 600, fontSize: '14px' }}>
+            <span style={{ color: '#2d2a26', fontWeight: 600, fontSize: '14px' }}>
               {title}
             </span>
           )}
@@ -87,12 +87,12 @@ export function DataTable<T extends Record<string, unknown>>({
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              background: '#0f172a',
-              border: '1px solid #475569',
+              background: '#faf9f7',
+              border: '1px solid #d4cdc4',
               borderRadius: '6px',
               padding: '4px 10px',
             }}>
-              <Search size={14} color="#94a3b8" />
+              <Search size={14} color="#8c857c" />
               <input
                 type="text"
                 value={globalFilter}
@@ -102,7 +102,7 @@ export function DataTable<T extends Record<string, unknown>>({
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#f1f5f9',
+                  color: '#2d2a26',
                   fontSize: '13px',
                   fontFamily: "'Pretendard Variable', sans-serif",
                   width: '140px',
@@ -127,11 +127,11 @@ export function DataTable<T extends Record<string, unknown>>({
                     onClick={header.column.getToggleSortingHandler()}
                     style={{
                       padding: '10px 16px',
-                      background: '#1e293b',
-                      color: '#a5b4fc',
+                      background: '#f0ece5',
+                      color: '#c4613e',
                       fontWeight: 600,
                       textAlign: 'left',
-                      borderBottom: '1px solid #334155',
+                      borderBottom: '1px solid #e0d9cf',
                       whiteSpace: 'nowrap',
                       cursor: 'pointer',
                       userSelect: 'none',
@@ -152,8 +152,8 @@ export function DataTable<T extends Record<string, unknown>>({
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} style={{
                     padding: '10px 16px',
-                    color: '#cbd5e1',
-                    borderBottom: '1px solid #1e293b',
+                    color: '#5c564e',
+                    borderBottom: '1px solid #f0ece5',
                   }}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
@@ -166,8 +166,8 @@ export function DataTable<T extends Record<string, unknown>>({
       {table.getPageCount() > 1 && (
         <div style={{
           padding: '8px 16px',
-          background: '#1e293b',
-          borderTop: '1px solid #334155',
+          background: '#f0ece5',
+          borderTop: '1px solid #e0d9cf',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -178,9 +178,9 @@ export function DataTable<T extends Record<string, unknown>>({
             disabled={!table.getCanPreviousPage()}
             style={{
               background: 'transparent',
-              border: '1px solid #475569',
+              border: '1px solid #d4cdc4',
               borderRadius: '4px',
-              color: table.getCanPreviousPage() ? '#f1f5f9' : '#475569',
+              color: table.getCanPreviousPage() ? '#2d2a26' : '#d4cdc4',
               padding: '4px 12px',
               cursor: table.getCanPreviousPage() ? 'pointer' : 'default',
               fontSize: '12px',
@@ -188,7 +188,7 @@ export function DataTable<T extends Record<string, unknown>>({
           >
             이전
           </button>
-          <span style={{ color: '#94a3b8', fontSize: '12px' }}>
+          <span style={{ color: '#8c857c', fontSize: '12px' }}>
             {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
           </span>
           <button
@@ -196,9 +196,9 @@ export function DataTable<T extends Record<string, unknown>>({
             disabled={!table.getCanNextPage()}
             style={{
               background: 'transparent',
-              border: '1px solid #475569',
+              border: '1px solid #d4cdc4',
               borderRadius: '4px',
-              color: table.getCanNextPage() ? '#f1f5f9' : '#475569',
+              color: table.getCanNextPage() ? '#2d2a26' : '#d4cdc4',
               padding: '4px 12px',
               cursor: table.getCanNextPage() ? 'pointer' : 'default',
               fontSize: '12px',
