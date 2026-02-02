@@ -10,7 +10,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 # TypeScript API 예제
 
-> Express + Prisma + Jest 기반 Clean Architecture — Claude Code로 처음부터 구현하기
+> Express + Jest 기반 Clean Architecture — Claude Code로 처음부터 구현하기
 
 이 챕터에서는 **코드를 읽는 것**에서 끝나지 않습니다. Claude Code에 아래 프롬프트를 직접 입력하여 Clean Architecture 기반 TypeScript API를 **처음부터 구현**합니다.
 
@@ -21,8 +21,8 @@ import { ChapterNav } from '../../components/ChapterNav';
     A["HTTP Request"] --> B["Presentation Layer\n(Controller)"]
     B --> C["Application Layer\n(Use Case)"]
     C --> D["Domain Layer\n(Entity + Value Object)"]
-    C --> E["Infrastructure Layer\n(Prisma Repository)"]
-    E --> F["PostgreSQL"]
+    C --> E["Infrastructure Layer\n(InMemory Repository)"]
+    E --> F["In-Memory Store"]
     style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
     style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26
     style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
@@ -77,13 +77,13 @@ import { ChapterNav } from '../../components/ChapterNav';
         {
           name: 'infrastructure/',
           type: 'folder',
-          description: 'DB, 외부 API 연동',
+          description: '저장소 구현체',
           children: [
             {
               name: 'persistence/',
               type: 'folder',
               children: [
-                { name: 'prisma-user-repository.ts', type: 'file', description: 'Prisma 구현체' },
+                { name: 'in-memory-user-repository.ts', type: 'file', description: 'InMemory 구현체' },
               ],
             },
           ],
@@ -115,7 +115,6 @@ import { ChapterNav } from '../../components/ChapterNav';
     },
     { name: 'package.json', type: 'file' },
     { name: 'tsconfig.json', type: 'file' },
-    { name: 'prisma/', type: 'folder', children: [{ name: 'schema.prisma', type: 'file' }] },
   ]}
 />
 
@@ -127,7 +126,7 @@ Claude Code에 아래 프롬프트를 입력하여 프로젝트를 세팅합니�
 
 <CodeBlock
   code={`# 프롬프트 1: 프로젝트 초기화
-> Express + Prisma + Jest + TypeScript 프로젝트를 초기화해줘.
+> Express + Jest + TypeScript 프로젝트를 초기화해줘.
 > Clean Architecture 구조로 다음 디렉토리를 생성해:
 > - src/domain/user/
 > - src/application/user/
@@ -136,81 +135,15 @@ Claude Code에 아래 프롬프트를 입력하여 프로젝트를 세팅합니�
 > - tests/
 >
 > tsconfig.json은 strict 모드로 설정하고,
-> Jest는 ts-jest로 TypeScript를 지원하게 해줘.
-> Prisma는 PostgreSQL로 설정하되 마이그레이션은 아직 실행하지 마.`}
+> Jest는 ts-jest로 TypeScript를 지원하게 해줘.`}
   language="text"
   filename="실습: 프로젝트 초기화 프롬프트"
 />
 
 <Callout type="tip" title="초기화 팁">
   프로젝트 루트에 **CLAUDE.md**를 먼저 만들면 Claude Code가 프로젝트 컨벤션을 일관되게 따릅니다.
-  "CLAUDE.md를 먼저 생성해줘. 기술 스택은 Express + Prisma + Jest이고, Clean Architecture를 따르며, Conventional Commits를 사용한다고 적어줘."
+  "CLAUDE.md를 먼저 생성해줘. 기술 스택은 Express + Jest이고, Clean Architecture를 따르며, Conventional Commits를 사용한다고 적어줘."
 </Callout>
-
-### Prisma 스키마
-
-<CodeBlock
-  code={`// prisma/schema.prisma
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}`}
-  language="prisma"
-  filename="prisma/schema.prisma"
-  highlightLines={[11, 12, 13, 14, 15]}
-/>
-
-### Docker Compose (개발 환경)
-
-<CodeBlock
-  code={`# docker-compose.yml
-services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: dev
-      POSTGRES_PASSWORD: devpass
-      POSTGRES_DB: clean_api
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:`}
-  language="yaml"
-  filename="docker-compose.yml"
-/>
-
-<CodeBlock
-  code={`# .env
-DATABASE_URL="postgresql://dev:devpass@localhost:5432/clean_api"`}
-  language="bash"
-  filename=".env"
-/>
-
-<CodeBlock
-  code={`# 실습 프롬프트: 환경 설정
-> docker-compose.yml로 PostgreSQL을 설정하고,
-> .env에 DATABASE_URL을 넣어줘.
-> Prisma 스키마에 User 모델을 정의하고 마이그레이션을 실행해줘.
-> npx prisma migrate dev --name init`}
-  language="text"
-  filename="실습: 환경 설정 프롬프트"
-/>
 
 ### CLAUDE.md 예시
 
@@ -218,18 +151,18 @@ DATABASE_URL="postgresql://dev:devpass@localhost:5432/clean_api"`}
   code={`# CLAUDE.md
 
 ## 프로젝트 개요
-Express + Prisma + Jest 기반 Clean Architecture API
+Express + Jest 기반 Clean Architecture API (InMemory 저장소)
 
 ## 기술 스택
 - Runtime: Node.js 20, TypeScript 5
 - Framework: Express.js
-- ORM: Prisma (PostgreSQL)
+- Storage: InMemoryRepository (Map 기반)
 - Test: Jest + ts-jest + supertest
 
 ## 아키텍처 규칙
 - src/domain/: 순수 비즈니스 로직 (외부 의존성 금지)
 - src/application/: 유스케이스 (Domain 인터페이스만 의존)
-- src/infrastructure/: DB, 외부 API 구현체
+- src/infrastructure/: 저장소 구현체
 - src/presentation/: HTTP 컨트롤러
 
 ## 코딩 컨벤션
@@ -240,7 +173,7 @@ Express + Prisma + Jest 기반 Clean Architecture API
 
 ## 테스트 규칙
 - 단위 테스트: Repository를 jest.Mocked로 mock
-- 통합 테스트: supertest + 테스트 DB
+- 통합 테스트: supertest로 HTTP 엔드포인트 테스트
 - 테스트 파일: tests/*.test.ts`}
   language="markdown"
   filename="CLAUDE.md"
@@ -343,7 +276,7 @@ export class User {
   - **외부 의존성 없음**: 프레임워크, DB, HTTP 등에 의존하지 않음
   - **비즈니스 규칙 캡슐화**: `activate()`는 pending 상태에서만, `deactivate()`는 active 상태에서만 가능
   - **private constructor**: `create()` 팩토리 메서드를 통해서만 생성 가능 → 유효성 보장
-  - **reconstitute()**: DB에서 복원할 때 사용 (검증 없이 기존 데이터로 재구성)
+  - **reconstitute()**: 저장소에서 복원할 때 사용 (검증 없이 기존 데이터로 재구성)
 </Callout>
 
 ### Repository 인터페이스
@@ -471,51 +404,42 @@ export class GetUserUseCase {
 ## 실습 4: Infrastructure Layer 구현
 
 <CodeBlock
-  code={`// src/infrastructure/persistence/prisma-user-repository.ts
-import { PrismaClient } from '@prisma/client';
+  code={`// src/infrastructure/persistence/in-memory-user-repository.ts
 import { User } from '../../domain/user/entity';
 import { IUserRepository } from '../../domain/user/repository';
 
-export class PrismaUserRepository implements IUserRepository {
-  constructor(private prisma: PrismaClient) {}
+export class InMemoryUserRepository implements IUserRepository {
+  private users = new Map<string, User>();
 
   async findById(id: string): Promise<User | null> {
-    const row = await this.prisma.user.findUnique({ where: { id } });
-    return row ? User.reconstitute(row) : null;
+    return this.users.get(id) ?? null;
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const row = await this.prisma.user.findUnique({ where: { email } });
-    return row ? User.reconstitute(row) : null;
+    for (const user of this.users.values()) {
+      if (user.email.value === email) return user;
+    }
+    return null;
   }
 
   async save(user: User): Promise<void> {
-    await this.prisma.user.upsert({
-      where: { id: user.id },
-      create: {
-        id: user.id,
-        email: user.email.value,
-        name: user.name,
-        status: user.status,
-      },
-      update: {
-        email: user.email.value,
-        name: user.name,
-        status: user.status,
-      },
-    });
+    this.users.set(user.id, user);
   }
 }`}
   language="typescript"
-  filename="src/infrastructure/persistence/prisma-user-repository.ts"
-  highlightLines={[6, 11, 16, 20]}
+  filename="src/infrastructure/persistence/in-memory-user-repository.ts"
+  highlightLines={[6, 9, 13, 20]}
 />
 
 <Callout type="info" title="의존성 역전 원칙 (DIP)">
   - Domain Layer가 `IUserRepository` **인터페이스**를 정의
-  - Infrastructure Layer가 `PrismaUserRepository`로 **구현**
-  - Application Layer는 인터페이스에만 의존 → DB 변경 시 구현체만 교체하면 됨
+  - Infrastructure Layer가 `InMemoryUserRepository`로 **구현**
+  - Application Layer는 인터페이스에만 의존 → 저장소 변경 시 구현체만 교체하면 됨
   - 테스트 시 Mock Repository를 주입하여 DB 없이 단위 테스트 가능
+</Callout>
+
+<Callout type="tip" title="프로덕션에서는?">
+  InMemoryRepository는 학습용입니다. 프로덕션 환경에서는 Prisma, TypeORM 등 실제 DB 구현체로 교체하면 됩니다. **인터페이스만 동일하게 구현**하면 Application Layer 코드 변경 없이 저장소를 교체할 수 있습니다 — 이것이 의존성 역전의 실제 효과입니다.
 </Callout>
 
 ---
@@ -658,11 +582,10 @@ describe('CreateUserUseCase', () => {
 <CodeBlock
   code={`# 실습 프롬프트: 조립 및 통합 테스트
 > 1. src/index.ts에 Express 앱을 생성하고 UserController를 등록해줘.
->    PrismaClient와 PrismaUserRepository를 연결해서 의존성을 조립해.
+>    InMemoryUserRepository를 사용해서 의존성을 조립해.
 >
 > 2. 통합 테스트를 작성해줘:
 >    - supertest로 POST /users, GET /users/:id 엔드포인트 테스트
->    - 실제 Prisma Client를 사용하되, 테스트 DB를 사용하도록 설정
 >
 > 3. 모든 테스트를 실행하고 결과를 보여줘.`}
   language="text"
@@ -677,7 +600,7 @@ describe('CreateUserUseCase', () => {
   rows={[
     { feature: 'Domain', values: ['엔터티, 값 객체, 비즈니스 규칙', '없음 (순수 코드)', '단위 테스트 (mock 불필요)'] },
     { feature: 'Application', values: ['유스케이스, 흐름 조율', 'Domain 인터페이스', '단위 테스트 (Repository mock)'] },
-    { feature: 'Infrastructure', values: ['DB, 외부 API 구현', 'Domain 인터페이스', '통합 테스트 (테스트 DB)'] },
+    { feature: 'Infrastructure', values: ['저장소 구현', 'Domain 인터페이스', '단위 테스트 (InMemory)'] },
     { feature: 'Presentation', values: ['HTTP 요청/응답 처리', 'Application 유스케이스', 'E2E 테스트 (supertest)'] },
   ]}
 />

@@ -4,8 +4,7 @@ import helmet from 'helmet';
 import { UserController } from './http/user-controller';
 import { CreateUserUseCase } from '../application/user/create-user';
 import { GetUserUseCase } from '../application/user/get-user';
-import { PrismaUserRepository } from '../infrastructure/persistence/prisma-user-repository';
-import { prisma } from '../infrastructure/database/prisma';
+import { InMemoryUserRepository } from '../infrastructure/persistence/in-memory-user-repository';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 
@@ -26,7 +25,7 @@ app.get('/health', (req, res) => {
 });
 
 // Dependency injection & Routes
-const userRepository = new PrismaUserRepository(prisma);
+const userRepository = new InMemoryUserRepository();
 const createUserUseCase = new CreateUserUseCase(userRepository);
 const getUserUseCase = new GetUserUseCase(userRepository);
 const userController = new UserController(createUserUseCase, getUserUseCase);

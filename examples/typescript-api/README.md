@@ -11,8 +11,7 @@
 - **Runtime**: Node.js 20+
 - **Language**: TypeScript 5.x
 - **Framework**: Express.js
-- **Database**: SQLite (개발용) / PostgreSQL (프로덕션)
-- **ORM**: Prisma
+- **Storage**: InMemoryRepository (Map 기반)
 - **Validation**: Zod
 - **Testing**: Jest
 
@@ -25,29 +24,26 @@ typescript-api/
 │   │   └── user/
 │   │       ├── entity.ts
 │   │       ├── repository.ts
-│   │       └── errors.ts
+│   │       └── value-objects.ts
 │   ├── application/      # 유스케이스
 │   │   └── user/
-│   │       ├── dto.ts
-│   │       └── use-cases.ts
-│   ├── infrastructure/   # 외부 연동
-│   │   └── database/
-│   │       ├── prisma.ts
-│   │       └── user-repository.ts
+│   │       ├── dtos.ts
+│   │       ├── create-user.ts
+│   │       └── get-user.ts
+│   ├── infrastructure/   # 저장소 구현체
+│   │   └── persistence/
+│   │       └── in-memory-user-repository.ts
 │   ├── presentation/     # API 레이어
-│   │   ├── routes/
-│   │   │   └── user.routes.ts
+│   │   ├── http/
+│   │   │   └── user-controller.ts
 │   │   ├── middleware/
 │   │   │   ├── error-handler.ts
-│   │   │   ├── request-logger.ts
-│   │   │   └── validation.ts
+│   │   │   └── request-logger.ts
 │   │   └── app.ts
 │   └── index.ts
 ├── tests/
-│   └── unit/
-│       └── domain/
-├── prisma/
-│   └── schema.prisma
+│   ├── user.test.ts
+│   └── user.integration.test.ts
 ├── CLAUDE.md             # 프로젝트별 AI 지시
 ├── package.json
 ├── jest.config.js
@@ -70,13 +66,7 @@ npm install
 cp .env.example .env
 ```
 
-### 3. 데이터베이스 초기화
-
-```bash
-npx prisma migrate dev
-```
-
-### 4. 개발 서버 실행
+### 3. 개발 서버 실행
 
 ```bash
 npm run dev
@@ -89,38 +79,14 @@ npm run dev
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | /health | 헬스 체크 |
-| GET | /api/users | 사용자 목록 |
 | POST | /api/users | 사용자 생성 |
 | GET | /api/users/:id | 사용자 조회 |
-| PUT | /api/users/:id | 사용자 수정 |
-| DELETE | /api/users/:id | 사용자 삭제 |
 
 ## AI Agent 활용
 
 ### CLAUDE.md 활용
 
 이 프로젝트의 `CLAUDE.md`는 상위 템플릿을 상속받아 프로젝트 특화 지침을 추가합니다.
-
-```markdown
-# 상속
-@import ../../CLAUDE.md
-
-# 프로젝트 특화 지침
-...
-```
-
-### 예제 프롬프트
-
-```
-/test src/domain/user/service.ts
-→ UserService에 대한 단위 테스트 생성
-
-/review src/presentation/routes/user.ts
-→ 라우터 코드 리뷰
-
-/doc src/domain/user/entity.ts
-→ User 엔터티 문서화
-```
 
 ## 테스트
 
@@ -144,8 +110,3 @@ npm run build
 # 프로덕션 실행
 npm start
 ```
-
-## 참고
-
-- [루트 템플릿 문서](../../docs/)
-- [커스터마이징 가이드](../../docs/guides/customization.md)
