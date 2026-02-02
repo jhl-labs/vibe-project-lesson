@@ -38,10 +38,14 @@ AI Agent가 프로젝트 컨텍스트를 정확히 이해하고 일관된 출력
 ├── .roo/                  # Roo Code 전용 설정 디렉토리
 │   ├── rules.md
 │   └── rules/general.mdc
-└── .agent/
-    ├── context.md         # 공통 프로젝트 컨텍스트
-    ├── architecture.md    # 아키텍처 설명 문서
-    └── conventions.md     # 코딩 컨벤션 문서
+├── AGENTS.md              # 크로스 도구 표준
+└── .claude/
+    ├── rules/             # 프로젝트 규칙 (자동 로드)
+    │   ├── conventions.md
+    │   ├── architecture.md
+    │   └── guidelines.md
+    ├── agents/            # 커스텀 서브에이전트
+    └── skills/            # Agent 스킬
 ```
 
 ### 1.2 Agent Skills
@@ -402,15 +406,12 @@ vibe-project-template/
 │   ├── labeler.yml          # PR 자동 라벨링 규칙
 │   ├── labels.yml           # 라벨 정의
 │   └── FUNDING.yml          # 스폰서 설정
-├── .agent/                  # AI Agent 공통 설정
-│   ├── context.md
-│   ├── conventions.md
-│   ├── architecture.md
-│   ├── guidelines.md
-│   ├── commands.md
-│   ├── prompts/             # 프롬프트 라이브러리 (14개)
-│   ├── skills/              # Agent 스킬 (5개)
-│   └── subagents/           # 서브에이전트 (4개)
+├── AGENTS.md                # 크로스 도구 표준
+├── .claude/                 # Claude Code 공식 설정
+│   ├── commands/            # 커스텀 슬래시 커맨드
+│   ├── rules/               # 프로젝트 규칙 (conventions, architecture, guidelines)
+│   ├── agents/              # 커스텀 서브에이전트 (4개)
+│   └── skills/              # Agent 스킬 (5개)
 ├── .cursor/rules/           # Cursor AI 규칙 (.mdc 신규 형식)
 ├── .roo/rules/              # Roo Code 규칙 (.mdc 형식)
 ├── .vscode/                 # VS Code 설정 템플릿

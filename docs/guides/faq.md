@@ -49,39 +49,43 @@
 | `.cursorrules` | Cursor AI | 레거시 형식 (**deprecated**, `.cursor/rules/*.mdc`로 마이그레이션 권장) |
 | `.roo/rules/*.mdc` | Roo Code | Roo 전용 규칙 |
 
-세 파일 모두 `.agent/` 디렉토리의 공통 컨텍스트를 참조합니다.
+세 파일 모두 `AGENTS.md`와 `docs/` 디렉토리의 공통 컨텍스트를 참조합니다.
 
 ---
 
-### Q: .agent/ 디렉토리 구조는 어떻게 되나요?
+### Q: AI 관련 설정 구조는 어떻게 되나요?
 
 **A:**
 ```
-.agent/
-├── context.md       # 프로젝트 컨텍스트 (기본 정보, 기술 스택)
-├── conventions.md   # 코딩 컨벤션
-├── architecture.md  # 아키텍처 설명
-├── guidelines.md    # AI 사용 가이드라인
-├── commands.md      # Slash commands 가이드
-├── prompts/         # 재사용 가능한 프롬프트 템플릿
-├── skills/          # 재사용 가능한 AI 작업 패턴
-│   ├── code-review.md
-│   ├── test-gen.md
-│   ├── doc-gen.md
-│   ├── refactor.md
-│   └── security-scan.md
-└── subagents/       # 전문화된 서브에이전트
-    ├── architect.md
-    ├── security.md
-    ├── test.md
-    └── documentation.md
+AGENTS.md                    # 크로스 도구 표준
+.claude/
+├── commands/                # 커스텀 슬래시 커맨드
+├── rules/                   # 프로젝트 규칙 (자동 로드)
+│   ├── conventions.md       # 코딩 컨벤션
+│   ├── architecture.md      # 아키텍처 설명
+│   └── guidelines.md        # AI 사용 가이드라인
+├── agents/                  # 커스텀 서브에이전트
+│   ├── architect.md
+│   ├── security.md
+│   ├── test.md
+│   └── documentation.md
+└── skills/                  # Agent 스킬 (SKILL.md)
+    ├── code-review/
+    ├── test-gen/
+    ├── doc-gen/
+    ├── refactor/
+    └── security-scan/
+
+docs/
+├── context.md               # 프로젝트 컨텍스트
+└── prompts/                 # 프롬프트 라이브러리 (14개)
 ```
 
 ---
 
 ### Q: AI Agent 사용 시 보안 주의사항은?
 
-**A:** `.agent/guidelines.md`에 상세히 정리되어 있습니다. 핵심 사항:
+**A:** `.claude/rules/guidelines.md`에 상세히 정리되어 있습니다. 핵심 사항:
 
 **금지:**
 - 프로덕션 데이터를 프롬프트에 포함
@@ -109,7 +113,7 @@
 /security  - 보안 스캔
 ```
 
-상세 사용법은 `.agent/commands.md`를 참조하세요.
+상세 사용법은 `.claude/commands/` 디렉토리의 각 커맨드 파일을 참조하세요.
 
 ---
 

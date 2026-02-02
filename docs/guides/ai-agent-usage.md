@@ -9,7 +9,7 @@
 | Claude Code | `CLAUDE.md` | 프로젝트 루트 |
 | Cursor AI | `.cursor/rules/*.mdc` | `.cursor/rules/` |
 | Roo Code | `.roo/rules.md`, `.roo/rules/*.mdc` | `.roo/` |
-| 공통 | `.agent/` | `.agent/` |
+| 공통 | `AGENTS.md`, `docs/` | 프로젝트 루트 |
 
 ---
 
@@ -43,7 +43,7 @@ CLAUDE.local.md        # 개인 설정 (.gitignore에 추가)
 ### 팁
 
 - `CLAUDE.md`는 간결하게 유지 — 모든 줄이 실제 작업과 경쟁합니다
-- 상세한 컨텍스트는 `.agent/context.md`에 분리
+- 상세한 컨텍스트는 `docs/context.md`에 분리
 - MCP 서버 설정은 `.mcp.json`에서 관리
 
 ---
@@ -149,46 +149,52 @@ ln -s ../../.cursor/rules/typescript.mdc .roo/rules/typescript.mdc
 
 ---
 
-## 공통 에이전트 컨텍스트 (`.agent/`)
+## 프로젝트 지식 구조
 
-모든 AI 에이전트가 참조할 수 있는 공통 컨텍스트 파일입니다.
+프로젝트 지식은 각 도구의 공식 경로에 배치됩니다.
 
-### 디렉토리 구조
+### Claude Code 공식 설정
 
 ```
-.agent/
-├── context.md          # 프로젝트 컨텍스트 (기술 스택, 아키텍처)
-├── conventions.md      # 코딩 컨벤션 상세
-├── architecture.md     # 아키텍처 설명
-├── guidelines.md       # 개발 가이드라인
-├── commands.md         # 주요 명령어 레퍼런스
-├── skills/             # AI 에이전트 스킬 정의
-│   ├── code-review.md
-│   ├── test-gen.md
-│   ├── doc-gen.md
-│   ├── refactor.md
-│   └── security-scan.md
-├── subagents/          # 서브 에이전트 역할 정의
+.claude/
+├── commands/           # 커스텀 슬래시 커맨드
+├── rules/              # 프로젝트 규칙 (자동 로드)
+│   ├── conventions.md  # 코딩 컨벤션
+│   ├── architecture.md # 아키텍처 설명
+│   └── guidelines.md   # AI 사용 가이드라인
+├── agents/             # 커스텀 서브에이전트
 │   ├── architect.md
 │   ├── security.md
 │   ├── test.md
 │   └── documentation.md
-└── prompts/            # 프롬프트 라이브러리
+└── skills/             # Agent 스킬 (SKILL.md)
+    ├── code-review/
+    ├── test-gen/
+    ├── doc-gen/
+    ├── refactor/
+    └── security-scan/
+```
+
+### 크로스 도구 표준 및 문서
+
+```
+AGENTS.md               # 크로스 도구 표준 (OpenAI Codex, Cursor 등)
+docs/
+├── context.md          # 프로젝트 컨텍스트
+└── prompts/            # 프롬프트 라이브러리 (14개)
     ├── README.md
     ├── feature-implement.md
-    ├── architecture-decision.md
     ├── code-review.md
     ├── bug-fix.md
-    ├── refactor.md
     └── ...
 ```
 
 ### 프롬프트 라이브러리 사용법
 
-`prompts/` 디렉토리에 재사용 가능한 프롬프트 템플릿이 있습니다. AI 에이전트에게 다음과 같이 요청하세요:
+`docs/prompts/` 디렉토리에 재사용 가능한 프롬프트 템플릿이 있습니다. AI 에이전트에게 다음과 같이 요청하세요:
 
 ```
-@.agent/prompts/feature-implement.md 를 참고해서 사용자 인증 기능을 구현해줘
+@docs/prompts/feature-implement.md 를 참고해서 사용자 인증 기능을 구현해줘
 ```
 
 각 프롬프트 파일에는 다음이 포함됩니다:
@@ -235,9 +241,10 @@ cp .mcp.json.example .mcp.json
 2. `.roo/rules/*.mdc` (글로브 매칭 규칙)
 
 ### 공통 참조
-모든 에이전트에서 `.agent/` 디렉토리의 파일을 컨텍스트로 참조 가능:
-- `@.agent/context.md` (Cursor)
-- `.agent/context.md` 파일 읽기 (Claude Code)
+모든 에이전트에서 프로젝트 문서를 컨텍스트로 참조 가능:
+- `@docs/context.md` (Cursor)
+- `docs/context.md` 파일 읽기 (Claude Code)
+- `AGENTS.md` (크로스 도구 표준)
 
 ---
 
@@ -246,8 +253,8 @@ cp .mcp.json.example .mcp.json
 - [ ] `CLAUDE.md` - 프로젝트 정보 업데이트
 - [ ] `.cursor/rules/general.mdc` - 프로젝트 정보 업데이트
 - [ ] `.roo/rules.md` - 프로젝트 정보 업데이트
-- [ ] `.agent/context.md` - 기술 스택, 아키텍처 작성
-- [ ] `.agent/conventions.md` - 코딩 컨벤션 확정
+- [ ] `docs/context.md` - 기술 스택, 아키텍처 작성
+- [ ] `.claude/rules/conventions.md` - 코딩 컨벤션 확정
 - [ ] `.mcp.json` - 필요한 MCP 서버 설정 (선택)
 - [ ] 언어별 `.mdc` 규칙 추가/수정 (선택)
 

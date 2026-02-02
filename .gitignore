@@ -193,8 +193,6 @@ docker-compose.override.yml
 # -----------------
 # AI Agent Context (Optional)
 # -----------------
-# .agent/cache/
-# .agent/tmp/
 CLAUDE.local.md
 .mcp.json
 

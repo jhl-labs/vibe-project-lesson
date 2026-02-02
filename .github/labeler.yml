@@ -19,7 +19,8 @@ documentation:
 "area: ai-agent":
   - changed-files:
       - any-glob-to-any-file:
-          - ".agent/**"
+          - ".claude/**"
+          - "AGENTS.md"
           - "CLAUDE.md"
           - ".cursorrules"
           - ".cursor/**"

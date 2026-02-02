@@ -122,13 +122,13 @@ vibe-project-template/
 │   ├── .roo/rules/*.mdc          # Roo Code 규칙
 │   └── .mcp.json.example         # MCP 설정 템플릿
 │
-├── 📂 .agent/                    # AI 컨텍스트
-│   ├── context.md                # 프로젝트 컨텍스트
-│   ├── conventions.md            # 코딩 컨벤션
-│   ├── architecture.md           # 아키텍처 설명
-│   ├── prompts/                  # 프롬프트 라이브러리 (14개)
-│   ├── skills/                   # Agent 스킬 정의
-│   └── subagents/                # 전문 서브에이전트
+├── 📂 .claude/                    # Claude Code 공식 설정
+│   ├── commands/                 # 커스텀 슬래시 커맨드
+│   ├── rules/                    # 프로젝트 규칙 (conventions, architecture, guidelines)
+│   ├── agents/                   # 커스텀 서브에이전트
+│   └── skills/                   # Agent 스킬 정의
+│
+├── 📂 AGENTS.md                   # 크로스 도구 표준 (OpenAI Codex, Cursor 등)
 │
 ├── 📂 .github/                   # GitHub 설정
 │   ├── workflows/                # CI/CD 파이프라인 (12개)
@@ -186,11 +186,11 @@ vibe-project-template/
 
 ## 🎨 프롬프트 라이브러리
 
-`.agent/prompts/` 디렉토리에서 검증된 프롬프트를 찾아보세요:
+`docs/prompts/` 디렉토리에서 검증된 프롬프트를 찾아보세요:
 
 ```bash
 # 사용 예시 (Claude Code)
-@.agent/prompts/bug-fix.md 를 참고해서 이 버그를 수정해줘
+@docs/prompts/bug-fix.md 를 참고해서 이 버그를 수정해줘
 ```
 
 | 프롬프트 | 용도 |
@@ -203,7 +203,7 @@ vibe-project-template/
 | `security-review.md` | 보안 검토 |
 | `test-generation.md` | 테스트 작성 |
 | `migration.md` | 마이그레이션 |
-| [전체 목록](.agent/prompts/README.md) | 14개 프롬프트 |
+| [전체 목록](docs/prompts/README.md) | 14개 프롬프트 |
 
 ---
 
@@ -226,13 +226,13 @@ vim .roo/rules/general.mdc
 
 ```bash
 # 프로젝트 설명
-vim .agent/context.md
+vim docs/context.md
 
 # 코딩 컨벤션
-vim .agent/conventions.md
+vim .claude/rules/conventions.md
 
 # 아키텍처
-vim .agent/architecture.md
+vim .claude/rules/architecture.md
 ```
 
 ### 워크플로우 활성화/비활성화
@@ -266,7 +266,7 @@ vim .agent/architecture.md
 
 > "AI에게 **무엇을** 원하는지 명확히 전달하세요. **어떻게** 할지는 AI가 알아서 합니다."
 
-1. **컨텍스트 제공**: `.agent/context.md`를 최신 상태로 유지
+1. **컨텍스트 제공**: `docs/context.md`를 최신 상태로 유지
 2. **작은 단위로 요청**: 한 번에 하나의 작업만 요청
 3. **프롬프트 활용**: 검증된 프롬프트 템플릿 사용
 4. **결과 검토**: AI 출력물은 항상 검토 후 적용

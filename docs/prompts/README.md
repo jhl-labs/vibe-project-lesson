@@ -41,7 +41,7 @@ AI Agent와의 효과적인 협업을 위한 프롬프트 템플릿 모음입니
 
 ### 1. 직접 참조
 ```
-@.agent/prompts/bug-fix.md 를 참고해서 이 버그를 수정해줘
+@docs/prompts/bug-fix.md 를 참고해서 이 버그를 수정해줘
 ```
 
 ### 2. 복사 & 수정

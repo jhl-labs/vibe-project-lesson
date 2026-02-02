@@ -143,61 +143,31 @@ Claude Code는 다음 공식 경로를 자동으로 인식합니다.
 | `settings.json` | 훅, 권한, MCP 서버 설정 | 팀 공유용 (Git 커밋) |
 | `settings.local.json` | 개인 설정 오버라이드 | `.gitignore` 대상 |
 
-## 이 프로젝트 템플릿의 접근: .agent/ 디렉토리
+## 이 프로젝트 템플릿의 지식 베이스 구성
 
-<Callout type="warning" title=".agent/는 공식 표준이 아닙니다">
-  `.agent/` 디렉토리는 어떤 AI 도구의 공식 사양도 아니고, 오픈소스 표준도 아닙니다.
-  **이 프로젝트 템플릿이 자체적으로 채택한 컨벤션**으로,
-  프로젝트 지식(컨텍스트, 규칙, 아키텍처, 프롬프트)을 마크다운 파일로 정리해두는 디렉토리입니다.
-  어떤 AI 도구도 이 디렉토리를 자동으로 읽지 않으며, 각 도구의 공식 경로를 통해 명시적으로 연결해야 합니다.
-</Callout>
+이 템플릿은 프로젝트 지식을 **각 도구의 공식 경로**에 직접 배치합니다:
 
-이 템플릿에서 `.agent/`를 사용하는 이유는 **프로젝트 지식을 도구 독립적인 마크다운으로 한 곳에 정리**하고, 각 도구의 공식 경로에서 이를 참조하는 구조를 만들기 위해서입니다.
+- **규칙/아키텍처/가이드라인** → `.claude/rules/` (Claude Code 자동 로드)
+- **서브에이전트** → `.claude/agents/` (Claude Code 공식 경로)
+- **스킬** → `.claude/skills/*/SKILL.md` (Claude Code 공식 경로)
+- **프로젝트 컨텍스트** → `docs/context.md`
+- **프롬프트 템플릿** → `docs/prompts/` (14개)
+- **크로스 도구 표준** → `AGENTS.md` (프로젝트 루트)
 
-<FileTree
-  title=".agent/ — 이 템플릿의 프로젝트 지식 베이스 (자체 컨벤션)"
-  data={[
-    {
-      name: '.agent/',
-      type: 'folder',
-      highlight: true,
-      children: [
-        { name: 'architecture.md', type: 'file', description: '아키텍처 설명서' },
-        { name: 'context.md', type: 'file', description: '프로젝트 컨텍스트' },
-        { name: 'conventions.md', type: 'file', description: '코딩 규칙' },
-        { name: 'guidelines.md', type: 'file', description: 'AI 사용 가이드라인' },
-        {
-          name: 'prompts/',
-          type: 'folder',
-          description: '프롬프트 템플릿 (14개)',
-          children: [
-            { name: 'README.md', type: 'file', description: '프롬프트 라이브러리 개요' },
-            { name: 'api-design.md', type: 'file', description: 'API 설계' },
-            { name: 'bug-fix.md', type: 'file', description: '버그 수정' },
-            { name: 'code-review.md', type: 'file', description: '코드 리뷰' },
-            { name: 'feature-implement.md', type: 'file', description: '기능 구현' },
-            { name: 'test-generation.md', type: 'file', description: '테스트 생성' },
-            { name: '...', type: 'file', description: '+ 9개 더' },
-          ],
-        },
-      ],
-    },
-  ]}
-/>
-
-| 파일 | 역할 | 주요 내용 |
+| 파일/디렉토리 | 역할 | 주요 내용 |
 |------|------|----------|
-| `context.md` | 프로젝트 컨텍스트 | 기술 스택, 도메인 지식, 환경 정보 |
-| `conventions.md` | 코딩 규칙 | 네이밍, 스타일, Git 규칙 |
-| `architecture.md` | 아키텍처 | 레이어 구조, 의존성 방향, 데이터 흐름 |
-| `guidelines.md` | AI 사용 가이드라인 | 허용/금지 사항, 검증 절차 |
-| `prompts/` | 프롬프트 템플릿 (14개) | 상황별 구조화된 프롬프트 |
+| `docs/context.md` | 프로젝트 컨텍스트 | 기술 스택, 도메인 지식, 환경 정보 |
+| `.claude/rules/conventions.md` | 코딩 규칙 | 네이밍, 스타일, Git 규칙 |
+| `.claude/rules/architecture.md` | 아키텍처 | 레이어 구조, 의존성 방향, 데이터 흐름 |
+| `.claude/rules/guidelines.md` | AI 사용 가이드라인 | 허용/금지 사항, 검증 절차 |
+| `docs/prompts/` | 프롬프트 템플릿 (14개) | 상황별 구조화된 프롬프트 |
+| `AGENTS.md` | 크로스 도구 표준 | 여러 AI 도구가 공통으로 읽는 범용 지시사항 |
 
-## .agent/를 각 도구에 연결하는 방법
+## 공식 경로에서 파일을 참조하는 방법
 
-`.agent/` 파일을 실제 AI 도구에서 사용하려면, 각 도구의 **공식 메커니즘**으로 연결해야 합니다.
+### Claude Code: @import 구문과 .claude/rules/
 
-### Claude Code: @import 구문
+`.claude/rules/` 디렉토리의 파일은 자동으로 로드됩니다. 추가로 `docs/` 등 외부 파일을 CLAUDE.md에서 임포트할 수 있습니다:
 
 <CodeBlock
   code={`# CLAUDE.md (프로젝트 루트)
@@ -208,12 +178,10 @@ TypeScript + Express.js + PostgreSQL / Clean Architecture 4레이어
 ## 빠른 명령어
 npm run dev / npm test / npm run lint
 
-## 상세 규칙 (자동 임포트)
-@.agent/context.md
-@.agent/conventions.md
-@.agent/architecture.md`}
+## 상세 컨텍스트 (자동 임포트)
+@docs/context.md`}
   language="markdown"
-  filename="CLAUDE.md — @import로 .agent/ 파일 연결"
+  filename="CLAUDE.md — .claude/rules/는 자동 로드, 추가 파일은 @import"
 />
 
 <Callout type="info" title="@ 임포트 동작 방식">
@@ -236,7 +204,7 @@ npm run dev / npm test / npm run lint
 - Functions: max 30 lines, max 3 parameters
 - Use Conventional Commits`}
   language="markdown"
-  filename=".github/copilot-instructions.md — .agent/ 내용을 직접 작성"
+  filename=".github/copilot-instructions.md"
 />
 
 ### Cursor: .mdc 규칙에서 @file 참조
@@ -248,27 +216,27 @@ globs: "src/**/*"
 alwaysApply: false
 ---
 
-@.agent/architecture.md 의 레이어 규칙을 따르세요.
+@.claude/rules/architecture.md 의 레이어 규칙을 따르세요.
 Domain 레이어는 외부 의존성을 가질 수 없습니다.`}
   language="markdown"
-  filename=".cursor/rules/architecture.mdc — @file로 .agent/ 참조"
+  filename=".cursor/rules/architecture.mdc — @file로 규칙 참조"
 />
 
-### 크로스 도구: AGENTS.md에 핵심 내용 통합
+### 크로스 도구: AGENTS.md
 
 <CodeBlock
   code={`# AGENTS.md
 
 ## Architecture
-(architecture.md 핵심 내용)
+4-layer Clean Architecture: Presentation -> Application -> Domain <- Infrastructure
 
 ## Conventions
-(conventions.md 핵심 내용)
+camelCase, kebab-case.ts, max 30 lines per function
 
-## Guidelines
-(guidelines.md 핵심 내용)`}
+## Security
+NEVER hardcode secrets, ALWAYS validate inputs`}
   language="markdown"
-  filename="AGENTS.md — .agent/ 핵심 내용을 통합"
+  filename="AGENTS.md — 여러 AI 도구가 공통으로 읽는 범용 지시사항"
 />
 
 <Callout type="tip" title="CLAUDE.md vs .claude/rules/">

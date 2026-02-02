@@ -45,7 +45,7 @@
 - **데이터베이스**: PostgreSQL / MongoDB / etc.
 ```
 
-### 3. .agent/context.md 수정
+### 3. docs/context.md 수정
 
 프로젝트 컨텍스트 정보를 실제 내용으로 업데이트하세요.
 
@@ -419,7 +419,7 @@ k8s/
 
 ### 도메인 용어집 추가
 
-`.agent/glossary.md` 생성:
+`docs/glossary.md` 생성:
 ```markdown
 # 도메인 용어집
 
@@ -431,7 +431,7 @@ k8s/
 
 ### 프로젝트별 스킬 추가
 
-`.agent/skills/` 디렉토리에 프로젝트 특화 스킬 추가:
+`.claude/skills/` 디렉토리에 프로젝트 특화 스킬 추가:
 ```markdown
 # Custom Skill: generate-api
 
@@ -449,7 +449,7 @@ k8s/
 
 - [ ] 플레이스홀더 교체 완료
 - [ ] `CLAUDE.md` 프로젝트 정보 업데이트
-- [ ] `.agent/context.md` 업데이트
+- [ ] `docs/context.md` 업데이트
 - [ ] `.cursor/rules/*.mdc` 언어별 규칙 추가/수정
 - [ ] `.roo/rules.md` 및 `.roo/rules/*.mdc` 업데이트
 

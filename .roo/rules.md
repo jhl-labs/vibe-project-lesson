@@ -100,5 +100,5 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 ## Reference
 
 - `CLAUDE.md` - Full project instructions
-- `.agent/context.md` - Project context
+- `docs/context.md` - Project context
 - `.roo/rules/*.mdc` - Detailed rules (NEW)

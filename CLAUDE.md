@@ -96,8 +96,8 @@ API_KEY=
 
 ## 참고 문서
 
-- `.agent/context.md` - 상세 프로젝트 컨텍스트
-- `.agent/conventions.md` - 코딩 컨벤션 상세
+- `docs/context.md` - 상세 프로젝트 컨텍스트
+- `.claude/rules/conventions.md` - 코딩 컨벤션 상세
 - `docs/adr/` - 아키텍처 결정 기록
 
 ---

@@ -25,15 +25,19 @@ import { templateFiles } from '../../data/template-files';
 
 ## 5개 스킬 요약
 
-| 스킬 | 커맨드 | 핵심 역할 |
-|------|--------|----------|
-| **Code Review** | `/review` | 코드 리뷰 수행 (보안, 품질, 성능) |
-| **Test Generation** | `/test` | 테스트 코드 생성 (단위, 통합, E2E) |
-| **Documentation** | `/doc` | 문서 생성 (JSDoc, API, README) |
-| **Refactor** | `/refactor` | 리팩토링 제안 (코드 스멜 탐지, 개선) |
-| **Security Scan** | `/security` | 보안 취약점 분석 (OWASP Top 10) |
+| 스킬 | 커맨드 | 핵심 역할 | 설정 파일 |
+|------|--------|----------|-----------|
+| **Code Review** | `/review` | 코드 리뷰 (보안, 품질, 성능) | `.claude/skills/code-review/SKILL.md` |
+| **Test Generation** | `/test` | 테스트 코드 생성 (단위, 통합, E2E) | `.claude/skills/test-gen/SKILL.md` |
+| **Documentation** | `/doc` | 문서 생성 (JSDoc, API, README, ADR) | `.claude/skills/doc-gen/SKILL.md` |
+| **Refactor** | `/refactor` | 리팩토링 (7가지 기법, 코드 스멜 탐지) | `.claude/skills/refactor/SKILL.md` |
+| **Security Scan** | `/security` | 보안 취약점 분석 (OWASP Top 10) | `.claude/skills/security-scan/SKILL.md` |
+
+---
 
 ## Code Review 스킬 상세
+
+6개 영역(기능, 품질, 보안, 성능, 테스트, 문서화)을 체계적으로 검토하고, Blocker/Suggestion/Question/Praise 4단계 피드백을 생성합니다.
 
 ### 리뷰 프로세스
 
@@ -66,7 +70,59 @@ import { templateFiles } from '../../data/template-files';
   caption="3단계(분석 → 검토 → 피드백)로 체계적인 코드 리뷰를 수행합니다"
 />
 
+### 6개 영역 체크리스트
+
+| 영역 | 검토 내용 |
+|------|----------|
+| 기능 정확성 | 요구사항 구현 여부, 엣지 케이스, 에러 처리 |
+| 코드 품질 | 가독성, SRP, 중복 코드, 네이밍 |
+| 보안 | SQL 인젝션, XSS, 하드코딩된 시크릿, 인증/인가 |
+| 성능 | N+1 쿼리, 불필요한 연산, 메모리 누수, 캐싱 |
+| 테스트 | 테스트 작성 여부, 엣지 케이스 커버리지, 독립성 |
+| 문서화 | 공개 API 문서, 복잡 로직 주석, README 업데이트 |
+
+### 피드백 작성 예시
+
+<CodeBlock
+  code={`🚨 [필수] 보안 취약점 — SQL 인젝션
+// 현재 코드
+const query = \`SELECT * FROM users WHERE id = \${userId}\`;
+
+// 수정 제안
+const query = 'SELECT * FROM users WHERE id = $1';
+const result = await db.query(query, [userId]);
+
+---
+
+💡 [제안] 가독성 개선 — early return 패턴
+// 현재 코드
+if (user) {
+  if (user.isActive) {
+    // 긴 코드...
+  }
+}
+
+// 수정 제안
+if (!user) return;
+if (!user.isActive) return;
+// 긴 코드...
+
+---
+
+❓ [질문] 이 로직에서 null을 반환하는 대신 예외를 던지는 것이 더 적절할 것 같은데, 특별한 이유가 있나요?
+
+---
+
+✨ [좋습니다] 에러 처리가 일관적으로 잘 구현되어 있네요!`}
+  language="typescript"
+  filename="리뷰 피드백 4단계 예시"
+/>
+
+---
+
 ## Test Generation 스킬 상세
+
+테스트 피라미드 비율(Unit 70%, Integration 20%, E2E 10%)을 따르며, AAA 패턴과 FIRST 원칙에 기반한 테스트 코드를 생성합니다.
 
 ### 테스트 피라미드
 
@@ -104,7 +160,342 @@ import { templateFiles } from '../../data/template-files';
 | **S**elf-validating | 자동 판별 |
 | **T**imely | 코드와 함께 작성 |
 
+### 단위 테스트 — AAA 패턴 예시
+
+<CodeBlock
+  code={`describe('UserService', () => {
+  describe('createUser', () => {
+    it('should create a user with valid data', async () => {
+      // Arrange — 테스트 준비
+      const userData = { email: 'test@example.com', name: 'Test User' };
+      const mockRepository = createMockUserRepository();
+
+      // Act — 테스트 실행
+      const result = await userService.createUser(userData);
+
+      // Assert — 결과 검증
+      expect(result.email).toBe(userData.email);
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining(userData)
+      );
+    });
+
+    it('should throw ValidationError when email is invalid', async () => {
+      await expect(userService.createUser({ email: 'invalid' }))
+        .rejects.toThrow(ValidationError);
+    });
+  });
+});`}
+  language="typescript"
+  filename="단위 테스트 (AAA 패턴)"
+/>
+
+### 통합 테스트 — API 엔드포인트 예시
+
+<CodeBlock
+  code={`describe('POST /api/users', () => {
+  it('should create user and return 201', async () => {
+    const response = await request(app)
+      .post('/api/users')
+      .send({ email: 'test@example.com', name: 'Test User' })
+      .expect(201);
+
+    expect(response.body).toMatchObject({
+      email: 'test@example.com',
+      name: 'Test User',
+    });
+    expect(response.body.id).toBeDefined();
+  });
+
+  it('should return 409 for duplicate email', async () => {
+    await request(app).post('/api/users')
+      .send({ email: 'test@example.com', name: 'Test' });
+
+    const response = await request(app).post('/api/users')
+      .send({ email: 'test@example.com', name: 'Test 2' })
+      .expect(409);
+
+    expect(response.body.error).toContain('already exists');
+  });
+});`}
+  language="typescript"
+  filename="통합 테스트 (API 엔드포인트)"
+/>
+
+### 모킹 가이드
+
+<CodeBlock
+  code={`// 의존성 모킹
+const mockUserRepo: jest.Mocked<IUserRepository> = {
+  findById: jest.fn(),
+  save: jest.fn(),
+  delete: jest.fn(),
+};
+mockUserRepo.findById.mockResolvedValue({ id: '1', email: 'test@example.com' });
+
+// 시간 모킹
+jest.useFakeTimers();
+jest.setSystemTime(new Date('2024-01-01'));
+
+// 환경 변수 모킹
+const originalEnv = process.env;
+beforeEach(() => { process.env = { ...originalEnv, API_KEY: 'test-key' }; });
+afterEach(() => { process.env = originalEnv; });`}
+  language="typescript"
+  filename="모킹 패턴"
+/>
+
+### 레이어별 커버리지 목표
+
+| 레이어 | 목표 커버리지 |
+|--------|-------------|
+| Domain Layer | > 90% |
+| Application Layer | > 80% |
+| Presentation Layer | > 70% |
+| Infrastructure Layer | > 60% |
+
+---
+
+## Documentation 스킬 상세
+
+4가지 문서 유형(REST API, JSDoc/Docstring, README, ADR)의 생성을 지원합니다.
+
+### 4가지 문서 유형
+
+| 유형 | 대상 | 출력 형식 |
+|------|------|----------|
+| REST API | 엔드포인트 | Request/Response 스키마, 에러 코드, cURL 예시 |
+| JSDoc/Docstring | 함수/클래스 | TypeScript JSDoc, Python Docstring |
+| README | 프로젝트 | 배지, Quick Start, 구조, 환경 변수 |
+| ADR | 아키텍처 결정 | Context, Decision, Alternatives, Consequences |
+
+### REST API 문서 예시
+
+<CodeBlock
+  code={`## Create User
+POST /api/v1/users
+
+### Request Headers
+| Header | Required | Description |
+|--------|----------|-------------|
+| Authorization | Yes | Bearer token |
+| Content-Type | Yes | application/json |
+
+### Request Body
+{
+  "email": "user@example.com",
+  "name": "John Doe",
+  "role": "user"
+}
+
+### Response (201 Created)
+{
+  "id": "usr_123abc",
+  "email": "user@example.com",
+  "name": "John Doe",
+  "createdAt": "2024-01-01T00:00:00Z"
+}
+
+### Error Responses
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | VALIDATION_ERROR | Invalid request body |
+| 409 | DUPLICATE_EMAIL | Email already exists |
+| 401 | UNAUTHORIZED | Missing or invalid token |`}
+  language="markdown"
+  filename="REST API 문서 예시"
+/>
+
+### JSDoc 예시
+
+<CodeBlock
+  code={`/**
+ * Creates a new user account.
+ *
+ * This function validates the input data, checks for duplicate emails,
+ * and creates a new user in the database.
+ *
+ * @param data - The user creation data
+ * @param options - Optional configuration
+ * @returns The created user object
+ *
+ * @throws {ValidationError} When email format is invalid
+ * @throws {DuplicateError} When email already exists
+ *
+ * @example
+ * const user = await createUser({
+ *   email: 'user@example.com',
+ *   name: 'John Doe'
+ * });
+ *
+ * @see {@link updateUser} for updating existing users
+ * @since 1.0.0
+ */
+async function createUser(
+  data: CreateUserInput,
+  options?: CreateUserOptions
+): Promise<User> { ... }`}
+  language="typescript"
+  filename="JSDoc 문서 예시"
+/>
+
+### ADR (Architecture Decision Record) 예시
+
+<CodeBlock
+  code={`# ADR-001: Use PostgreSQL as Primary Database
+
+## Status
+Accepted
+
+## Context
+복잡한 관계형 데이터 모델, 트랜잭션 지원, JSON 데이터 타입, 전문 검색 기능 필요
+
+## Considered Alternatives
+### MySQL 8
+- 장점: 더 넓은 호스팅 옵션
+- 단점: JSON 지원이 PostgreSQL보다 약함
+
+### MongoDB
+- 장점: 스키마 유연성
+- 단점: 복잡한 조인 어려움, 트랜잭션 제한
+
+## Decision
+PostgreSQL 14+를 주 데이터베이스로 사용
+
+## Consequences
+- Positive: 강력한 ACID, 우수한 JSONB, 풍부한 확장(PostGIS 등)
+- Negative: 팀 학습 필요, MySQL 대비 호스팅 비용 약간 높음`}
+  language="markdown"
+  filename="ADR 문서 예시"
+/>
+
+---
+
+## Refactor 스킬 상세
+
+7가지 리팩토링 기법과 코드 스멜 탐지 기준을 제공합니다. "테스트 존재 → 작은 단계 → 동작 보존 → 지속 검증" 4원칙을 따릅니다.
+
+### 7가지 리팩토링 기법
+
+| # | 기법 | 적용 시점 |
+|---|------|----------|
+| 1 | **함수 추출** (Extract Function) | 코드 블록이 무엇을 하는지 설명이 필요할 때 |
+| 2 | **변수 추출** (Extract Variable) | 복잡한 표현식을 이해하기 어려울 때 |
+| 3 | **함수 인라인** (Inline Function) | 함수 본문이 이름만큼 명확할 때 |
+| 4 | **조건문 분해** (Decompose Conditional) | 복잡한 조건문이 있을 때 |
+| 5 | **다형성으로 교체** (Replace Conditional with Polymorphism) | 타입별 switch/if 분기가 있을 때 |
+| 6 | **매개변수 객체** (Introduce Parameter Object) | 여러 매개변수가 함께 전달될 때 |
+| 7 | **보호절** (Guard Clauses) | 깊은 중첩 조건문이 있을 때 |
+
+### Before/After 예시: 함수 추출
+
+<CodeBlock
+  code={`// Before — 하나의 함수에 모든 로직
+function printOwing(invoice: Invoice) {
+  let outstanding = 0;
+
+  console.log("***********************");
+  console.log("**** Customer Owes ****");
+  console.log("***********************");
+
+  for (const order of invoice.orders) {
+    outstanding += order.amount;
+  }
+
+  console.log(\`name: \${invoice.customer}\`);
+  console.log(\`amount: \${outstanding}\`);
+}
+
+// After — 역할별 함수 분리
+function printOwing(invoice: Invoice) {
+  printBanner();
+  const outstanding = calculateOutstanding(invoice);
+  printDetails(invoice, outstanding);
+}
+
+function calculateOutstanding(invoice: Invoice): number {
+  return invoice.orders.reduce((sum, order) => sum + order.amount, 0);
+}`}
+  language="typescript"
+  filename="함수 추출 (Extract Function)"
+/>
+
+### Before/After 예시: 보호절
+
+<CodeBlock
+  code={`// Before — 깊은 중첩
+function getPayAmount(employee: Employee): number {
+  let result: number;
+  if (employee.isSeparated) {
+    result = separatedAmount();
+  } else {
+    if (employee.isRetired) {
+      result = retiredAmount();
+    } else {
+      result = normalPayAmount();
+    }
+  }
+  return result;
+}
+
+// After — 보호절로 평탄화
+function getPayAmount(employee: Employee): number {
+  if (employee.isSeparated) return separatedAmount();
+  if (employee.isRetired) return retiredAmount();
+  return normalPayAmount();
+}`}
+  language="typescript"
+  filename="보호절 (Guard Clauses)"
+/>
+
+### 코드 스멜 탐지 기준
+
+| 카테고리 | 스멜 | 기준 | 리팩토링 기법 |
+|----------|------|------|-------------|
+| 함수 | Long Method | 20줄 이상 | Extract Function |
+| 함수 | Long Parameter List | 3개 이상 | Parameter Object |
+| 함수 | Duplicate Code | 동일 코드 반복 | Extract Function |
+| 클래스 | Large Class | 너무 많은 책임 | Extract Class |
+| 클래스 | Feature Envy | 다른 클래스 데이터 과다 접근 | Move Method |
+| 조건문 | Complex Conditional | 복잡한 if/switch | Decompose Conditional |
+| 조건문 | Nested Conditionals | 깊은 중첩 | Guard Clauses |
+| 조건문 | Type Code | 타입별 분기 | Polymorphism |
+
+### 리팩토링 프로세스
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph S1["1. 분석"]
+      A1["코드 스멜 식별"]
+      A2["영향 범위 파악"]
+    end
+    subgraph S2["2. 준비"]
+      B1["테스트 통과 확인"]
+      B2["안전 커밋 생성"]
+    end
+    subgraph S3["3. 실행"]
+      C1["작은 단위 변경"]
+      C2["변경마다 테스트"]
+    end
+    subgraph S4["4. 검증"]
+      D1["전체 테스트 실행"]
+      D2["코드 리뷰 요청"]
+    end
+    S1 --> S2 --> S3 --> S4
+    style S1 fill:#fdf2ee,stroke:#2563eb,color:#2d2a26
+    style S2 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style S3 fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
+    style S4 fill:#fdf2ee,stroke:#16a34a,color:#2d2a26`}
+  title="리팩토링 프로세스"
+  caption="분석 → 준비 → 실행 → 검증. 각 단계마다 테스트로 안전성을 확보합니다"
+  maxWidth="680px"
+/>
+
+---
+
 ## Security Scan 스킬 상세
+
+OWASP Top 10 기반으로 6가지 주요 취약점 패턴을 탐지합니다. 각 취약점에 대해 **취약한 코드 vs 안전한 코드** 패턴을 비교합니다.
 
 ### OWASP Top 10 체크리스트
 
@@ -120,6 +511,61 @@ import { templateFiles } from '../../data/template-files';
 | A08 | 무결성 실패 | 서명 검증, 데이터 무결성 |
 | A09 | 로깅 및 알림 실패 | 감사 로그, 알림 |
 | A10 | 예외 처리 미흡 | 에러 핸들링, fail-open 방지 |
+
+### 취약한 코드 vs 안전한 코드
+
+<CodeBlock
+  code={`// ❌ SQL Injection — 문자열 직접 결합
+const query = \`SELECT * FROM users WHERE id = \${userId}\`;
+
+// ✅ 안전 — 파라미터화된 쿼리
+const query = 'SELECT * FROM users WHERE id = $1';
+const result = await db.query(query, [userId]);
+
+// ❌ XSS — innerHTML 직접 삽입
+element.innerHTML = userInput;
+
+// ✅ 안전 — textContent 또는 DOMPurify
+element.textContent = userInput;
+element.innerHTML = DOMPurify.sanitize(userInput);
+
+// ❌ 인증 — 평문 비밀번호, localStorage에 JWT
+const hash = md5(password);
+localStorage.setItem('token', jwtToken);
+
+// ✅ 안전 — bcrypt + httpOnly 쿠키
+const hash = await bcrypt.hash(password, 12);
+res.cookie('token', jwtToken, {
+  httpOnly: true, secure: true, sameSite: 'strict'
+});
+
+// ❌ IDOR — 권한 검사 없이 직접 접근
+app.get('/api/orders/:id', async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  return res.json(order);
+});
+
+// ✅ 안전 — 소유권 확인
+app.get('/api/orders/:id', authenticate, async (req, res) => {
+  const order = await Order.findOne({
+    _id: req.params.id, userId: req.user.id
+  });
+  if (!order) return res.status(404).json({ error: 'Not found' });
+  return res.json(order);
+});`}
+  language="typescript"
+  filename="취약한 코드 vs 안전한 코드 패턴"
+/>
+
+### 보안 스캔 3단계 프로세스
+
+| 단계 | 내용 |
+|------|------|
+| 1. 정적 분석 | 코드 패턴 검사, 하드코딩된 시크릿 탐지, 취약한 함수 사용, 의존성 취약점 |
+| 2. 데이터 흐름 분석 | 사용자 입력 추적, 신뢰 경계 식별, 데이터 검증/이스케이프 확인 |
+| 3. 설정 검토 | 보안 헤더, CORS 정책, 인증/세션 설정, 암호화 설정 |
+
+---
 
 ## 스킬 호출 제어
 

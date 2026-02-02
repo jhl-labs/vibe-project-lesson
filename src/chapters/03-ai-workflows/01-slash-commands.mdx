@@ -481,21 +481,6 @@ git push origin hotfix/ISSUE-123-critical-bug
   maxWidth="680px"
 />
 
-## 실제 commands.md 파일
-
-<TemplateFileViewer
-  filename=".agent/commands.md"
-  content={templateFiles['.agent/commands.md']}
-  language="markdown"
-  annotations={[
-    { lineStart: 1, lineEnd: 23, text: '커맨드 개요와 전체 목록 테이블입니다. 10개의 커스텀 슬래시 커맨드와 각각의 설명, 결과물을 한눈에 볼 수 있습니다.' },
-    { lineStart: 28, lineEnd: 69, text: '/commit 커맨드 상세입니다. Conventional Commits 형식을 따르며 타입 선택 기준도 정의합니다.' },
-    { lineStart: 118, lineEnd: 155, text: '/review 커맨드 상세입니다. Blocker/Suggestion/Question/Praise 4단계로 분류된 리뷰 결과를 생성합니다.' },
-    { lineStart: 261, lineEnd: 294, text: '/security 커맨드 상세입니다. Critical/High/Medium 심각도로 분류된 보안 취약점 리포트를 생성합니다.' },
-    { lineStart: 401, lineEnd: 440, text: '커맨드 조합과 커스터마이징 방법, 그리고 대응하는 프롬프트/스킬 파일 매핑을 보여줍니다.' },
-  ]}
-/>
-
 <Callout type="tip" title="커스터마이징">
   팀의 워크플로우에 맞게 `.claude/commands/` 디렉토리의 커맨드 파일을 수정하고,
   `.claude/skills/` 디렉토리의 해당 스킬 파일도 함께 조정하세요.

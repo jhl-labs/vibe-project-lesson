@@ -19,7 +19,8 @@
 .github/workflows/ @<your-org>/devops @<your-org>/maintainers
 
 # AI 에이전트 설정
-.agent/ @<your-org>/ai-team
+.claude/ @<your-org>/ai-team
+AGENTS.md @<your-org>/ai-team
 CLAUDE.md @<your-org>/ai-team
 .cursorrules @<your-org>/ai-team
 .roo/ @<your-org>/ai-team

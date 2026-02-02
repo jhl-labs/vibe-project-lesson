@@ -73,5 +73,5 @@ When generating code:
 For detailed rules, see:
 - `.cursor/rules/*.mdc` - Project Rules (NEW, recommended)
 - `CLAUDE.md` - Full project instructions
-- `.agent/context.md` - Project context
-- `.agent/conventions.md` - Coding conventions
+- `docs/context.md` - Project context
+- `.claude/rules/conventions.md` - Coding conventions
