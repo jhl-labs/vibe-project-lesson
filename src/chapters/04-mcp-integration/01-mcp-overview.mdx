@@ -15,7 +15,7 @@ import { templateFiles } from '../../data/template-files';
 
 ## MCP란?
 
-**MCP(Model Context Protocol)**는 Anthropic이 2024년 말 공개한 **개방형 표준 프로토콜**로, AI 에이전트가 외부 도구 및 서비스와 **JSON-RPC 2.0** 기반으로 양방향 통신합니다. 2025년 12월 9일 Anthropic은 MCP를 Linux Foundation 산하 **Agentic AI Foundation (AAIF)**에 기부하여 오픈 거버넌스로 전환했습니다. 현재 스펙 버전은 **2025-11-25**이며, Claude Code, VS Code, Cursor, GitHub Copilot, JetBrains IDE 등 주요 AI 코딩 도구가 MCP를 지원합니다.
+**MCP(Model Context Protocol)**는 Anthropic이 **2024년 11월 25일** 공개한 **개방형 표준 프로토콜**로, AI 에이전트가 외부 도구 및 서비스와 **JSON-RPC 2.0** 기반으로 양방향 통신합니다. 처음부터 MIT 라이선스 하에 오픈소스로 공개되었으며, 2025년 12월 Anthropic은 MCP를 Linux Foundation 산하 **Agentic AI Foundation (AAIF)**에 기부하여 오픈 거버넌스로 전환했습니다. 현재 스펙 버전은 **2025-11-25**이며, Claude Code, VS Code, Cursor, GitHub Copilot, JetBrains IDE 등 주요 AI 코딩 도구가 MCP를 지원합니다.
 
 <Callout type="info" title="비유">
   MCP는 AI 에이전트의 "USB 포트"와 같습니다.
@@ -151,7 +151,7 @@ claude`}
 />
 
 <Callout type="info" title="MCP 설정 범위">
-  Claude Code에서 MCP 서버는 **프로젝트 레벨**(`.mcp.json`)과 **사용자 레벨**(`~/.claude/settings.json`)로 구분하여 관리할 수 있습니다.
+  Claude Code에서 MCP 서버는 **프로젝트 레벨**(`.mcp.json`)과 **사용자 레벨**(`~/.claude.json`)로 구분하여 관리할 수 있습니다.
   엔터프라이즈에서는 Managed Settings의 `allowedMcpServers`/`deniedMcpServers`로 허용 서버를 제한할 수 있습니다.
 </Callout>
 

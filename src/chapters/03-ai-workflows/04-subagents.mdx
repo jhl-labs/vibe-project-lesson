@@ -20,10 +20,30 @@ import { ChapterNav } from '../../components/ChapterNav';
   아키텍트, 보안 전문가, 테스터, 테크니컬 라이터 — 각각의 전문성을 가진 AI 에이전트가 협력합니다.
 </Callout>
 
-## 4개 서브에이전트
+## Claude Code 빌트인 서브에이전트
+
+Claude Code는 내부적으로 6개의 빌트인 서브에이전트를 제공합니다. 이들은 Task 도구를 통해 자동으로 선택·실행됩니다.
+
+| 서브에이전트 | 역할 | 사용 가능 도구 |
+|-------------|------|---------------|
+| **Explore** | 코드베이스 탐색, 파일/키워드 검색 | Read, Glob, Grep 등 (편집 불가) |
+| **Plan** | 구현 전략 설계, 아키텍처 분석 | Read, Glob, Grep 등 (편집 불가) |
+| **general-purpose** | 복잡한 멀티스텝 작업 수행 | 모든 도구 |
+| **Bash** | 셸 명령 실행 전문 | Bash |
+| **statusline-setup** | 상태줄 설정 | Read, Edit |
+| **Claude Code Guide** | Claude Code 사용법 안내 | Read, Glob, Grep, WebFetch, WebSearch |
+
+<Callout type="tip" title="빌트인 vs 커스텀">
+  빌트인 서브에이전트는 Claude Code가 상황에 맞게 자동 선택합니다.
+  커스텀 서브에이전트는 `.claude/agents/` 디렉토리에 정의하여 프로젝트 특화 전문성을 추가합니다.
+</Callout>
+
+## 커스텀 서브에이전트 (프로젝트 템플릿 예시)
+
+이 프로젝트 템플릿에서 정의한 4개의 커스텀 서브에이전트입니다:
 
 <ComparisonTable
-  title="서브에이전트 비교"
+  title="커스텀 서브에이전트 비교"
   headers={['항목', 'Architect', 'Security', 'Test', 'Documentation']}
   rows={[
     { feature: '전문 분야', values: ['시스템 설계', '보안 분석', '테스트 전략', '기술 문서'] },
@@ -31,6 +51,21 @@ import { ChapterNav } from '../../components/ChapterNav';
     { feature: '참조 지식', values: ['아키텍처 패턴', 'OWASP Top 10', '테스트 피라미드', '문서 표준'] },
     { feature: '활용 시점', values: ['설계/기술 결정', '보안 검토', '테스트 작성', '문서화'] },
   ]}
+/>
+
+### 커스텀 에이전트 정의 형식
+
+<CodeBlock
+  code={`---
+name: security-reviewer
+description: Reviews code for security vulnerabilities
+tools: Read, Glob, Grep, Bash
+model: sonnet
+---
+
+You are a security expert. Analyze code for OWASP Top 10 vulnerabilities...`}
+  language="markdown"
+  filename=".claude/agents/security-reviewer.md"
 />
 
 ## Architect 서브에이전트

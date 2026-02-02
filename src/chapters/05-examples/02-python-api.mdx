@@ -142,15 +142,14 @@ TypeScript API와 동일한 아키텍처를 Python으로 구현합니다. 두 �
 
 <CodeBlock
   code={`# app/core/config.py
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+
     database_url: str = "sqlite+aiosqlite:///./test.db"
     debug: bool = False
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()`}
@@ -446,12 +445,30 @@ class UserResponse(BaseModel):
 <CodeBlock
   code={`# app/presentation/api/users.py
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.user.use_cases import CreateUserUseCase, GetUserUseCase
 from app.application.user.dtos import CreateUserDto
+from app.infrastructure.database.repository import SQLAlchemyUserRepository
+from app.core.database import get_session
 from app.presentation.schemas.user import CreateUserRequest, UserResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+# --- 의존성 주입 팩토리 ---
+def get_create_user_use_case(
+    session: AsyncSession = Depends(get_session),
+) -> CreateUserUseCase:
+    repo = SQLAlchemyUserRepository(session)
+    return CreateUserUseCase(user_repository=repo)
+
+
+def get_get_user_use_case(
+    session: AsyncSession = Depends(get_session),
+) -> GetUserUseCase:
+    repo = SQLAlchemyUserRepository(session)
+    return GetUserUseCase(user_repository=repo)
 
 
 @router.post("/", response_model=UserResponse, status_code=201)

@@ -38,12 +38,19 @@ on:
   pull_request:
     types: [opened, synchronize]
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read  # CI 결과 읽기
+
 jobs:
   review:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
@@ -71,12 +78,19 @@ on:
   issues:
     types: [opened]
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
 jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Analyze Issue
         uses: anthropics/claude-code-action@v1
         with:
@@ -100,12 +114,19 @@ on:
   pull_request:
     types: [opened]
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
 jobs:
   suggest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Suggest Improvements
         uses: anthropics/claude-code-action@v1
         with:
@@ -130,12 +151,19 @@ on:
     - cron: '0 9 * * 1'  # 매주 월요일 9시
   workflow_dispatch:       # 수동 실행
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Check Doc Sync
         uses: anthropics/claude-code-action@v1
         with:
@@ -211,7 +239,8 @@ ANTHROPIC_API_KEY=sk-ant-api03-...
 
 <Callout type="info" title="claude-code-action 공식 Action">
   `anthropics/claude-code-action@v1`은 Anthropic이 공식 제공하는 GitHub Action입니다.
-  2025년 9월에 v1.0이 출시되었으며, CLAUDE.md와 프로젝트 컨텍스트를 자동으로 인식합니다.
+  2025년 9월에 v1.0이 출시되었으며, 저장소 루트의 CLAUDE.md 파일을 자동으로 인식하여 코딩 가이드라인을 따릅니다.
+  또한 자동 모드 감지 기능으로 @멘션/이슈 할당 시 Interactive Mode, prompt 입력 시 Automation Mode로 자동 전환됩니다.
 </Callout>
 
 <ChapterNav

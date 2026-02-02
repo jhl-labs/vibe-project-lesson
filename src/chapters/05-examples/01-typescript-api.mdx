@@ -435,6 +435,26 @@ export class CreateUserUseCase {
 />
 
 <CodeBlock
+  code={`// src/application/user/get-user.ts
+import { IUserRepository } from '../../domain/user/repository';
+import { UserResponseDto } from './dtos';
+
+export class GetUserUseCase {
+  constructor(private userRepository: IUserRepository) {}
+
+  async execute(id: string): Promise<UserResponseDto> {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new Error(\`User not found: \${id}\`);
+    }
+    return UserResponseDto.from(user);
+  }
+}`}
+  language="typescript"
+  filename="src/application/user/get-user.ts"
+/>
+
+<CodeBlock
   code={`# 실습 프롬프트: Application Layer
 > src/application/user/ 아래에 유스케이스를 구현해줘:
 > 1. dtos.ts: CreateUserDto, UserResponseDto
