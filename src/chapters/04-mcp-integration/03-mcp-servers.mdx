@@ -14,21 +14,25 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## MCP 서버 생태계
 
-MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하는 플러그인입니다. 2025년 9월에 공식 MCP Registry가 프리뷰로 출시되었고, 2025년 12월 9일 Anthropic은 MCP를 Linux Foundation 산하 **Agentic AI Foundation (AAIF)**에 기부하여 오픈 거버넌스 체제로 전환했습니다.
+MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하는 플러그인입니다. Claude Code는 기본적으로 파일 읽기/쓰기, Bash 명령 실행 등의 도구를 내장하고 있지만, MCP 서버를 추가하면 GitHub API, 데이터베이스 쿼리, 웹 검색, 프로젝트 관리 도구 등 훨씬 넓은 범위의 외부 시스템과 직접 상호작용할 수 있습니다.
+
+2025년 9월에 공식 MCP Registry가 프리뷰로 출시되었고, 2025년 12월 9일 Anthropic은 MCP를 Linux Foundation 산하 **Agentic AI Foundation (AAIF)**에 기부하여 오픈 거버넌스 체제로 전환했습니다. 이로 인해 MCP 생태계는 특정 기업에 종속되지 않는 중립적인 표준으로 성장하고 있습니다.
 
 <Callout type="info" title="MCP 서버를 찾는 곳">
-  - **공식 Registry**: [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/)
-  - **GitHub Reference Servers**: [github.com/modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers)
-  - **커뮤니티 목록**: [github.com/punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
+  - **공식 Registry**: [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/) — 검증된 서버 목록, 설치 명령 제공
+  - **GitHub Reference Servers**: [github.com/modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers) — Anthropic 공식 레퍼런스 구현
+  - **커뮤니티 목록**: [github.com/punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) — 커뮤니티가 관리하는 서버 모음
 </Callout>
 
 ## 주요 공식 MCP 서버
+
+아래는 `modelcontextprotocol/servers` 저장소에서 제공하는 공식 레퍼런스 서버입니다. 이 서버들은 Anthropic이 직접 개발하고 유지보수하며, MCP 프로토콜의 표준 구현 참조로 사용됩니다.
 
 <DataTable
   title="Reference MCP 서버 (modelcontextprotocol/servers)"
   searchable={true}
   columns={[
-    { key: 'name', header: '서버' },
+    { key: 'name', header: '서버', width: '140px' },
     { key: 'description', header: '설명' },
     { key: 'useCase', header: '활용 사례' },
   ]}
@@ -43,18 +47,44 @@ MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하�
   ]}
 />
 
+### 주요 서버 상세 설명
+
+**Filesystem** — Claude Code는 기본적으로 프로젝트 디렉토리 내 파일에 접근할 수 있지만, Filesystem MCP 서버를 사용하면 **프로젝트 외부의 특정 디렉토리**에 대한 접근을 안전하게 허용할 수 있습니다. 허용 디렉토리를 인자로 지정하여 접근 범위를 제한합니다.
+
+**Memory** — Claude Code는 세션이 끝나면 대화 내용을 잊어버립니다. Memory 서버는 **지식 그래프** 형태로 정보를 저장하여 다음 세션에서도 이전에 학습한 내용을 기억할 수 있게 합니다. 프로젝트의 아키텍처 결정, 팀원 선호도, 반복적인 작업 패턴 등을 기억시키는 데 유용합니다.
+
+**Fetch** — 외부 웹 페이지나 API 문서를 가져와서 LLM이 처리하기 좋은 형태로 변환합니다. HTML을 마크다운으로 변환하고, 불필요한 요소를 제거합니다. 라이브러리 공식 문서를 참조하면서 코드를 작성할 때 특히 유용합니다.
+
+**Sequential Thinking** — 복잡한 문제를 단계별로 분해하여 사고하는 도구입니다. 각 사고 단계를 기록하고, 이전 단계를 수정하거나 분기할 수 있습니다. 아키텍처 설계, 디버깅, 복잡한 비즈니스 로직 구현 시 더 체계적인 추론을 가능하게 합니다.
+
 ### 주요 서드파티 서버
 
-| 서버 | 제공 | 설명 |
-|------|------|------|
-| **GitHub** | GitHub | 이슈, PR, 코드 검색 |
-| **Sentry** | Sentry | 에러 모니터링, 이슈 조회 |
-| **Notion** | Notion | 문서 읽기/쓰기 |
-| **Atlassian** | Atlassian | Jira/Confluence 연동 |
-| **Prisma** | Prisma | 데이터베이스 스키마 관리 |
-| **DBHub** | Bytebase | DB 쿼리 실행 (PostgreSQL, MySQL, SQLite 등 6개 DB 지원) |
+아래는 각 서비스 제공사가 공식적으로 개발하고 유지보수하는 MCP 서버입니다. 공식 서버이므로 API 변경에 빠르게 대응하며, 인증 흐름도 최적화되어 있습니다.
+
+<DataTable
+  title="주요 서드파티 MCP 서버"
+  searchable={true}
+  columns={[
+    { key: 'server', header: '서버', width: '120px' },
+    { key: 'provider', header: '제공', width: '100px' },
+    { key: 'description', header: '설명' },
+    { key: 'transport', header: '전송', width: '80px' },
+  ]}
+  data={[
+    { server: 'GitHub', provider: 'GitHub', description: '이슈, PR, 코드 검색, 리포지토리 관리', transport: 'HTTP' },
+    { server: 'Sentry', provider: 'Sentry', description: '에러 모니터링, 이슈 조회, 스택트레이스 분석', transport: 'HTTP' },
+    { server: 'Notion', provider: 'Notion', description: '문서 읽기/쓰기, 데이터베이스 쿼리', transport: 'HTTP' },
+    { server: 'Atlassian', provider: 'Atlassian', description: 'Jira 이슈/Confluence 문서 연동', transport: 'HTTP' },
+    { server: 'Linear', provider: 'Anthropic', description: '프로젝트 관리, 이슈 추적', transport: 'stdio' },
+    { server: 'Prisma', provider: 'Prisma', description: '데이터베이스 스키마 관리, 마이그레이션', transport: 'stdio' },
+    { server: 'DBHub', provider: 'Bytebase', description: 'DB 쿼리 실행 (PostgreSQL, MySQL, SQLite 등 6개 DB 지원)', transport: 'stdio' },
+    { server: 'Puppeteer', provider: 'Anthropic', description: '브라우저 자동화, 스크린샷, 웹 스크래핑', transport: 'stdio' },
+  ]}
+/>
 
 ## 전송 방식 (Transport)
+
+MCP 서버와 클라이언트가 통신하는 방식에는 두 가지가 있습니다. 어떤 전송 방식을 사용할지는 서버의 실행 환경에 따라 결정됩니다.
 
 <ComparisonTable
   title="MCP 전송 방식 비교"
@@ -66,6 +96,18 @@ MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하�
   ]}
 />
 
+### stdio vs HTTP 선택 기준
+
+**stdio**를 사용하는 경우:
+- 서버가 `npx`, `python`, `node` 등 로컬 명령으로 실행되는 경우
+- 서버가 사용자의 로컬 파일 시스템에 접근해야 하는 경우
+- 인증이 환경 변수로 처리되는 경우
+
+**HTTP**를 사용하는 경우:
+- 서버가 원격에서 호스팅되는 경우 (SaaS 서비스의 MCP 엔드포인트)
+- OAuth 등 웹 기반 인증 흐름이 필요한 경우
+- 여러 클라이언트가 하나의 서버를 공유하는 경우
+
 <Callout type="warning" title="SSE는 사용 중단됨">
   SSE(Server-Sent Events) 전송 방식은 2025-03-26 MCP 스펙부터 Streamable HTTP로 대체되었습니다.
   기존 SSE 서버는 하위 호환성을 위해 동작하지만, 새 서버는 Streamable HTTP를 사용하세요.
@@ -73,7 +115,11 @@ MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하�
 
 ## 설정 방법
 
+MCP 서버를 Claude Code에 연결하는 방법은 크게 세 가지입니다: CLI 명령, JSON 직접 편집, `.mcp.json` 파일 사용.
+
 ### CLI로 추가 (`claude mcp add`)
+
+가장 간편한 방법입니다. Claude Code CLI에서 직접 서버를 추가합니다.
 
 <CodeBlock
   code={`# stdio 서버 (로컬 프로세스)
@@ -93,39 +139,67 @@ claude mcp add --transport http <name> <url>
 
 ### 실전 설정 예시
 
+아래는 실무에서 자주 사용하는 MCP 서버 설정 예시입니다. 각 서버의 역할과 필요한 인자를 주석으로 설명합니다.
+
 <CodeBlock
-  code={`# GitHub MCP (HTTP)
+  code={`# ═══════════════════════════════════════════
+# HTTP 전송 방식 서버 (원격, 인증 자동 처리)
+# ═══════════════════════════════════════════
+
+# GitHub MCP — PR, 이슈, 코드 검색 등 GitHub 전체 API 접근
+# 브라우저에서 OAuth 인증 흐름이 자동으로 진행됨
 claude mcp add --transport http github https://api.githubcopilot.com/mcp/
 
-# Notion MCP (HTTP)
+# Notion MCP — 워크스페이스 문서 검색, 페이지 읽기/쓰기
+# Notion 앱에서 연동 승인 필요
 claude mcp add --transport http notion https://mcp.notion.com/mcp
 
-# Sentry MCP (HTTP)
+# Sentry MCP — 에러 이슈 조회, 스택트레이스 분석
+# Sentry 계정 연동 후 사용
 claude mcp add --transport http sentry https://mcp.sentry.dev/mcp
 
-# Database (stdio, DBHub는 PostgreSQL/MySQL/SQLite 등 6개 DB 지원)
-claude mcp add --transport stdio db -- \
-  npx -y @bytebase/dbhub \
+# ═══════════════════════════════════════════
+# stdio 전송 방식 서버 (로컬 프로세스)
+# ═══════════════════════════════════════════
+
+# Database (DBHub) — PostgreSQL, MySQL, SQLite 등 6개 DB 쿼리 실행
+# --dsn으로 접속 정보 지정 (읽기 전용 계정 권장)
+claude mcp add --transport stdio db -- \\
+  npx -y @bytebase/dbhub \\
   --dsn "postgresql://readonly:pass@db.example.com:5432/analytics"
 
-# Filesystem (stdio, 특정 디렉토리만 허용)
-claude mcp add --transport stdio files -- \
-  npx -y @modelcontextprotocol/server-filesystem \
+# Filesystem — 프로젝트 외부 디렉토리 접근 허용
+# 인자로 허용할 디렉토리 경로를 명시 (이 외에는 접근 불가)
+claude mcp add --transport stdio files -- \\
+  npx -y @modelcontextprotocol/server-filesystem \\
   /path/to/allowed/directory
 
-# Memory (stdio)
-claude mcp add --transport stdio memory -- \
+# Memory — 세션 간 지식 그래프 유지
+# 별도 인자 없이 실행, 로컬 파일에 데이터 저장
+claude mcp add --transport stdio memory -- \\
   npx -y @modelcontextprotocol/server-memory
 
-# 인증이 필요한 HTTP 서버
-claude mcp add --transport http secure-api \
-  https://api.example.com/mcp \
+# ═══════════════════════════════════════════
+# 인증이 필요한 HTTP 서버 (수동 헤더 설정)
+# ═══════════════════════════════════════════
+
+# Bearer 토큰으로 인증하는 커스텀 서버
+claude mcp add --transport http secure-api \\
+  https://api.example.com/mcp \\
   --header "Authorization: Bearer \${API_TOKEN}"`}
   language="bash"
   filename="MCP 서버 추가 예시"
 />
 
+<Callout type="tip" title="HTTP 서버의 OAuth 인증">
+  GitHub, Notion, Sentry 같은 HTTP MCP 서버는 처음 사용할 때 브라우저가 자동으로 열리며 OAuth 인증이 진행됩니다.
+  한 번 인증하면 토큰이 로컬에 저장되어 이후에는 자동으로 연결됩니다.
+  별도의 API 키 설정이 필요 없어 stdio 방식보다 설정이 간편합니다.
+</Callout>
+
 ### JSON으로 직접 추가
+
+복잡한 설정이 필요하거나 스크립트로 자동화할 때 JSON 형식을 사용합니다.
 
 <CodeBlock
   code={`# JSON 형식으로 한번에 설정
@@ -141,6 +215,8 @@ claude mcp add-json weather-api '{
 />
 
 ### .mcp.json 파일 (팀 공유용)
+
+팀 전체가 동일한 MCP 설정을 사용해야 할 때, 프로젝트 루트에 `.mcp.json` 파일을 생성하고 저장소에 커밋합니다. 이 파일은 `claude mcp add --scope project` 명령으로도 생성할 수 있습니다.
 
 <CodeBlock
   code={`// 프로젝트 루트의 .mcp.json (저장소에 커밋하여 팀 공유)
@@ -175,6 +251,8 @@ claude mcp add-json weather-api '{
 
 ## 스코프 관리
 
+MCP 서버 설정은 세 가지 스코프(범위)로 관리됩니다. 같은 이름의 서버가 여러 스코프에 정의되어 있으면, 더 좁은 범위의 설정이 우선 적용됩니다.
+
 <MermaidDiagram
   chart={`flowchart TB
     U["User scope\n~/.claude.json\n모든 프로젝트, 개인"]
@@ -200,41 +278,252 @@ claude mcp add-json weather-api '{
 | **project** | `.mcp.json` (프로젝트 루트) | 팀 공유 | `claude mcp add --scope project` |
 | **user** | `~/.claude.json` | 전역 개인 설정 | `claude mcp add --scope user` |
 
+### 스코프 선택 가이드
+
+- **모든 프로젝트에서 항상 쓰는 서버** (Memory, Fetch 등) → `user` 스코프
+- **팀원 전체가 사용해야 하는 서버** (GitHub, 사내 API 등) → `project` 스코프 (`.mcp.json` 커밋)
+- **특정 프로젝트에서 내가만 쓰는 서버** (개인 DB, 테스트 서버 등) → `local` 스코프 (기본값)
+- **조직 전체에 강제 배포할 서버** → Managed MCP (관리자 전용)
+
 ## MCP 서버 관리
 
 <CodeBlock
-  code={`# 서버 목록 확인
+  code={`# 서버 목록 확인 — 현재 활성화된 모든 MCP 서버 표시
 claude mcp list
 
-# 특정 서버 상세 정보
+# 특정 서버 상세 정보 — 설정값, 상태, 제공 도구 확인
 claude mcp get <name>
 
 # 서버 제거
 claude mcp remove <name>
 
-# Claude Desktop 설정 가져오기
+# Claude Desktop 설정 가져오기 — Desktop에서 설정한 서버를 CLI로 복사
 claude mcp add-from-claude-desktop
 
-# 프로젝트 승인 상태 초기화
+# 프로젝트 승인 상태 초기화 — .mcp.json의 서버 승인 다시 요청
 claude mcp reset-project-choices
 
-# Claude Code를 MCP 서버로 실행 (다른 도구에서 사용)
+# Claude Code를 MCP 서버로 실행 — 다른 MCP 클라이언트에서 사용
 claude mcp serve`}
   language="bash"
   filename="MCP 관리 명령어"
 />
 
+<Callout type="info" title="프로젝트 승인 프로세스">
+  `.mcp.json`에 새로운 MCP 서버가 추가되면 Claude Code가 처음 실행될 때 **승인 확인**을 요청합니다.
+  이는 보안을 위한 장치로, 악성 저장소가 사용자 모르게 MCP 서버를 실행하는 것을 방지합니다.
+  한 번 승인하면 해당 프로젝트에서는 다시 묻지 않으며, `reset-project-choices`로 초기화할 수 있습니다.
+</Callout>
+
 ## 환경 변수
 
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `MCP_TIMEOUT` | MCP 서버 시작 타임아웃 (밀리초) | `10000` (10초) |
-| `MCP_TOOL_TIMEOUT` | MCP 도구 실행 타임아웃 (밀리초) | `300000` (5분) |
-| `MAX_MCP_OUTPUT_TOKENS` | MCP 출력 토큰 최대값 | `25000` |
+MCP 서버의 동작을 제어하는 환경 변수입니다. 대부분의 경우 기본값으로 충분하지만, 네트워크 환경이나 서버 응답 시간에 따라 조정이 필요할 수 있습니다.
+
+| 변수 | 설명 | 기본값 | 조정이 필요한 경우 |
+|------|------|--------|-------------------|
+| `MCP_TIMEOUT` | MCP 서버 시작 타임아웃 (밀리초) | `10000` (10초) | 무거운 서버(Puppeteer 등) 시작이 느릴 때 |
+| `MCP_TOOL_TIMEOUT` | MCP 도구 실행 타임아웃 (밀리초) | `300000` (5분) | 대용량 DB 쿼리 등 오래 걸리는 작업 시 |
+| `MAX_MCP_OUTPUT_TOKENS` | MCP 출력 토큰 최대값 | `25000` | 큰 데이터셋을 반환하는 도구 사용 시 |
+
+## 실전 활용 시나리오
+
+MCP 서버를 조합하면 Claude Code의 활용 범위가 크게 넓어집니다. 아래는 실무에서 자주 사용되는 시나리오입니다.
+
+### 시나리오 1: 버그 분석 + 이슈 생성
+
+Sentry에서 에러를 확인하고, 원인을 분석한 후, GitHub 이슈를 자동으로 생성합니다.
+
+<CodeBlock
+  code={`# 필요한 MCP 서버
+claude mcp add --transport http sentry https://mcp.sentry.dev/mcp
+claude mcp add --transport http github https://api.githubcopilot.com/mcp/
+
+# Claude Code에서 사용 예시:
+# "Sentry에서 최근 24시간 내 발생한 미해결 에러를 확인하고,
+#  가장 빈도가 높은 에러 3개에 대해 원인을 분석한 후
+#  각각 GitHub 이슈를 생성해줘. 라벨은 bug로 설정하고
+#  에러 스택트레이스와 재현 조건을 이슈 본문에 포함해줘."`}
+  language="bash"
+  filename="버그 분석 + 이슈 생성"
+/>
+
+### 시나리오 2: 데이터베이스 기반 코드 생성
+
+데이터베이스 스키마를 읽어서 이에 맞는 코드를 자동으로 생성합니다.
+
+<CodeBlock
+  code={`# 필요한 MCP 서버
+claude mcp add --transport stdio db -- \\
+  npx -y @bytebase/dbhub \\
+  --dsn "postgresql://readonly:pass@localhost:5432/mydb"
+
+# Claude Code에서 사용 예시:
+# "데이터베이스의 users, orders, products 테이블 스키마를 확인하고,
+#  이에 맞는 TypeScript 엔티티 클래스와 Repository 패턴 코드를 생성해줘.
+#  기존 프로젝트의 코딩 컨벤션을 따라줘."`}
+  language="bash"
+  filename="DB 스키마 기반 코드 생성"
+/>
+
+### 시나리오 3: 문서 참조하며 코드 작성
+
+외부 라이브러리의 공식 문서를 참조하면서 코드를 작성합니다.
+
+<CodeBlock
+  code={`# 필요한 MCP 서버
+claude mcp add --transport stdio fetch -- \\
+  npx -y @modelcontextprotocol/server-fetch
+
+# Claude Code에서 사용 예시:
+# "Tanstack Query v5의 공식 문서에서 useSuspenseQuery 사용법을 확인하고,
+#  현재 프로젝트의 API 호출을 React Suspense 패턴으로 리팩토링해줘.
+#  공식 문서: https://tanstack.com/query/latest/docs/react/guides/suspense"`}
+  language="bash"
+  filename="문서 참조 코드 작성"
+/>
+
+### 시나리오 4: 프로젝트 관리 도구 연동
+
+Notion이나 Linear에서 태스크를 확인하고, 해당 작업을 바로 수행합니다.
+
+<CodeBlock
+  code={`# 필요한 MCP 서버
+claude mcp add --transport http notion https://mcp.notion.com/mcp
+claude mcp add --transport http github https://api.githubcopilot.com/mcp/
+
+# Claude Code에서 사용 예시:
+# "Notion 스프린트 보드에서 이번 스프린트의 TODO 태스크 목록을 확인하고,
+#  각 태스크에 대응하는 GitHub 이슈가 있는지 확인해줘.
+#  이슈가 없는 태스크는 새로 생성해줘."`}
+  language="bash"
+  filename="프로젝트 관리 연동"
+/>
+
+### 시나리오 5: 세션 간 컨텍스트 유지
+
+Memory 서버로 프로젝트 지식을 누적하여 세션이 바뀌어도 컨텍스트를 유지합니다.
+
+<CodeBlock
+  code={`# 필요한 MCP 서버
+claude mcp add --transport stdio memory -- \\
+  npx -y @modelcontextprotocol/server-memory
+
+# Claude Code에서 사용 예시 (첫 번째 세션):
+# "이 프로젝트의 아키텍처를 분석하고 주요 결정 사항들을
+#  Memory에 저장해줘. 특히 인증 흐름, 데이터 모델,
+#  API 구조에 대한 정보를 기록해줘."
+
+# Claude Code에서 사용 예시 (이후 세션):
+# "Memory에서 이 프로젝트의 아키텍처 정보를 불러와줘.
+#  새로운 결제 모듈을 추가할 때 기존 인증 흐름과
+#  데이터 모델을 어떻게 연동해야 하는지 알려줘."`}
+  language="bash"
+  filename="세션 간 컨텍스트 유지"
+/>
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph INPUT["📥 입력 소스"]
+      SENTRY["Sentry\n에러 모니터링"]
+      DB["Database\n스키마/데이터"]
+      NOTION["Notion\n태스크 관리"]
+      WEB["Web\n공식 문서"]
+    end
+    subgraph CLAUDE["🤖 Claude Code"]
+      ANALYZE["분석 & 추론"]
+      CODE["코드 생성/수정"]
+      REPORT["리포트 생성"]
+    end
+    subgraph OUTPUT["📤 출력 대상"]
+      GH["GitHub\n이슈/PR"]
+      FS["Filesystem\n코드 파일"]
+      MEM["Memory\n지식 저장"]
+    end
+    SENTRY --> ANALYZE
+    DB --> ANALYZE
+    NOTION --> ANALYZE
+    WEB --> ANALYZE
+    ANALYZE --> CODE
+    ANALYZE --> REPORT
+    CODE --> FS
+    CODE --> GH
+    REPORT --> GH
+    REPORT --> MEM
+    style INPUT fill:#f0ece5,stroke:#8c857c,color:#2d2a26
+    style CLAUDE fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style OUTPUT fill:#f0ece5,stroke:#16a34a,color:#2d2a26`}
+  title="MCP 서버 조합 활용 패턴"
+  caption="다양한 입력 소스에서 정보를 수집하고, 분석 결과를 여러 출력 대상에 전달합니다"
+/>
+
+## 보안 고려사항
+
+<Callout type="warning" title="MCP 보안 주의사항">
+  MCP 서버는 외부 시스템에 접근 권한을 부여하므로 보안에 주의해야 합니다.
+  신뢰할 수 없는 MCP 서버는 사용자 데이터를 유출하거나 시스템을 손상시킬 수 있습니다.
+</Callout>
+
+### 필수 보안 수칙
+
+1. **환경 변수로 시크릿 관리**: 토큰/키를 `.mcp.json`에 직접 작성하지 마세요. `${VAR}` 형식으로 환경 변수를 참조하세요.
+
+2. **최소 권한 원칙**: 필요한 서버만 활성화하세요. 사용하지 않는 서버는 `disabled: true`로 비활성화합니다.
+
+3. **.mcp.json은 .gitignore에 추가**: 실제 설정 파일에 민감한 정보가 포함될 수 있으므로 Git에 커밋하지 마세요. 대신 `.mcp.json.example`을 템플릿으로 제공합니다.
+
+4. **DB 접근 제한**: 프로덕션 DB에 직접 연결하지 마세요. 반드시 **읽기 전용 계정**을 사용하고, 가능하면 개발/스테이징 환경의 DB를 사용합니다.
+
+5. **읽기 전용 우선**: 가능하면 읽기 전용 권한만 부여하세요. 쓰기 권한이 필요한 경우에만 명시적으로 허용합니다.
+
+6. **서드파티 서버 검증**: 커뮤니티 서버를 사용할 때는 소스 코드를 확인하고, 어떤 데이터에 접근하는지 파악한 후 사용하세요.
+
+<CodeBlock
+  code={`# .gitignore에 추가
+.mcp.json
+
+# .mcp.json.example은 커밋 (템플릿으로 제공)
+!.mcp.json.example`}
+  language="bash"
+  filename=".gitignore 설정"
+/>
+
+### 보안 설정 예시
+
+<CodeBlock
+  code={`// 보안을 고려한 .mcp.json 설정 예시
+{
+  "mcpServers": {
+    "db": {
+      "command": "npx",
+      "args": [
+        "-y", "@bytebase/dbhub",
+        "--dsn", "\${DB_READONLY_URL}"
+      ],
+      "disabled": true  // 필요할 때만 활성화
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+      // OAuth 사용 — 별도 토큰 설정 불필요
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y", "@modelcontextprotocol/server-filesystem",
+        "./docs",
+        "./src"
+      ]
+      // 프로젝트 내 특정 디렉토리만 허용
+    }
+  }
+}`}
+  language="json"
+  filename="보안을 고려한 .mcp.json"
+/>
 
 ## 엔터프라이즈: Managed MCP
 
-조직 관리자는 Managed MCP 설정 파일로 모든 사용자에게 MCP 서버를 강제 배포할 수 있습니다.
+조직 관리자는 Managed MCP 설정 파일로 모든 사용자에게 MCP 서버를 **강제 배포**할 수 있습니다. 이 설정은 사용자가 변경하거나 제거할 수 없으며, 조직의 내부 API 서버, 보안 도구, 감사 로그 서버 등을 일괄 적용하는 데 사용됩니다.
 
 <CodeBlock
   code={`// Linux: /etc/claude-code/managed-mcp.json
@@ -247,6 +536,13 @@ claude mcp serve`}
       "headers": {
         "Authorization": "Bearer \${COMPANY_MCP_TOKEN}"
       }
+    },
+    "audit-logger": {
+      "type": "http",
+      "url": "https://audit.internal.company.com/mcp",
+      "headers": {
+        "X-Employee-ID": "\${EMPLOYEE_ID}"
+      }
     }
   }
 }`}
@@ -254,10 +550,97 @@ claude mcp serve`}
   filename="Managed MCP 설정"
 />
 
-<Callout type="tip" title="Claude Code 자체를 MCP 서버로 사용">
+Managed Settings에서 `allowedMcpServers`와 `deniedMcpServers`를 사용하면 사용자가 설치할 수 있는 MCP 서버를 제한할 수도 있습니다. 보안이 중요한 환경에서는 허용 목록(allowlist) 방식을 권장합니다.
+
+## Claude Code를 MCP 서버로 사용
+
+<Callout type="tip" title="claude mcp serve">
   `claude mcp serve` 명령으로 Claude Code 자체를 MCP 서버로 노출할 수 있습니다.
   Claude Desktop이나 다른 MCP 클라이언트에서 Claude Code의 코드 편집 능력을 활용할 수 있습니다.
 </Callout>
+
+이 기능은 다음과 같은 경우에 유용합니다:
+- **Claude Desktop에서 코드 편집**: 대화형 UI에서 코드 작업 요청
+- **커스텀 에이전트 시스템**: 여러 AI 에이전트가 Claude Code를 도구로 사용
+- **자동화 파이프라인**: 외부 시스템에서 Claude Code의 코드 분석/수정 능력 호출
+
+<CodeBlock
+  code={`# Claude Code를 MCP 서버로 실행
+claude mcp serve
+
+# 다른 MCP 클라이언트에서 연결 설정 예시
+{
+  "mcpServers": {
+    "claude-code": {
+      "command": "claude",
+      "args": ["mcp", "serve"]
+    }
+  }
+}`}
+  language="bash"
+  filename="Claude Code를 MCP 서버로"
+/>
+
+## 트러블슈팅
+
+MCP 서버 연결에 문제가 생겼을 때 확인할 사항들입니다.
+
+<DataTable
+  title="자주 발생하는 문제와 해결 방법"
+  searchable={true}
+  columns={[
+    { key: 'symptom', header: '증상', width: '200px' },
+    { key: 'cause', header: '원인' },
+    { key: 'solution', header: '해결 방법' },
+  ]}
+  data={[
+    { symptom: '서버 시작 타임아웃', cause: 'npx 패키지 다운로드가 느리거나 서버 초기화가 오래 걸림', solution: 'MCP_TIMEOUT 환경변수를 30000(30초) 이상으로 설정' },
+    { symptom: '도구 실행 타임아웃', cause: 'DB 쿼리나 웹 요청이 5분을 초과', solution: 'MCP_TOOL_TIMEOUT을 늘리거나 쿼리/요청을 최적화' },
+    { symptom: '서버가 목록에 없음', cause: '스코프가 다른 프로젝트에 설정되어 있음', solution: 'claude mcp list로 확인하고 올바른 스코프에 재추가' },
+    { symptom: '승인 요청 반복', cause: '.mcp.json이 변경되어 재승인 필요', solution: 'Claude Code 재시작 시 승인 프롬프트에서 허용 선택' },
+    { symptom: 'HTTP 서버 인증 실패', cause: 'OAuth 토큰 만료 또는 권한 부족', solution: '서버 제거 후 다시 추가하여 재인증' },
+    { symptom: '출력이 잘림', cause: 'MCP 출력이 MAX_MCP_OUTPUT_TOKENS 초과', solution: 'MAX_MCP_OUTPUT_TOKENS 값을 늘리거나 쿼리 범위를 줄임' },
+  ]}
+/>
+
+<CodeBlock
+  code={`# 디버깅 순서
+
+# 1. 서버 목록 확인
+claude mcp list
+
+# 2. 특정 서버 상태 확인
+claude mcp get <name>
+
+# 3. 서버 제거 후 다시 추가
+claude mcp remove <name>
+claude mcp add --transport <type> <name> <url-or-command>
+
+# 4. 프로젝트 승인 초기화
+claude mcp reset-project-choices
+
+# 5. 타임아웃 조정 (필요 시)
+export MCP_TIMEOUT=30000
+export MCP_TOOL_TIMEOUT=600000`}
+  language="bash"
+  filename="MCP 디버깅 순서"
+/>
+
+## 모범 사례 요약
+
+<ComparisonTable
+  title="MCP 서버 설정 모범 사례"
+  headers={['항목', '권장', '비권장']}
+  rows={[
+    { feature: '인증 정보', values: ['환경 변수 참조 (${VAR})', '.mcp.json에 직접 기입'] },
+    { feature: '팀 설정 공유', values: ['.mcp.json을 저장소에 커밋', '각자 수동으로 설정'] },
+    { feature: '민감한 설정', values: ['.mcp.json.example 템플릿 제공', '.mcp.json을 그대로 커밋'] },
+    { feature: 'DB 접근', values: ['읽기 전용 계정, 개발 DB', '프로덕션 DB 직접 연결'] },
+    { feature: '서버 범위', values: ['필요한 서버만 활성화', '모든 서버 상시 활성화'] },
+    { feature: '파일 접근', values: ['허용 디렉토리 명시', '루트(/) 접근 허용'] },
+    { feature: '서드파티 서버', values: ['소스 코드 확인 후 사용', '무분별하게 설치'] },
+  ]}
+/>
 
 <ChapterNav
   prev={{ title: 'GitHub Actions', path: '/docs/part-4--mcp와-통합-github-actions' }}
