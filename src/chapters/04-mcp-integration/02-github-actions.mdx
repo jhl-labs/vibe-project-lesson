@@ -296,7 +296,7 @@ claude-code-action은 4가지 인증 방식을 지원합니다. 사용 환경에
     { option: 'assignee_trigger', required: '아니오', defaultVal: 'true', description: '이슈 할당 시 자동 트리거 여부' },
     { option: 'label_trigger', required: '아니오', defaultVal: '-', description: '특정 라벨 추가 시 트리거' },
     { option: 'timeout_minutes', required: '아니오', defaultVal: '60', description: '실행 제한 시간 (분)' },
-    { option: 'model', required: '아니오', defaultVal: 'claude-sonnet-4-20250514', description: '사용할 Claude 모델' },
+    { option: 'model', required: '아니오', defaultVal: 'Sonnet (최신)', description: '사용할 Claude 모델 (claude-sonnet-4-*, claude-opus-4-* 등)' },
     { option: 'max_turns', required: '아니오', defaultVal: '-', description: '최대 에이전트 턴 수' },
     { option: 'allowed_tools', required: '아니오', defaultVal: '-', description: '허용할 도구 목록 (쉼표 구분)' },
     { option: 'disallowed_tools', required: '아니오', defaultVal: '-', description: '차단할 도구 목록 (쉼표 구분)' },
@@ -318,7 +318,7 @@ claude-code-action은 4가지 인증 방식을 지원합니다. 사용 환경에
     prompt: "이 PR을 리뷰해주세요"
     claude_args: >-
       --max-turns 10
-      --model claude-sonnet-4-20250514
+      --model claude-sonnet-4-20250514  # 또는 claude-opus-4-* 등
       --allowedTools "Bash,Read,Write,Edit"
       --disallowedTools "WebFetch"`}
   language="yaml"
@@ -339,10 +339,7 @@ claude-code-action 내에서 MCP 서버를 활용할 수 있습니다:
         "mcpServers": {
           "linear": {
             "command": "npx",
-            "args": ["-y", "@anthropic/linear-mcp-server"],
-            "env": {
-              "LINEAR_API_KEY": "\${{ secrets.LINEAR_API_KEY }}"
-            }
+            "args": ["-y", "mcp-remote", "https://mcp.linear.app/mcp"]
           }
         }
       }`}
@@ -824,7 +821,7 @@ claude-code-action이 PR에 남기는 리뷰 코멘트의 실제 모습입니다
 </Callout>
 
 - **max_turns 제한**: `claude_args: "--max-turns 10"`으로 에이전트 턴 수 제한
-- **모델 선택**: 간단한 작업에는 `claude-sonnet-4-20250514`, 복잡한 작업에만 `claude-opus-4-20250514` 사용
+- **모델 선택**: 간단한 작업에는 Sonnet 계열, 복잡한 작업에만 Opus 계열 사용
 - **경로 필터링**: `paths` 트리거로 불필요한 파일 변경 시 실행 방지
 - **트리거 조건**: `if` 조건으로 특정 상황에서만 실행
 - **timeout_minutes**: 적절한 타임아웃 설정으로 비정상 실행 방지
