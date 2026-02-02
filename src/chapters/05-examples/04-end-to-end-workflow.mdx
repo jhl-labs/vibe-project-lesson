@@ -89,7 +89,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 # 1. 새 파일: src/infrastructure/storage/s3-client.ts
 # 2. 새 파일: src/application/user/upload-avatar.use-case.ts
 # 3. 수정: src/domain/user/entity.ts (profileImageUrl 필드 추가)
-# 4. 수정: prisma/schema.prisma (User 모델 수정)
+# 4. 수정: User 모델에 profileImageUrl 필드 추가
 # 5. 새 파일: src/presentation/api/users/upload-avatar.ts
 # 6. 새 파일: src/__tests__/upload-avatar.test.ts
 
@@ -112,8 +112,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 <CodeBlock
   code={`# 3-1. 도메인 레이어 수정
-> 계획의 1단계를 실행해줘. User 엔터티에 profileImageUrl 필드를 추가하고
-> Prisma 스키마도 업데이트해줘. 마이그레이션은 아직 실행하지 마.
+> 계획의 1단계를 실행해줘. User 엔터티에 profileImageUrl 필드를 추가해줘.
 
 # 3-2. 인프라 레이어 구현
 > S3 클라이언트를 구현해줘. 기존 src/infrastructure/ 패턴을 따르고,
@@ -140,59 +139,15 @@ import { ChapterNav } from '../../components/ChapterNav';
   Anthropic 공식 베스트 프랙티스에서 이를 **가장 효과적인 단일 기법**으로 권장합니다.
 </Callout>
 
-### 구현 결과 예시
+### Claude가 생성하는 것
 
-<CodeBlock
-  code={`// src/application/user/upload-avatar.use-case.ts
-import sharp from 'sharp';
-import { S3Client } from '../../infrastructure/storage/s3-client';
-import { UserRepository } from '../../domain/user/repository';
+각 단계에서 Claude는 기존 프로젝트 패턴에 맞춰 파일을 생성/수정합니다:
+- **Domain**: User 엔터티에 `profileImageUrl` 필드 추가
+- **Infrastructure**: S3 클라이언트 — 환경 변수로 버킷/리전 설정
+- **Application**: `UploadAvatarUseCase` — 파일 검증 → 썸네일 생성 → S3 업로드 → DB 업데이트
+- **Presentation**: multer로 multipart/form-data 처리하는 API 엔드포인트
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const THUMBNAIL_SIZE = 200;
-
-export class UploadAvatarUseCase {
-  constructor(
-    private userRepo: UserRepository,
-    private s3: S3Client,
-  ) {}
-
-  async execute(userId: string, file: { buffer: Buffer; mimetype: string; size: number }) {
-    // 검증
-    if (file.size > MAX_FILE_SIZE) {
-      throw new Error('File size exceeds 5MB limit');
-    }
-    if (!ALLOWED_TYPES.includes(file.mimetype)) {
-      throw new Error('Only JPEG, PNG, and WebP are allowed');
-    }
-
-    // 썸네일 생성
-    const thumbnail = await sharp(file.buffer)
-      .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, { fit: 'cover' })
-      .toBuffer();
-
-    const ext = file.mimetype.split('/')[1];
-    const key = \`avatars/\${userId}/original.\${ext}\`;
-    const thumbKey = \`avatars/\${userId}/thumb.\${ext}\`;
-
-    // S3 업로드 (원본 + 썸네일)
-    await Promise.all([
-      this.s3.upload(key, file.buffer, file.mimetype),
-      this.s3.upload(thumbKey, thumbnail, file.mimetype),
-    ]);
-
-    // DB 업데이트
-    const imageUrl = this.s3.getPublicUrl(key);
-    await this.userRepo.updateProfileImage(userId, imageUrl);
-
-    return { imageUrl, thumbnailUrl: this.s3.getPublicUrl(thumbKey) };
-  }
-}`}
-  language="typescript"
-  filename="src/application/user/upload-avatar.use-case.ts"
-  highlightLines={[6, 7, 18, 21, 26, 27, 35, 36, 41, 42]}
-/>
+"구현 후 테스트를 실행해줘"가 포함된 단계에서는 Claude가 자동으로 테스트를 돌리고, 실패하면 수정합니다.
 
 ---
 

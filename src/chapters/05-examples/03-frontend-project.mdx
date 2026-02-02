@@ -10,11 +10,30 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 # 프론트엔드 프로젝트 예제
 
-> React + TypeScript + Tailwind CSS 기반 대시보드 — Claude Code로 단계별 구현하기
+> React 대시보드를 **타입 → 구현 → 테스트 → 접근성** 순서로 만들며, 프론트엔드에서의 Claude Code 활용법 익히기
 
-이 챕터에서는 대시보드 컴포넌트를 **타입 → 구현 → 테스트 → 접근성** 순서로 구현합니다. 각 단계마다 Claude Code 프롬프트를 제공하므로 직접 실습할 수 있습니다.
+백엔드 API 예제에서 레이어 분리를 배웠다면, 이번에는 프론트엔드에서의 **컴포넌트 개발 워크플로우**를 체험합니다. 핵심은 **타입을 먼저 정의**하고, Claude Code가 그 타입에 맞는 구현을 생성하게 하는 것입니다.
 
-## 프로젝트 구조
+## Claude Code 워크플로우
+
+<MermaidDiagram
+  chart={`flowchart LR
+    A["1. 타입 정의"] --> B["2. 컴포넌트\n구현"]
+    B --> C["3. 커스텀 훅"]
+    C --> D["4. 테스트\n작성"]
+    D --> E["5. 접근성\n검증"]
+    E --> F["6. 페이지\n조립"]
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style F fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="프론트엔드 컴포넌트 개발 순서"
+  caption="타입 먼저 정의하면 Claude가 타입에 맞는 정확한 코드를 생성합니다"
+/>
+
+## 최종 프로젝트 구조
 
 <FileTree
   title="examples/react-dashboard/"
@@ -76,6 +95,13 @@ import { ChapterNav } from '../../components/ChapterNav';
             { name: 'DataGrid.test.tsx', type: 'file' },
           ],
         },
+        {
+          name: 'pages/',
+          type: 'folder',
+          children: [
+            { name: 'Dashboard.tsx', type: 'file', description: '대시보드 페이지' },
+          ],
+        },
       ],
     },
     { name: 'tailwind.config.ts', type: 'file' },
@@ -83,77 +109,34 @@ import { ChapterNav } from '../../components/ChapterNav';
   ]}
 />
 
-## Claude Code 워크플로우
-
-<MermaidDiagram
-  chart={`flowchart LR
-    A["1. 타입 정의"] --> B["2. 컴포넌트\n구현"]
-    B --> C["3. 커스텀 훅"]
-    C --> D["4. 테스트\n작성"]
-    D --> E["5. 접근성\n검증"]
-    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
-    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
-    style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26
-    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
-    style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
-  title="프론트엔드 컴포넌트 개발 순서"
-  caption="타입 먼저 정의하면 Claude가 타입에 맞는 정확한 코드를 생성합니다"
-/>
-
 ---
 
-## 실습 1: 타입 정의
+## 실습 1: 타입 정의 — 컴포넌트의 설계도
 
 <CodeBlock
-  code={`// src/types/dashboard.ts
-export interface StatCardProps {
-  title: string;
-  value: number | string;
-  change?: {
-    value: number;
-    type: 'increase' | 'decrease';
-  };
-  icon?: React.ReactNode;
-  loading?: boolean;
-}
+  code={`src/types/dashboard.ts에 대시보드 컴포넌트 타입을 정의해줘:
 
-export interface DataGridColumn<T> {
-  key: keyof T;
-  header: string;
-  width?: string;
-  sortable?: boolean;
-  render?: (value: T[keyof T], row: T) => React.ReactNode;
-}
+1. StatCardProps: title(string), value(number|string),
+   change(optional: value+type), icon(ReactNode), loading(boolean)
 
-export interface DataGridProps<T> {
-  columns: DataGridColumn<T>[];
-  data: T[];
-  loading?: boolean;
-  onRowClick?: (row: T) => void;
-  emptyMessage?: string;
-}`}
-  language="typescript"
-  filename="src/types/dashboard.ts"
-  highlightLines={[2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 17, 21]}
-/>
+2. DataGridColumn<T>: key(keyof T), header, width, sortable,
+   render(커스텀 렌더러 함수)
 
-<CodeBlock
-  code={`# 실습 프롬프트: 타입 정의
-> src/types/dashboard.ts에 대시보드 컴포넌트 타입을 정의해줘:
->
-> 1. StatCardProps: title(string), value(number|string),
->    change(optional: value+type), icon(ReactNode), loading(boolean)
->
-> 2. DataGridColumn<T>: key(keyof T), header, width, sortable,
->    render(커스텀 렌더러)
->
-> 3. DataGridProps<T>: columns, data, loading, onRowClick, emptyMessage`}
+3. DataGridProps<T>: columns, data, loading, onRowClick, emptyMessage`}
   language="text"
-  filename="실습: 타입 정의 프롬프트"
+  filename="프롬프트 1: 타입 정의"
 />
 
-<Callout type="tip" title="타입을 먼저 정의하는 이유">
-  Claude Code에 컴포넌트 구현을 요청할 때 `@src/types/dashboard.ts`로 타입 파일을 참조하면, Claude가 props 구조를 정확히 이해하고 타입 안전한 코드를 생성합니다.
+### Claude가 생성하는 것
+
+- **`dashboard.ts`** — `StatCardProps`, `DataGridColumn<T>`, `DataGridProps<T>` 인터페이스. 제네릭 `<T>`로 어떤 데이터 타입이든 수용 가능
+
+### 여기서 배우는 것
+
+<Callout type="info" title="왜 타입을 먼저 정의하나?">
+  이후 실습에서 Claude Code에 "**@src/types/dashboard.ts** 의 StatCardProps에 맞는 컴포넌트를 만들어줘"라고 요청하면, Claude는 이 파일을 읽고 **props 구조를 정확히 이해한 상태에서** 코드를 생성합니다.
+
+  타입 없이 "통계 카드 컴포넌트 만들어줘"라고 하면 Claude가 props를 임의로 결정합니다. 타입을 먼저 정의하면 **원하는 인터페이스를 확정**하고 나서 구현을 맡기는 셈입니다. 백엔드에서 Repository 인터페이스를 먼저 정의한 것과 같은 원리입니다.
 </Callout>
 
 ---
@@ -161,386 +144,164 @@ export interface DataGridProps<T> {
 ## 실습 2: StatCard 컴포넌트
 
 <CodeBlock
-  code={`// src/components/dashboard/StatCard.tsx
-import { type StatCardProps } from '../../types/dashboard';
-
-export function StatCard({ title, value, change, icon, loading }: StatCardProps) {
-  if (loading) {
-    return (
-      <div className="rounded-lg border bg-white p-6 animate-pulse" role="status">
-        <span className="sr-only">Loading...</span>
-        <div className="h-4 w-24 bg-gray-200 rounded" />
-        <div className="mt-3 h-8 w-16 bg-gray-200 rounded" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border bg-white p-6 shadow-sm
-                    transition-shadow hover:shadow-md">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        {icon && <span className="text-gray-400" aria-hidden="true">{icon}</span>}
-      </div>
-      <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
-      {change && (
-        <div className="mt-2 flex items-center gap-1">
-          <span
-            className={\`text-sm font-medium \${
-              change.type === 'increase' ? 'text-green-600' : 'text-red-600'
-            }\`}
-            aria-label={\`\${change.type === 'increase' ? '증가' : '감소'} \${Math.abs(change.value)}%\`}
-          >
-            {change.type === 'increase' ? '↑' : '↓'} {Math.abs(change.value)}%
-          </span>
-          <span className="text-sm text-gray-500">vs 지난달</span>
-        </div>
-      )}
-    </div>
-  );
-}`}
-  language="tsx"
-  filename="src/components/dashboard/StatCard.tsx"
-  highlightLines={[7, 8, 20, 29]}
-/>
-
-<CodeBlock
-  code={`# 실습 프롬프트: StatCard 구현
-> @src/types/dashboard.ts 의 StatCardProps에 맞는 StatCard 컴포넌트를 만들어줘.
-> Tailwind CSS로 스타일링하고 다음을 포함해:
-> - 로딩 상태: animate-pulse 스켈레톤 UI
-> - 변화율 표시: 증가는 초록, 감소는 빨강
-> - 접근성: role="status", aria-label 포함
-> - hover 시 shadow 트랜지션`}
+  code={`@src/types/dashboard.ts 의 StatCardProps에 맞는 StatCard 컴포넌트를 만들어줘.
+Tailwind CSS로 스타일링하고 다음을 포함해:
+- 로딩 상태: animate-pulse 스켈레톤 UI
+- 변화율 표시: 증가는 초록(↑), 감소는 빨강(↓)
+- 접근성: role="status", aria-label 포함
+- hover 시 shadow 트랜지션`}
   language="text"
-  filename="실습: StatCard 프롬프트"
+  filename="프롬프트 2: StatCard 구현"
 />
+
+### Claude가 생성하는 것
+
+- **`StatCard.tsx`** — title, value, 변화율을 표시하는 카드 컴포넌트. `loading` prop이 true이면 스켈레톤 UI를 렌더링
+
+### 여기서 배우는 것
+
+<Callout type="info" title="접근성을 프롬프트에 포함하는 이유">
+  생성된 코드에서 다음을 확인해보세요:
+  - 로딩 상태에 `role="status"`와 `sr-only` 텍스트가 있나요?
+  - 변화율에 `aria-label="증가 12.5%"` 같은 대체 텍스트가 있나요?
+  - 아이콘에 `aria-hidden="true"`가 적용되어 있나요?
+
+  접근성을 **나중에 추가하면** 구조를 바꿔야 할 수 있습니다. 처음부터 프롬프트에 명시하면 자연스럽게 반영됩니다.
+</Callout>
 
 ---
 
 ## 실습 3: DataGrid 컴포넌트
 
 <CodeBlock
-  code={`// src/components/dashboard/DataGrid.tsx
-import { useState, useMemo } from 'react';
-import { type DataGridProps, type DataGridColumn } from '../../types/dashboard';
-
-type SortConfig = {
-  key: string;
-  direction: 'asc' | 'desc';
-} | null;
-
-export function DataGrid<T extends Record<string, unknown>>({
-  columns,
-  data,
-  loading,
-  onRowClick,
-  emptyMessage = '데이터가 없습니다',
-}: DataGridProps<T>) {
-  const [sortConfig, setSortConfig] = useState<SortConfig>(null);
-
-  const sortedData = useMemo(() => {
-    if (!sortConfig) return data;
-    return [...data].sort((a, b) => {
-      const aVal = a[sortConfig.key];
-      const bVal = b[sortConfig.key];
-      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [data, sortConfig]);
-
-  const handleSort = (column: DataGridColumn<T>) => {
-    if (!column.sortable) return;
-    const key = column.key as string;
-    setSortConfig((prev) =>
-      prev?.key === key
-        ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-        : { key, direction: 'asc' }
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="rounded-lg border bg-white" role="status">
-        <span className="sr-only">Loading...</span>
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex gap-4 border-b p-4 animate-pulse">
-            <div className="h-4 flex-1 bg-gray-200 rounded" />
-            <div className="h-4 flex-1 bg-gray-200 rounded" />
-            <div className="h-4 flex-1 bg-gray-200 rounded" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto rounded-lg border bg-white">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b bg-gray-50 text-gray-600">
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key as string}
-                className={\`px-4 py-3 font-medium \${
-                  col.sortable ? 'cursor-pointer select-none hover:bg-gray-100' : ''
-                }\`}
-                style={col.width ? { width: col.width } : undefined}
-                onClick={() => handleSort(col)}
-                aria-sort={
-                  sortConfig?.key === col.key
-                    ? sortConfig.direction === 'asc' ? 'ascending' : 'descending'
-                    : undefined
-                }
-              >
-                <span className="flex items-center gap-1">
-                  {col.header}
-                  {col.sortable && sortConfig?.key === col.key && (
-                    <span aria-hidden="true">
-                      {sortConfig.direction === 'asc' ? '▲' : '▼'}
-                    </span>
-                  )}
-                </span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sortedData.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500">
-                {emptyMessage}
-              </td>
-            </tr>
-          ) : (
-            sortedData.map((row, idx) => (
-              <tr
-                key={idx}
-                className={\`border-b transition-colors last:border-0
-                  \${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}\`}
-                onClick={() => onRowClick?.(row)}
-                tabIndex={onRowClick ? 0 : undefined}
-                onKeyDown={(e) => {
-                  if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    onRowClick(row);
-                  }
-                }}
-              >
-                {columns.map((col) => (
-                  <td key={col.key as string} className="px-4 py-3 text-gray-900">
-                    {col.render
-                      ? col.render(row[col.key], row)
-                      : String(row[col.key] ?? '')}
-                  </td>
-                ))}
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-}`}
-  language="tsx"
-  filename="src/components/dashboard/DataGrid.tsx"
-  highlightLines={[10, 19, 30, 42, 67, 68, 69, 96, 97, 98, 99]}
-/>
-
-<CodeBlock
-  code={`# 실습 프롬프트: DataGrid 구현
-> @src/types/dashboard.ts 의 DataGridProps에 맞는 DataGrid 컴포넌트를 만들어줘.
-> Tailwind CSS로 스타일링하고 다음 기능을 포함해:
-> - 컬럼 정렬 (오름차순/내림차순 토글)
-> - 로딩 스켈레톤 (5행 표시)
-> - 빈 상태 메시지
-> - 행 클릭 이벤트
-> - 커스텀 셀 렌더러 (render prop)
-> - 접근성: aria-sort, 키보드로 행 선택 가능`}
+  code={`@src/types/dashboard.ts 의 DataGridProps에 맞는 DataGrid 컴포넌트를 만들어줘.
+Tailwind CSS로 스타일링하고 다음 기능을 포함해:
+- 컬럼 정렬 (오름차순/내림차순 토글)
+- 로딩 스켈레톤 (5행 표시)
+- 빈 상태 메시지
+- 행 클릭 이벤트
+- 커스텀 셀 렌더러 (render prop)
+- 접근성: aria-sort, 키보드로 행 선택 가능 (Enter, Space)`}
   language="text"
-  filename="실습: DataGrid 프롬프트"
+  filename="프롬프트 3: DataGrid 구현"
 />
+
+### Claude가 생성하는 것
+
+- **`DataGrid.tsx`** — 정렬, 로딩, 빈 상태, 커스텀 렌더링을 지원하는 테이블 컴포넌트. `useMemo`로 정렬된 데이터를 계산하고, `useState`로 정렬 상태를 관리
+
+### 여기서 배우는 것
+
+<Callout type="info" title="제네릭 컴포넌트의 가치">
+  생성된 `DataGrid`가 `<T>`를 사용하고 있는지 확인하세요. `DataGrid<Order>`, `DataGrid<User>` 처럼 **어떤 데이터 타입이든** 동일한 컴포넌트로 표현할 수 있습니다.
+
+  `render` prop도 확인하세요. 금액 컬럼에 `₩` 포맷팅, 상태 컬럼에 배지 스타일 등 **셀마다 다른 렌더링**을 컬럼 정의에서 선언적으로 처리합니다.
+</Callout>
+
+<Callout type="tip" title="확인 포인트: 키보드 접근성">
+  `onRowClick`이 있는 행에 `tabIndex={0}`과 `onKeyDown` (Enter/Space) 핸들러가 있나요? 마우스로 클릭 가능한 모든 요소는 키보드로도 동일하게 동작해야 합니다.
+</Callout>
 
 ---
 
 ## 실습 4: 커스텀 훅
 
 <CodeBlock
-  code={`// src/hooks/useDebounce.ts
-import { useState, useEffect } from 'react';
+  code={`다음 커스텀 훅을 구현해줘:
 
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+1. useDebounce<T>(value, delay): 값 변경 후 delay ms 대기 후 반영
+   - 검색 입력 필드에서 타이핑마다 API를 호출하지 않도록
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
-}`}
-  language="typescript"
-  filename="src/hooks/useDebounce.ts"
-/>
-
-<CodeBlock
-  code={`// src/hooks/useFetch.ts
-import { useState, useEffect } from 'react';
-
-interface UseFetchResult<T> {
-  data: T | null;
-  error: string | null;
-  loading: boolean;
-}
-
-export function useFetch<T>(url: string): UseFetchResult<T> {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-
-    fetch(url, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
-        return res.json();
-      })
-      .then(setData)
-      .catch((err) => {
-        if (err.name !== 'AbortError') setError(err.message);
-      })
-      .finally(() => setLoading(false));
-
-    return () => controller.abort();
-  }, [url]);
-
-  return { data, error, loading };
-}`}
-  language="typescript"
-  filename="src/hooks/useFetch.ts"
-  highlightLines={[10, 16, 30]}
-/>
-
-<CodeBlock
-  code={`# 실습 프롬프트: 커스텀 훅
-> 다음 커스텀 훅을 구현해줘:
->
-> 1. useDebounce<T>(value, delay): 값 변경 후 delay ms 대기 후 반영
->    - 검색 입력 필드에 사용
->
-> 2. useFetch<T>(url): GET 요청 + 로딩/에러 상태 관리
->    - AbortController로 언마운트 시 요청 취소
->    - 에러 시 AbortError는 무시
->
-> 각 훅의 사용 예시도 주석으로 보여줘.`}
+2. useFetch<T>(url): GET 요청 + 로딩/에러 상태 관리
+   - AbortController로 언마운트 시 요청 취소
+   - 에러 시 AbortError는 무시`}
   language="text"
-  filename="실습: 커스텀 훅 프롬프트"
+  filename="프롬프트 4: 커스텀 훅"
 />
 
-<Callout type="info" title="커스텀 훅 작성 원칙">
-  - **단일 책임**: 하나의 훅은 하나의 관심사만 처리
-  - **cleanup**: useEffect에서 반드시 정리 함수 반환 (timer, controller 등)
-  - **제네릭**: `<T>`를 사용하여 다양한 타입에 재사용 가능하게 설계
+### Claude가 생성하는 것
+
+- **`useDebounce.ts`** — `setTimeout`/`clearTimeout`으로 값 변경을 지연하는 훅
+- **`useFetch.ts`** — `data`, `error`, `loading` 상태를 관리하는 데이터 패칭 훅
+
+### 여기서 배우는 것
+
+<Callout type="info" title="cleanup 함수가 핵심">
+  생성된 두 훅에서 `useEffect`의 **return 문**(cleanup 함수)을 확인하세요:
+  - `useDebounce`: `clearTimeout(timer)` — 값이 바뀌면 이전 타이머를 취소
+  - `useFetch`: `controller.abort()` — 컴포넌트가 언마운트되면 진행 중인 요청을 취소
+
+  cleanup이 없으면 **메모리 누수**와 **경쟁 조건(race condition)**이 발생합니다. 이전 요청의 응답이 나중에 도착해서 새 데이터를 덮어쓰는 문제가 대표적입니다.
 </Callout>
 
 ---
 
-## 실습 5: 테스트
+## 실습 5: 테스트 작성
 
 <CodeBlock
-  code={`// src/__tests__/StatCard.test.tsx
-import { render, screen } from '@testing-library/react';
-import { StatCard } from '../components/dashboard/StatCard';
+  code={`@src/components/dashboard/StatCard.tsx 의 테스트를 작성해줘.
+Testing Library를 사용하고 다음 케이스를 커버해:
+1. title과 value 렌더링
+2. 증가 변화율 표시 (↑, 초록)
+3. 감소 변화율 표시 (↓, 빨강)
+4. 로딩 스켈레톤 + 접근성 라벨
+5. 아이콘 렌더링
 
-describe('StatCard', () => {
-  it('renders title and value', () => {
-    render(<StatCard title="총 매출" value="₩12,340,000" />);
+@src/components/dashboard/DataGrid.tsx 테스트도 작성해줘:
+1. 데이터 렌더링
+2. 정렬 토글
+3. 빈 상태 메시지
+4. 행 클릭 이벤트
+5. 키보드로 행 선택 (Enter, Space)
 
-    expect(screen.getByText('총 매출')).toBeInTheDocument();
-    expect(screen.getByText('₩12,340,000')).toBeInTheDocument();
-  });
-
-  it('renders increase change indicator', () => {
-    render(
-      <StatCard
-        title="사용자 수"
-        value={1234}
-        change={{ value: 12.5, type: 'increase' }}
-      />
-    );
-
-    expect(screen.getByText(/12.5%/)).toBeInTheDocument();
-    expect(screen.getByText(/↑/)).toBeInTheDocument();
-  });
-
-  it('renders decrease change indicator', () => {
-    render(
-      <StatCard
-        title="이탈률"
-        value="3.2%"
-        change={{ value: 0.8, type: 'decrease' }}
-      />
-    );
-
-    expect(screen.getByText(/0.8%/)).toBeInTheDocument();
-    expect(screen.getByText(/↓/)).toBeInTheDocument();
-  });
-
-  it('shows loading skeleton with accessible label', () => {
-    render(<StatCard title="로딩 중" value="" loading />);
-
-    expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
-  });
-
-  it('renders icon when provided', () => {
-    render(
-      <StatCard
-        title="사용자"
-        value={100}
-        icon={<span data-testid="icon">👤</span>}
-      />
-    );
-
-    expect(screen.getByTestId('icon')).toBeInTheDocument();
-  });
-});`}
-  language="tsx"
-  filename="src/__tests__/StatCard.test.tsx"
-  highlightLines={[6, 13, 26, 39, 46]}
-/>
-
-<CodeBlock
-  code={`# 실습 프롬프트: 테스트 작성
-> @src/components/dashboard/StatCard.tsx 의 테스트를 작성해줘.
-> Testing Library를 사용하고 다음 케이스를 커버해:
-> 1. title과 value 렌더링
-> 2. 증가 변화율 표시 (↑, 초록)
-> 3. 감소 변화율 표시 (↓, 빨강)
-> 4. 로딩 스켈레톤 + 접근성 라벨
-> 5. 아이콘 렌더링
->
-> @src/components/dashboard/DataGrid.tsx 테스트도 작성해줘:
-> 1. 데이터 렌더링
-> 2. 정렬 토글
-> 3. 빈 상태 메시지
-> 4. 행 클릭 이벤트
-> 5. 키보드로 행 선택 (Enter, Space)
->
-> 테스트 작성 후 실행까지 해줘.`}
+테스트 작성 후 실행까지 해줘.`}
   language="text"
-  filename="실습: 테스트 프롬프트"
+  filename="프롬프트 5: 테스트 작성"
 />
+
+### Claude가 생성하는 것
+
+- **`StatCard.test.tsx`** — 5개 테스트 케이스 (렌더링, 변화율, 로딩, 아이콘)
+- **`DataGrid.test.tsx`** — 5개 테스트 케이스 (데이터, 정렬, 빈 상태, 클릭, 키보드)
+- 테스트 실행 결과 (실패 시 자동 수정)
+
+### 여기서 배우는 것
+
+<Callout type="info" title="Testing Library의 철학">
+  생성된 테스트에서 `screen.getByText()`, `screen.getByRole()` 같은 쿼리를 확인하세요. Testing Library는 **사용자가 실제로 보고 상호작용하는 방식**으로 테스트합니다:
+  - `getByText('총 매출')` — "총 매출"이라는 텍스트가 화면에 있는가?
+  - `getByRole('status')` — 스크린 리더가 인식하는 status 요소가 있는가?
+  - `fireEvent.click()` → `fireEvent.keyDown(Enter)` — 클릭과 키보드 모두 작동하는가?
+
+  구현 세부사항(className, state 값)이 아닌 **사용자 관점의 동작**을 검증합니다.
+</Callout>
 
 ---
 
 ## 실습 6: 접근성 검증
 
+<CodeBlock
+  code={`@src/components/dashboard/ 아래 모든 컴포넌트의 접근성을 검토해줘.
+다음을 확인하고 수정해:
+1. 키보드 내비게이션: 클릭 가능한 요소에 tabIndex, onKeyDown 추가
+2. 스크린 리더: aria-label, role, aria-sort 속성 확인
+3. 색상 대비: 텍스트와 배경 간 WCAG AA(4.5:1) 충족 여부
+4. 로딩 상태: role="status"와 sr-only 안내 텍스트 확인
+
+수정 후 테스트를 실행해줘.`}
+  language="text"
+  filename="프롬프트 6: 접근성 검증"
+/>
+
+### Claude가 수행하는 것
+
+- 모든 대시보드 컴포넌트를 순회하며 접근성 문제 발견 및 수정
+- 수정 후 기존 테스트가 여전히 통과하는지 확인
+
+### 여기서 배우는 것
+
 <ComparisonTable
-  title="프론트엔드 접근성 점검"
+  title="프론트엔드 접근성 점검 항목"
   headers={['항목', '기준', '구현 방법']}
   rows={[
     { feature: '키보드 내비게이션', values: ['모든 인터랙션이 키보드로 가능', 'tabIndex, onKeyDown (Enter/Space)'] },
@@ -551,160 +312,42 @@ describe('StatCard', () => {
   ]}
 />
 
-<CodeBlock
-  code={`# 실습 프롬프트: 접근성 개선
-> @src/components/dashboard/ 아래 모든 컴포넌트의 접근성을 검토해줘.
-> 다음을 확인하고 수정해:
-> 1. 키보드 내비게이션: 클릭 가능한 요소에 tabIndex, onKeyDown 추가
-> 2. 스크린 리더: aria-label, role, aria-sort 속성 확인
-> 3. 색상 대비: 텍스트와 배경 간 WCAG AA(4.5:1) 충족 여부
-> 4. 로딩 상태: role="status"와 sr-only 안내 텍스트 확인
->
-> 수정 후 테스트를 실행해줘.`}
-  language="text"
-  filename="실습: 접근성 검증 프롬프트"
-/>
+<Callout type="tip" title="접근성을 별도 단계로 분리하는 이유">
+  실습 2~3에서 프롬프트에 접근성을 포함했는데 왜 다시 검증하나요? Claude가 **모든 요구사항을 100% 반영하지 않을 수 있기** 때문입니다. 접근성 전용 검토 단계를 두면 빠뜨린 부분을 보완할 수 있습니다. "수정 후 테스트를 실행해줘"를 포함하여 기존 기능이 깨지지 않는지도 확인합니다.
+</Callout>
 
 ---
 
 ## 실습 7: 대시보드 페이지 조립
 
 <CodeBlock
-  code={`# 실습 프롬프트: 대시보드 페이지 조립
-> 지금까지 만든 컴포넌트와 훅을 조합해서 대시보드 페이지를 만들어줘.
->
-> src/pages/Dashboard.tsx:
-> - 상단: StatCard 4개 (총 매출, 신규 사용자, 주문 수, 전환율)
-> - useFetch로 /api/dashboard/stats에서 데이터 로딩
-> - 하단: DataGrid로 최근 주문 목록 표시
-> - 주문 상태 컬럼에 커스텀 렌더러 (배지 스타일)
-> - 검색 입력: useDebounce로 300ms 디바운스 적용
->
-> 로딩 상태와 에러 상태도 처리해줘.
-> Tailwind CSS로 반응형 레이아웃을 적용해 (sm: 2열, lg: 4열).`}
+  code={`지금까지 만든 컴포넌트와 훅을 조합해서 대시보드 페이지를 만들어줘.
+
+src/pages/Dashboard.tsx:
+- 상단: StatCard 4개 (총 매출, 신규 사용자, 주문 수, 전환율)
+- useFetch로 /api/dashboard/stats에서 데이터 로딩
+- 하단: DataGrid로 최근 주문 목록 표시
+- 주문 상태 컬럼에 커스텀 렌더러 (배지 스타일)
+- 검색 입력: useDebounce로 300ms 디바운스 적용
+
+로딩 상태와 에러 상태도 처리해줘.
+Tailwind CSS로 반응형 레이아웃을 적용해 (sm: 2열, lg: 4열).`}
   language="text"
-  filename="실습: 대시보드 페이지 프롬프트"
+  filename="프롬프트 7: 대시보드 페이지 조립"
 />
 
-### 대시보드 페이지 구현 결과 예시
+### Claude가 생성하는 것
 
-<CodeBlock
-  code={`// src/pages/Dashboard.tsx
-import { useState } from 'react';
-import { StatCard } from '../components/dashboard/StatCard';
-import { DataGrid, type DataGridColumn } from '../components/dashboard/DataGrid';
-import { useDebounce } from '../hooks/useDebounce';
-import { useFetch } from '../hooks/useFetch';
+- **`Dashboard.tsx`** — StatCard, DataGrid, useDebounce, useFetch를 조합한 대시보드 페이지
+- 반응형 그리드 (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`)
+- 주문 상태별 배지 컬러 (pending: 노랑, completed: 초록, cancelled: 빨강)
 
-interface Order {
-  id: string;
-  customer: string;
-  amount: number;
-  status: 'pending' | 'completed' | 'cancelled';
-  date: string;
-}
+### 여기서 배우는 것
 
-interface DashboardStats {
-  revenue: number;
-  revenueChange: number;
-  newUsers: number;
-  newUsersChange: number;
-  orders: number;
-  ordersChange: number;
-  conversionRate: number;
-  conversionChange: number;
-}
+<Callout type="info" title="조립 단계의 포인트">
+  생성된 `Dashboard.tsx`를 열어보면, **새로운 로직이 거의 없습니다**. 이미 만들어둔 컴포넌트와 훅을 `import`하고 **데이터를 연결하는 코드**가 대부분입니다.
 
-const STATUS_BADGE: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  completed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-};
-
-const columns: DataGridColumn<Order>[] = [
-  { key: 'id', header: '주문번호', width: '120px' },
-  { key: 'customer', header: '고객', sortable: true },
-  { key: 'amount', header: '금액', sortable: true,
-    render: (val) => \`₩\${Number(val).toLocaleString()}\` },
-  { key: 'status', header: '상태',
-    render: (val) => (
-      <span className={\`px-2 py-1 rounded-full text-xs font-medium \${STATUS_BADGE[val as string]}\`}>
-        {val === 'pending' ? '처리중' : val === 'completed' ? '완료' : '취소'}
-      </span>
-    )},
-  { key: 'date', header: '날짜', sortable: true },
-];
-
-export function Dashboard() {
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 300);
-
-  const { data: stats, loading: statsLoading } = useFetch<DashboardStats>(
-    '/api/dashboard/stats'
-  );
-  const { data: orders, loading: ordersLoading } = useFetch<Order[]>(
-    \`/api/dashboard/orders?q=\${debouncedSearch}\`
-  );
-
-  return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
-
-      {/* 통계 카드 - 반응형 그리드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="총 매출" loading={statsLoading}
-          value={stats ? \`₩\${stats.revenue.toLocaleString()}\` : ''}
-          change={stats ? { value: stats.revenueChange, type: stats.revenueChange >= 0 ? 'increase' : 'decrease' } : undefined}
-        />
-        <StatCard
-          title="신규 사용자" loading={statsLoading}
-          value={stats?.newUsers ?? ''}
-          change={stats ? { value: stats.newUsersChange, type: stats.newUsersChange >= 0 ? 'increase' : 'decrease' } : undefined}
-        />
-        <StatCard
-          title="주문 수" loading={statsLoading}
-          value={stats?.orders ?? ''}
-          change={stats ? { value: stats.ordersChange, type: stats.ordersChange >= 0 ? 'increase' : 'decrease' } : undefined}
-        />
-        <StatCard
-          title="전환율" loading={statsLoading}
-          value={stats ? \`\${stats.conversionRate}%\` : ''}
-          change={stats ? { value: stats.conversionChange, type: stats.conversionChange >= 0 ? 'increase' : 'decrease' } : undefined}
-        />
-      </div>
-
-      {/* 검색 + 주문 그리드 */}
-      <div className="space-y-4">
-        <input
-          type="text"
-          placeholder="고객명으로 검색..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-sm px-4 py-2 border rounded-lg
-                     focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <DataGrid
-          columns={columns}
-          data={orders ?? []}
-          loading={ordersLoading}
-          onRowClick={(order) => console.log('주문 상세:', order.id)}
-          emptyMessage="주문이 없습니다"
-        />
-      </div>
-    </div>
-  );
-}`}
-  language="tsx"
-  filename="src/pages/Dashboard.tsx"
-  highlightLines={[33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 63, 64, 91, 92]}
-/>
-
-<Callout type="info" title="코드 포인트">
-  - **STATUS_BADGE**: 주문 상태에 따른 배지 색상을 객체로 관리 → 새 상태 추가 시 이 객체만 수정
-  - **render prop**: DataGrid의 커스텀 렌더러로 금액 포맷팅과 상태 배지를 구현
-  - **반응형 그리드**: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`로 화면 크기에 따라 열 수 조정
-  - **useDebounce**: 검색 입력이 300ms 동안 멈추면 API 호출 → 불필요한 네트워크 요청 방지
+  이것이 컴포넌트 기반 개발의 가치입니다. 각 실습에서 독립적으로 테스트된 부품을 **조립만 하면 페이지가 완성**됩니다. 백엔드의 Clean Architecture에서 레이어를 조립하는 것과 같은 원리입니다.
 </Callout>
 
 <Callout type="tip" title="프론트엔드에서 Claude Code 활용 팁">
