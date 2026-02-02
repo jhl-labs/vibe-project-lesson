@@ -55,25 +55,25 @@ AI 코딩 에이전트는 대화가 시작될 때 **프로젝트에 대해 아�
 
 <MermaidDiagram
   chart={`flowchart LR
-    subgraph ROOT["프로젝트 루트"]
+    subgraph ROOT ["프로젝트 루트"]
       CM["CLAUDE.md"]
       AM["AGENTS.md"]
     end
-    subgraph CLAUDE_DIR[".claude/"]
+    subgraph CLAUDE_DIR [".claude/"]
       Rules["rules/"]
       Agents["agents/"]
       Skills["skills/"]
       Commands["commands/"]
       Settings["settings.json"]
     end
-    subgraph DOCS["docs/"]
+    subgraph DOCS ["docs/"]
       Context["context.md"]
       Prompts["prompts/"]
     end
-    subgraph OTHER["기타 도구 설정"]
-      Copilot[".github/copilot-instructions.md"]
-      CursorR[".cursor/rules/*.mdc"]
-      Windsurf[".windsurfrules"]
+    subgraph OTHER ["기타 도구 설정"]
+      CopilotFile[".github/copilot-instructions.md"]
+      CursorFile[".cursor/rules/*.mdc"]
+      WindsurfFile[".windsurfrules"]
     end
     CC["Claude Code"] --> CM
     CC --> Rules
@@ -84,12 +84,12 @@ AI 코딩 에이전트는 대화가 시작될 때 **프로젝트에 대해 아�
     CC -.->|@import| Context
     CC -.->|@import| Prompts
     CC -->|읽음| AM
-    GH["GitHub Copilot"] --> Copilot
+    GH["GitHub Copilot"] --> CopilotFile
     GH -->|읽음| AM
-    CU["Cursor"] --> CursorR
+    CU["Cursor"] --> CursorFile
     CU -->|읽음| AM
     OA["OpenAI Codex"] --> AM
-    WS["Windsurf"] --> Windsurf
+    WS["Windsurf"] --> WindsurfFile
     style CC fill:#fdf2ee,stroke:#da7756,color:#2d2a26
     style GH fill:#f0f0f0,stroke:#333,color:#2d2a26
     style CU fill:#f0f0f0,stroke:#333,color:#2d2a26
