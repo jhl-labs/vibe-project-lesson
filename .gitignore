@@ -94,7 +94,6 @@ target/
 # lock 파일을 커밋하는 것이 권장됩니다.
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
 composer.lock
 Gemfile.lock
 poetry.lock
