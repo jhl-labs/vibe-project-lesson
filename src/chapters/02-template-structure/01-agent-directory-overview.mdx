@@ -12,17 +12,17 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## .agent/ 디렉토리란?
 
-`.agent/` 디렉토리는 AI 에이전트(Claude Code, Cursor, GitHub Copilot 등)가 프로젝트를 깊이 이해하고 효과적으로 작업하기 위한 **지식 베이스**입니다. Claude Code에서는 CLAUDE.md의 `@.agent/context.md` 같은 임포트 구문으로 참조하거나, 대화 중 직접 파일을 읽어 활용합니다.
+`.agent/` 디렉토리는 AI 에이전트(Claude Code, Cursor, GitHub Copilot 등)가 프로젝트를 깊이 이해하기 위한 **지식 베이스**입니다. 특정 AI 도구에 종속되지 않는 범용 마크다운 문서들을 모아두는 곳으로, Claude Code에서는 CLAUDE.md의 `@.agent/context.md` 같은 임포트 구문으로 참조하거나 대화 중 직접 파일을 읽어 활용합니다.
 
-<Callout type="info" title="핵심 개념">
-  CLAUDE.md가 "요약본"이라면, .agent/ 디렉토리는 "상세 매뉴얼"입니다.
-  프로젝트의 아키텍처, 코딩 규칙, 프롬프트 템플릿, 스킬, 서브에이전트 등 상세 정보를 체계적으로 관리합니다.
+<Callout type="important" title=".agent/ vs .claude/ 구분">
+  `.agent/`는 **도구 독립적인 프로젝트 지식 베이스**(컨텍스트, 규칙, 아키텍처, 프롬프트 템플릿)입니다.
+  Claude Code의 **실행 가능한 설정**(슬래시 커맨드, 스킬, 서브에이전트)은 `.claude/` 디렉토리에 위치합니다.
 </Callout>
 
 ## 전체 구조
 
 <FileTree
-  title=".agent/ 디렉토리 구조"
+  title=".agent/ 지식 베이스 구조"
   data={[
     {
       name: '.agent/',
@@ -30,7 +30,6 @@ import { ChapterNav } from '../../components/ChapterNav';
       highlight: true,
       children: [
         { name: 'architecture.md', type: 'file', description: '아키텍처 설명서' },
-        { name: 'commands.md', type: 'file', description: '슬래시 커맨드 가이드' },
         { name: 'context.md', type: 'file', description: '프로젝트 컨텍스트' },
         { name: 'conventions.md', type: 'file', description: '코딩 규칙' },
         { name: 'guidelines.md', type: 'file', description: 'AI 사용 가이드라인' },
@@ -48,22 +47,46 @@ import { ChapterNav } from '../../components/ChapterNav';
             { name: '...', type: 'file', description: '+ 9개 더' },
           ],
         },
+      ],
+    },
+  ]}
+/>
+
+<FileTree
+  title=".claude/ Claude Code 실행 설정 구조"
+  data={[
+    {
+      name: '.claude/',
+      type: 'folder',
+      highlight: true,
+      children: [
         {
-          name: 'skills/',
+          name: 'commands/',
           type: 'folder',
-          description: '실행 가능한 스킬 (5개)',
+          description: '커스텀 슬래시 커맨드',
           children: [
-            { name: 'code-review.md', type: 'file', description: '/review' },
-            { name: 'doc-gen.md', type: 'file', description: '/doc' },
-            { name: 'refactor.md', type: 'file', description: '/refactor' },
-            { name: 'security-scan.md', type: 'file', description: '/security' },
-            { name: 'test-gen.md', type: 'file', description: '/test' },
+            { name: 'commit.md', type: 'file', description: '/commit' },
+            { name: 'review.md', type: 'file', description: '/review' },
+            { name: 'test.md', type: 'file', description: '/test' },
+            { name: '...', type: 'file', description: '+ 더 많은 커맨드' },
           ],
         },
         {
-          name: 'subagents/',
+          name: 'skills/',
           type: 'folder',
-          description: '전문 서브에이전트 (4개)',
+          description: '실행 가능한 스킬 (SKILL.md)',
+          children: [
+            { name: 'code-review/', type: 'folder', description: '/review 스킬' },
+            { name: 'doc-gen/', type: 'folder', description: '/doc 스킬' },
+            { name: 'refactor/', type: 'folder', description: '/refactor 스킬' },
+            { name: 'security-scan/', type: 'folder', description: '/security 스킬' },
+            { name: 'test-gen/', type: 'folder', description: '/test 스킬' },
+          ],
+        },
+        {
+          name: 'agents/',
+          type: 'folder',
+          description: '커스텀 서브에이전트',
           children: [
             { name: 'architect.md', type: 'file', description: '아키텍처 설계' },
             { name: 'documentation.md', type: 'file', description: '문서 작성' },
@@ -71,14 +94,15 @@ import { ChapterNav } from '../../components/ChapterNav';
             { name: 'test.md', type: 'file', description: '테스트 전략' },
           ],
         },
+        { name: 'settings.json', type: 'file', description: '훅, 권한 등 설정' },
       ],
     },
   ]}
 />
 
-## 각 파일의 역할
+## 각 파일/디렉토리의 역할
 
-### 메인 설정 파일
+### .agent/ — 지식 베이스
 
 | 파일 | 역할 | 주요 내용 |
 |------|------|----------|
@@ -86,15 +110,16 @@ import { ChapterNav } from '../../components/ChapterNav';
 | `conventions.md` | 코딩 규칙 | 네이밍, 스타일, Git 규칙 |
 | `architecture.md` | 아키텍처 | 레이어 구조, 의존성 방향, 데이터 흐름 |
 | `guidelines.md` | AI 사용 가이드라인 | 허용/금지 사항, 검증 절차 |
-| `commands.md` | 슬래시 커맨드 | 10개 커스텀 커맨드 정의 |
+| `prompts/` | 프롬프트 템플릿 (15개) | 상황별 구조화된 프롬프트 |
 
-### 디렉토리별 역할
+### .claude/ — Claude Code 실행 설정
 
-| 디렉토리 | 파일 수 | 역할 |
-|----------|--------|------|
-| `prompts/` | 15개 | 상황별 프롬프트 템플릿 |
-| `skills/` | 5개 | 슬래시 커맨드로 실행 가능한 스킬 |
-| `subagents/` | 4개 | 전문 분야별 서브에이전트 정의 |
+| 디렉토리/파일 | 역할 | 비고 |
+|--------------|------|------|
+| `commands/` | 커스텀 슬래시 커맨드 | 개별 .md 파일이 `/파일명`으로 호출됨 |
+| `skills/` | 실행 가능한 스킬 (5개) | 각 스킬은 `SKILL.md`를 포함하는 디렉토리 |
+| `agents/` | 커스텀 서브에이전트 (4개) | 전문 분야별 에이전트 정의 |
+| `settings.json` | 훅, 권한 등 설정 | MCP 서버 설정 포함 |
 
 ## CLAUDE.md와의 관계
 
@@ -117,14 +142,20 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 | AI 도구 | 프로젝트 설정 파일 | .agent/ 참조 방식 |
 |---------|-------------------|------------------|
-| **Claude Code** | `CLAUDE.md` | `@.agent/context.md` 임포트, 대화 중 직접 파일 읽기 |
+| **Claude Code** | `CLAUDE.md` + `.claude/` | `@.agent/context.md` 임포트, 대화 중 직접 파일 읽기 |
 | **GitHub Copilot** | `.github/copilot-instructions.md` | 파일 참조로 컨텍스트 제공 |
-| **Cursor** | `.cursorrules` | `@files`로 직접 참조 |
+| **Cursor** | `.cursor/rules/*.mdc` | `@files`로 직접 참조 |
 
 <Callout type="tip" title="도구 독립적인 구조">
   `.agent/` 디렉토리는 특정 AI 도구에 종속되지 않습니다.
   프로젝트 지식을 마크다운으로 관리하므로 어떤 AI 도구에서든 활용할 수 있습니다.
   Claude Code에서는 CLAUDE.md의 임포트 구문(`@.agent/context.md`)으로, Cursor에서는 `@files`로 참조합니다.
+</Callout>
+
+<Callout type="warning" title="Cursor .cursorrules는 deprecated">
+  Cursor의 `.cursorrules` 파일은 deprecated되었습니다.
+  현재는 `.cursor/rules/` 디렉토리에 `.mdc` 파일로 규칙을 관리합니다.
+  `description`, `globs`, `alwaysApply` 등 메타데이터를 지원하여 더 유연한 규칙 적용이 가능합니다.
 </Callout>
 
 <ChapterNav

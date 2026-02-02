@@ -3,13 +3,16 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { FileTree } from '../../components/FileTree';
 import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 5: 실전 예제/Python API" />
 
 # Python API 예제
 
-> FastAPI + SQLAlchemy + pytest 기반 Clean Architecture 구현
+> FastAPI + SQLAlchemy + pytest 기반 Clean Architecture — Claude Code로 처음부터 구현하기
+
+TypeScript API와 동일한 아키텍처를 Python으로 구현합니다. 두 언어의 차이를 비교하면서 Clean Architecture의 **언어 독립적인** 설계 원칙을 체득합니다.
 
 ## 프로젝트 구조
 
@@ -24,7 +27,7 @@ import { ChapterNav } from '../../components/ChapterNav';
         {
           name: 'domain/',
           type: 'folder',
-          description: '비즈니스 로직',
+          description: '비즈니스 로직 (순수, 의존성 없음)',
           highlight: true,
           children: [
             {
@@ -32,6 +35,7 @@ import { ChapterNav } from '../../components/ChapterNav';
               type: 'folder',
               children: [
                 { name: 'entity.py', type: 'file', description: 'User 엔터티' },
+                { name: 'repository.py', type: 'file', description: 'Repository Protocol' },
               ],
             },
           ],
@@ -96,19 +100,52 @@ import { ChapterNav } from '../../components/ChapterNav';
         },
       ],
     },
+    {
+      name: 'tests/',
+      type: 'folder',
+      children: [
+        { name: 'test_user_entity.py', type: 'file', description: '엔터티 단위 테스트' },
+        { name: 'test_create_user.py', type: 'file', description: '유스케이스 단위 테스트' },
+        { name: 'test_api_users.py', type: 'file', description: 'API 통합 테스트' },
+        { name: 'conftest.py', type: 'file', description: 'pytest 픽스처' },
+      ],
+    },
     { name: 'requirements.txt', type: 'file' },
     { name: '.env.example', type: 'file' },
   ]}
 />
 
-## 레이어별 코드 분석
+---
 
-### 1. Domain Layer
+## 실습 1: 프로젝트 초기화
+
+<CodeBlock
+  code={`# 프롬프트: Python 프로젝트 초기화
+> FastAPI + SQLAlchemy + pytest 프로젝트를 초기화해줘.
+> Clean Architecture 구조로 다음 디렉토리를 생성해:
+> - app/domain/user/
+> - app/application/user/
+> - app/infrastructure/database/
+> - app/presentation/api/
+> - app/presentation/schemas/
+> - app/core/
+> - tests/
+>
+> requirements.txt에 fastapi, uvicorn, sqlalchemy[asyncio],
+> aiosqlite, pydantic, pytest, pytest-asyncio, httpx를 포함해.
+> .env.example도 생성해줘.`}
+  language="text"
+  filename="실습: 프로젝트 초기화 프롬프트"
+/>
+
+---
+
+## 실습 2: Domain Layer
 
 <CodeBlock
   code={`# app/domain/user/entity.py
 from dataclasses import dataclass
-from typing import Optional
+import re
 import uuid
 
 
@@ -121,7 +158,7 @@ class User:
 
     @classmethod
     def create(cls, email: str, name: str) -> "User":
-        if "@" not in email:
+        if not re.match(r"^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", email):
             raise ValueError(f"Invalid email: {email}")
         return cls(
             id=str(uuid.uuid4()),
@@ -133,26 +170,96 @@ class User:
     def activate(self) -> None:
         if self.status != "pending":
             raise ValueError("Only pending users can be activated")
-        self.status = "active"`}
+        self.status = "active"
+
+    def deactivate(self) -> None:
+        if self.status != "active":
+            raise ValueError("Only active users can be deactivated")
+        self.status = "inactive"`}
   language="python"
   filename="app/domain/user/entity.py"
-  highlightLines={[7, 8, 14, 15, 25, 26]}
+  highlightLines={[7, 8, 14, 15, 16, 25, 30]}
 />
 
-### 2. Application Layer
+### Repository Protocol
 
 <CodeBlock
-  code={`# app/application/user/use_cases.py
+  code={`# app/domain/user/repository.py
 from typing import Optional, Protocol
 
 from app.domain.user.entity import User
-from app.application.user.dtos import CreateUserDto, UserResponseDto
 
 
 class UserRepository(Protocol):
+    """Domain Layer가 정의하는 Repository 인터페이스.
+    Infrastructure Layer에서 구현합니다."""
+
     async def find_by_id(self, user_id: str) -> Optional[User]: ...
     async def find_by_email(self, email: str) -> Optional[User]: ...
-    async def save(self, user: User) -> None: ...
+    async def save(self, user: User) -> None: ...`}
+  language="python"
+  filename="app/domain/user/repository.py"
+/>
+
+<Callout type="info" title="Python Protocol vs TypeScript Interface">
+  - Python의 `Protocol`은 **구조적 서브타이핑(structural subtyping)**을 지원합니다
+  - TypeScript의 `interface`와 유사하지만, 명시적 상속(`implements`) 없이도 메서드 시그니처만 일치하면 호환됩니다
+  - 이를 **duck typing**이라 합니다: "오리처럼 걷고 오리처럼 꽥꽥거리면, 오리다"
+</Callout>
+
+<CodeBlock
+  code={`# 실습 프롬프트: Domain Layer
+> app/domain/user/ 아래에 다음을 구현해줘:
+> 1. entity.py: User 데이터클래스 (create 팩토리, 이메일 정규식 검증,
+>    activate/deactivate 상태 전이)
+> 2. repository.py: UserRepository Protocol (find_by_id, find_by_email, save)
+>
+> 외부 라이브러리 없이 Python 표준 라이브러리만 사용해.`}
+  language="text"
+  filename="실습: Domain Layer 프롬프트"
+/>
+
+---
+
+## 실습 3: Application Layer
+
+<CodeBlock
+  code={`# app/application/user/dtos.py
+from dataclasses import dataclass
+
+from app.domain.user.entity import User
+
+
+@dataclass(frozen=True)
+class CreateUserDto:
+    email: str
+    name: str
+
+
+@dataclass(frozen=True)
+class UserResponseDto:
+    id: str
+    email: str
+    name: str
+    status: str
+
+    @classmethod
+    def from_entity(cls, user: User) -> "UserResponseDto":
+        return cls(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            status=user.status,
+        )`}
+  language="python"
+  filename="app/application/user/dtos.py"
+/>
+
+<CodeBlock
+  code={`# app/application/user/use_cases.py
+from app.domain.user.entity import User
+from app.domain.user.repository import UserRepository
+from app.application.user.dtos import CreateUserDto, UserResponseDto
 
 
 class CreateUserUseCase:
@@ -160,30 +267,66 @@ class CreateUserUseCase:
         self.user_repository = user_repository
 
     async def execute(self, dto: CreateUserDto) -> UserResponseDto:
+        # 1. 비즈니스 검증: 이메일 중복 확인
         existing = await self.user_repository.find_by_email(dto.email)
         if existing:
             raise ValueError("Email already exists")
 
+        # 2. 도메인 엔터티 생성
         user = User.create(email=dto.email, name=dto.name)
+
+        # 3. 영속화
         await self.user_repository.save(user)
 
+        # 4. 응답 DTO 변환
+        return UserResponseDto.from_entity(user)
+
+
+class GetUserUseCase:
+    def __init__(self, user_repository: UserRepository):
+        self.user_repository = user_repository
+
+    async def execute(self, user_id: str) -> UserResponseDto:
+        user = await self.user_repository.find_by_id(user_id)
+        if not user:
+            raise ValueError(f"User not found: {user_id}")
         return UserResponseDto.from_entity(user)`}
   language="python"
   filename="app/application/user/use_cases.py"
-  highlightLines={[7, 8, 9, 10, 14, 18]}
+  highlightLines={[7, 8, 11, 18, 27, 28, 31]}
 />
 
-<Callout type="info" title="Python Protocol">
-  Python의 Protocol은 TypeScript의 Interface와 유사합니다.
-  구조적 서브타이핑(duck typing)으로 의존성 역전을 구현합니다.
-</Callout>
+---
 
-### 3. Infrastructure Layer
+## 실습 4: Infrastructure Layer
+
+<CodeBlock
+  code={`# app/infrastructure/database/models.py
+from sqlalchemy import Column, String
+from sqlalchemy.orm import DeclarativeBase
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class UserModel(Base):
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    name = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="pending")`}
+  language="python"
+  filename="app/infrastructure/database/models.py"
+/>
 
 <CodeBlock
   code={`# app/infrastructure/database/repository.py
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
+
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.user.entity import User
 from app.infrastructure.database.models import UserModel
@@ -193,7 +336,14 @@ class SQLAlchemyUserRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def find_by_email(self, email: str):
+    async def find_by_id(self, user_id: str) -> Optional[User]:
+        result = await self.session.execute(
+            select(UserModel).where(UserModel.id == user_id)
+        )
+        row = result.scalar_one_or_none()
+        return self._to_domain(row) if row else None
+
+    async def find_by_email(self, email: str) -> Optional[User]:
         result = await self.session.execute(
             select(UserModel).where(UserModel.email == email)
         )
@@ -221,17 +371,36 @@ class SQLAlchemyUserRepository:
   filename="app/infrastructure/database/repository.py"
 />
 
-### 4. Presentation Layer
+---
+
+## 실습 5: Presentation Layer
+
+<CodeBlock
+  code={`# app/presentation/schemas/user.py
+from pydantic import BaseModel, EmailStr
+
+
+class CreateUserRequest(BaseModel):
+    email: EmailStr
+    name: str
+
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    name: str
+    status: str`}
+  language="python"
+  filename="app/presentation/schemas/user.py"
+/>
 
 <CodeBlock
   code={`# app/presentation/api/users.py
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.application.user.use_cases import CreateUserUseCase
-from app.presentation.schemas.user import (
-    CreateUserRequest,
-    UserResponse,
-)
+from app.application.user.use_cases import CreateUserUseCase, GetUserUseCase
+from app.application.user.dtos import CreateUserDto
+from app.presentation.schemas.user import CreateUserRequest, UserResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -242,31 +411,251 @@ async def create_user(
     use_case: CreateUserUseCase = Depends(get_create_user_use_case),
 ):
     try:
-        result = await use_case.execute(request.to_dto())
+        dto = CreateUserDto(email=request.email, name=request.name)
+        result = await use_case.execute(dto)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))`}
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/{user_id}", response_model=UserResponse)
+async def get_user(
+    user_id: str,
+    use_case: GetUserUseCase = Depends(get_get_user_use_case),
+):
+    try:
+        result = await use_case.execute(user_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))`}
   language="python"
   filename="app/presentation/api/users.py"
 />
 
+---
+
+## 실습 6: 테스트 작성
+
+### 엔터티 단위 테스트
+
+<CodeBlock
+  code={`# tests/test_user_entity.py
+import pytest
+
+from app.domain.user.entity import User
+
+
+class TestUserCreate:
+    def test_create_valid_user(self):
+        user = User.create(email="test@example.com", name="Test User")
+
+        assert user.email == "test@example.com"
+        assert user.name == "Test User"
+        assert user.status == "pending"
+        assert user.id  # UUID가 생성되었는지 확인
+
+    def test_create_lowercases_email(self):
+        user = User.create(email="Test@EXAMPLE.COM", name="Test")
+        assert user.email == "test@example.com"
+
+    def test_create_rejects_invalid_email(self):
+        with pytest.raises(ValueError, match="Invalid email"):
+            User.create(email="not-an-email", name="Test")
+
+    def test_create_rejects_empty_email(self):
+        with pytest.raises(ValueError, match="Invalid email"):
+            User.create(email="", name="Test")
+
+
+class TestUserStatusTransitions:
+    def test_activate_from_pending(self):
+        user = User.create(email="test@example.com", name="Test")
+        user.activate()
+        assert user.status == "active"
+
+    def test_activate_from_active_raises(self):
+        user = User.create(email="test@example.com", name="Test")
+        user.activate()
+        with pytest.raises(ValueError, match="Only pending users"):
+            user.activate()
+
+    def test_deactivate_from_active(self):
+        user = User.create(email="test@example.com", name="Test")
+        user.activate()
+        user.deactivate()
+        assert user.status == "inactive"
+
+    def test_deactivate_from_pending_raises(self):
+        user = User.create(email="test@example.com", name="Test")
+        with pytest.raises(ValueError, match="Only active users"):
+            user.deactivate()`}
+  language="python"
+  filename="tests/test_user_entity.py"
+  highlightLines={[8, 17, 21, 30, 35, 41, 47]}
+/>
+
+### 유스케이스 단위 테스트
+
+<CodeBlock
+  code={`# tests/test_create_user.py
+from unittest.mock import AsyncMock
+import pytest
+
+from app.application.user.use_cases import CreateUserUseCase
+from app.application.user.dtos import CreateUserDto
+
+
+@pytest.fixture
+def mock_repo():
+    repo = AsyncMock()
+    repo.find_by_email.return_value = None
+    repo.save.return_value = None
+    return repo
+
+
+@pytest.fixture
+def use_case(mock_repo):
+    return CreateUserUseCase(user_repository=mock_repo)
+
+
+@pytest.mark.asyncio
+async def test_create_user_success(use_case, mock_repo):
+    dto = CreateUserDto(email="test@example.com", name="Test User")
+    result = await use_case.execute(dto)
+
+    assert result.email == "test@example.com"
+    assert result.name == "Test User"
+    assert result.status == "pending"
+    mock_repo.save.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_create_user_duplicate_email(use_case, mock_repo):
+    mock_repo.find_by_email.return_value = User(
+        id="existing", email="test@example.com", name="Existing", status="active"
+    )
+
+    dto = CreateUserDto(email="test@example.com", name="New User")
+    with pytest.raises(ValueError, match="Email already exists"):
+        await use_case.execute(dto)
+
+    mock_repo.save.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_create_user_invalid_email(use_case):
+    dto = CreateUserDto(email="bad-email", name="Test")
+    with pytest.raises(ValueError, match="Invalid email"):
+        await use_case.execute(dto)
+
+
+@pytest.mark.asyncio
+async def test_create_user_lowercases_email(use_case):
+    dto = CreateUserDto(email="Test@EXAMPLE.COM", name="Test")
+    result = await use_case.execute(dto)
+    assert result.email == "test@example.com"`}
+  language="python"
+  filename="tests/test_create_user.py"
+  highlightLines={[9, 22, 32, 45, 52]}
+/>
+
+### API 통합 테스트
+
+<CodeBlock
+  code={`# tests/test_api_users.py
+import pytest
+from httpx import AsyncClient, ASGITransport
+
+from app.main import app
+
+
+@pytest.mark.asyncio
+async def test_create_user_endpoint():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/users/", json={
+            "email": "integration@example.com",
+            "name": "Integration Test",
+        })
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["email"] == "integration@example.com"
+    assert data["status"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_create_user_invalid_email():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/users/", json={
+            "email": "not-valid",
+            "name": "Bad Email",
+        })
+
+    assert response.status_code == 422  # Pydantic 검증 실패`}
+  language="python"
+  filename="tests/test_api_users.py"
+/>
+
+<CodeBlock
+  code={`# 실습 프롬프트: 테스트 작성 및 실행
+> 다음 테스트를 작성하고 실행해줘:
+>
+> 1. tests/test_user_entity.py: User 엔터티 단위 테스트
+>    - 정상 생성, 이메일 소문자 변환, 잘못된 이메일 거부
+>    - 상태 전이: pending → active, active → inactive
+>    - 잘못된 상태 전이 시 에러
+>
+> 2. tests/test_create_user.py: CreateUserUseCase 단위 테스트
+>    - AsyncMock으로 Repository mock
+>    - 정상 생성, 이메일 중복, 잘못된 이메일, 소문자 변환
+>
+> 3. tests/test_api_users.py: API 통합 테스트
+>    - httpx AsyncClient로 POST /users/ 테스트
+>    - 정상 응답과 검증 실패 응답
+>
+> pytest-asyncio를 사용하고, 테스트 실행까지 해줘.`}
+  language="text"
+  filename="실습: 테스트 프롬프트"
+/>
+
+<Callout type="tip" title="Python 테스트 패턴">
+  - **pytest fixture**: `@pytest.fixture`로 mock 객체를 재사용 가능하게 정의
+  - **AsyncMock**: 비동기 Repository를 mock할 때 `unittest.mock.AsyncMock` 사용
+  - **pytest.raises**: 예외 발생을 검증하는 context manager
+  - **httpx AsyncClient**: FastAPI의 비동기 테스트에 공식 권장되는 HTTP 클라이언트
+</Callout>
+
+---
+
 ## TypeScript vs Python 비교
 
 <ComparisonTable
-  title="TS API vs Python API 비교"
+  title="TS API vs Python API 구현 비교"
   headers={['항목', 'TypeScript', 'Python']}
   rows={[
     { feature: '프레임워크', values: ['Express.js', 'FastAPI'] },
     { feature: 'ORM', values: ['Prisma', 'SQLAlchemy'] },
-    { feature: '테스트', values: ['Jest', 'pytest'] },
-    { feature: '인터페이스', values: ['interface', 'Protocol'] },
+    { feature: '테스트', values: ['Jest + jest.Mocked', 'pytest + AsyncMock'] },
+    { feature: '인터페이스', values: ['interface (명시적)', 'Protocol (구조적)'] },
     { feature: '비동기', values: ['async/await', 'async/await'] },
-    { feature: '타입 시스템', values: ['정적 (컴파일)', '동적 (런타임 힌트)'] },
-    { feature: '데이터 클래스', values: ['class', '@dataclass'] },
+    { feature: '타입 시스템', values: ['정적 (컴파일 타임)', '동적 (런타임 힌트)'] },
+    { feature: '데이터 클래스', values: ['class (private constructor)', '@dataclass'] },
     { feature: '의존성 주입', values: ['생성자 주입', 'FastAPI Depends'] },
+    { feature: '입력 검증', values: ['값 객체 (Email class)', 'Pydantic + 엔터티 검증'] },
     { feature: '네이밍', values: ['camelCase', 'snake_case'] },
   ]}
 />
+
+<Callout type="info" title="언어가 달라도 아키텍처는 같다">
+  두 예제의 핵심 구조가 동일합니다:
+  - Domain Layer가 인터페이스를 정의하고, Infrastructure Layer가 구현
+  - Application Layer는 인터페이스에만 의존
+  - Presentation Layer는 프레임워크에 특화된 변환만 담당
+
+  이것이 Clean Architecture의 핵심 가치입니다. 프레임워크와 DB는 **세부사항(detail)**이며, 비즈니스 로직과 분리됩니다.
+</Callout>
 
 
 <ChapterNav
