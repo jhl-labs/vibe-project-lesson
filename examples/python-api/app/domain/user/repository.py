@@ -1,49 +1,14 @@
 """User Repository Interface."""
 
-from abc import ABC, abstractmethod
+from typing import Optional, Protocol
 
 from app.domain.user.entity import User
 
 
-class IUserRepository(ABC):
-    """
-    User Repository Interface.
+class UserRepository(Protocol):
+    """Domain Layer가 정의하는 Repository 인터페이스.
+    Infrastructure Layer에서 구현합니다."""
 
-    Defines the contract for user persistence operations.
-    Implementation is in the infrastructure layer.
-    """
-
-    @abstractmethod
-    async def find_by_id(self, user_id: str) -> User | None:
-        """Find user by ID."""
-        ...
-
-    @abstractmethod
-    async def find_by_email(self, email: str) -> User | None:
-        """Find user by email."""
-        ...
-
-    @abstractmethod
-    async def find_all(
-        self,
-        limit: int = 20,
-        offset: int = 0,
-        status: str | None = None,
-    ) -> list[User]:
-        """Find all users with pagination."""
-        ...
-
-    @abstractmethod
-    async def save(self, user: User) -> User:
-        """Save user (create or update)."""
-        ...
-
-    @abstractmethod
-    async def delete(self, user_id: str) -> None:
-        """Delete user."""
-        ...
-
-    @abstractmethod
-    async def count(self, status: str | None = None) -> int:
-        """Count users."""
-        ...
+    async def find_by_id(self, user_id: str) -> Optional[User]: ...
+    async def find_by_email(self, email: str) -> Optional[User]: ...
+    async def save(self, user: User) -> None: ...

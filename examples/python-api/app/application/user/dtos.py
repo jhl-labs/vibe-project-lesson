@@ -1,47 +1,28 @@
-"""User Application DTOs.
-
-Application layer data transfer objects.
-These are used by use cases to receive input and return output,
-keeping the application layer independent of the presentation layer.
-"""
+"""User Application DTOs."""
 
 from dataclasses import dataclass
-from datetime import datetime
+
+from app.domain.user.entity import User
 
 
 @dataclass(frozen=True)
-class CreateUserInput:
-    """Input DTO for creating a user."""
-
+class CreateUserDto:
     email: str
     name: str
 
 
 @dataclass(frozen=True)
-class UpdateUserInput:
-    """Input DTO for updating a user."""
-
-    email: str | None = None
-    name: str | None = None
-
-
-@dataclass(frozen=True)
-class UserOutput:
-    """Output DTO for a single user."""
-
+class UserResponseDto:
     id: str
     email: str
     name: str
     status: str
-    created_at: datetime
-    updated_at: datetime
 
-
-@dataclass(frozen=True)
-class UserListOutput:
-    """Output DTO for a list of users."""
-
-    data: list[UserOutput]
-    total: int
-    limit: int
-    offset: int
+    @classmethod
+    def from_entity(cls, user: User) -> "UserResponseDto":
+        return cls(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            status=user.status,
+        )

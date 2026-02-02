@@ -1,30 +1,17 @@
 """SQLAlchemy models."""
 
-from datetime import datetime, timezone
-
-from sqlalchemy import String, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
-
-from app.core.database import Base
+from sqlalchemy import Column, String
+from sqlalchemy.orm import DeclarativeBase
 
 
-def _utcnow() -> datetime:
-    """Return current UTC time as timezone-aware datetime."""
-    return datetime.now(timezone.utc)
+class Base(DeclarativeBase):
+    pass
 
 
 class UserModel(Base):
-    """User database model."""
-
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    name: Mapped[str] = mapped_column(String(100))
-    status: Mapped[str] = mapped_column(String(20), default="active")
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utcnow
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
-    )
+    id = Column(String, primary_key=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    name = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="pending")

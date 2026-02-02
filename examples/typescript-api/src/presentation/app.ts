@@ -1,7 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { userRouter } from './routes/user.routes';
+import { UserController } from './http/user-controller';
+import { CreateUserUseCase } from '../application/user/create-user';
+import { GetUserUseCase } from '../application/user/get-user';
+import { PrismaUserRepository } from '../infrastructure/persistence/prisma-user-repository';
+import { prisma } from '../infrastructure/database/prisma';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 
@@ -21,8 +25,13 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Routes
-app.use('/api/users', userRouter);
+// Dependency injection & Routes
+const userRepository = new PrismaUserRepository(prisma);
+const createUserUseCase = new CreateUserUseCase(userRepository);
+const getUserUseCase = new GetUserUseCase(userRepository);
+const userController = new UserController(createUserUseCase, getUserUseCase);
+
+app.use('/api', userController.router);
 
 // 404 handler
 app.use((req, res) => {

@@ -1,17 +1,11 @@
 """User application module"""
 
-from app.application.user.dtos import (
-    CreateUserInput,
-    UpdateUserInput,
-    UserListOutput,
-    UserOutput,
-)
-from app.application.user.use_cases import UserUseCases
+from app.application.user.dtos import CreateUserDto, UserResponseDto
+from app.application.user.use_cases import CreateUserUseCase, GetUserUseCase
 
 __all__ = [
-    "CreateUserInput",
-    "UpdateUserInput",
-    "UserListOutput",
-    "UserOutput",
-    "UserUseCases",
+    "CreateUserDto",
+    "UserResponseDto",
+    "CreateUserUseCase",
+    "GetUserUseCase",
 ]
