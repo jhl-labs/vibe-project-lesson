@@ -40,27 +40,32 @@ import { ChapterNav } from '../../components/ChapterNav';
   ]}
 />
 
-### 시간 절약 벤치마크
+### 활동별 AI 도구 효율성
+
+<Callout type="info" title="출처: Techreviewer 2025 AI Development Workflows 조사">
+  아래 수치는 Techreviewer의 2025년 AI 개발 워크플로우 조사에서 산출된 효율성 점수(0~1.0)입니다.
+  1.0에 가까울수록 AI 도구가 해당 작업에서 높은 효율을 보인다는 의미입니다.
+</Callout>
 
 <PlotlyChart
-  title="활동별 시간 절감률"
+  title="활동별 AI 도구 효율성 점수 (Techreviewer 2025)"
   data={[
     {
-      x: ['보일러플레이트\n작성', '테스트 코드\n작성', '문서화', '코드 리뷰\n준비', '버그 수정'],
-      y: [87, 67, 83, 67, 62],
+      x: ['코드 생성/완성', '문서 작성', '리팩토링', '버그 수정/디버깅', '테스트 작성', 'DB 쿼리'],
+      y: [0.92, 0.90, 0.87, 0.79, 0.75, 0.58],
       type: 'bar',
       marker: {
-        color: ['#da7756', '#e8a98e', '#c4613e', '#e8a98e', '#f0cec0'],
+        color: ['#da7756', '#da7756', '#e8a98e', '#e8a98e', '#e8a98e', '#f0cec0'],
         line: { color: '#d4cdc4', width: 1 },
       },
-      text: ['87%', '67%', '83%', '67%', '62%'],
+      text: ['0.92', '0.90', '0.87', '0.79', '0.75', '0.58'],
       textposition: 'outside',
       textfont: { color: '#2d2a26', size: 13 },
-      hovertemplate: '%{x}: %{y}% 절감<extra></extra>',
+      hovertemplate: '%{x}: %{y}<extra></extra>',
     },
   ]}
   layout={{
-    yaxis: { title: '절감률 (%)', range: [0, 100] },
+    yaxis: { title: '효율성 점수 (0-1.0)', range: [0, 1.15] },
     margin: { t: 20, b: 80 },
   }}
   height={350}
@@ -89,34 +94,23 @@ import { ChapterNav } from '../../components/ChapterNav';
   filename="개발자 경험 설문"
 />
 
-## 도입 전후 비교
+## 업계 조사 기반 도입 효과
 
-<PlotlyChart
-  title="AI 도구 도입 전후 비교"
-  data={[
-    {
-      name: '도입 전 (Baseline)',
-      x: ['PR 작성 시간\n(시간)', 'PR당 수정 요청\n(회)', '테스트 커버리지\n(%)', '문서화 완성도\n(%)'],
-      y: [4, 3, 55, 40],
-      type: 'bar',
-      marker: { color: '#8c857c', line: { color: '#d4cdc4', width: 1 } },
-      hovertemplate: '%{x}: %{y}<extra>도입 전</extra>',
-    },
-    {
-      name: '도입 후 (3개월)',
-      x: ['PR 작성 시간\n(시간)', 'PR당 수정 요청\n(회)', '테스트 커버리지\n(%)', '문서화 완성도\n(%)'],
-      y: [2, 1.5, 75, 85],
-      type: 'bar',
-      marker: { color: '#da7756', line: { color: '#e8a98e', width: 1 } },
-      hovertemplate: '%{x}: %{y}<extra>도입 후</extra>',
-    },
+<Callout type="info" title="출처">
+  아래 수치는 2025년 업계 조사 결과를 종합한 것입니다.
+  팀 환경에 따라 결과가 다를 수 있으므로, 자체 측정을 병행하는 것이 중요합니다.
+</Callout>
+
+<ComparisonTable
+  title="AI 코딩 도구 도입 효과 (2025 업계 조사 종합)"
+  headers={['지표', '조사 결과', '출처']}
+  rows={[
+    { feature: '생산성 향상', values: ['AI 도구를 폭넓게 활용하는 팀은 작업 완료량 21% 증가, 개발자당 PR 수 47% 증가', 'index.dev 2025'] },
+    { feature: '팀 생산성 향상', values: ['62%의 팀이 25% 이상 생산성 향상을 보고', '2025 State of Engineering Management'] },
+    { feature: '코드 리뷰 품질', values: ['AI 코드 리뷰 활용 팀의 81%가 품질 개선을 경험 (미사용 팀 55%)', 'DevTools Academy 2025'] },
+    { feature: '테스트 신뢰도', values: ['AI 테스트 작성 활용 시 신뢰도 61% (미사용 시 27%)', 'Qodo 2025 State of AI Code Quality'] },
+    { feature: '전체 코드 중 AI 비율', values: ['2025년 기준 전체 코드의 41%가 AI 도구로 작성 또는 보조', 'Stack Overflow 2025'] },
   ]}
-  layout={{
-    barmode: 'group',
-    legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center' },
-    margin: { t: 40, b: 80 },
-  }}
-  height={380}
 />
 
 ## 개선 사이클

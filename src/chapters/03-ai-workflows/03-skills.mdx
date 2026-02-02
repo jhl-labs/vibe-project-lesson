@@ -16,7 +16,7 @@ import { templateFiles } from '../../data/template-files';
 
 ## 개요
 
-스킬은 `.agent/skills/` 디렉토리에 정의된 **실행 가능한 전문 능력**입니다. 슬래시 커맨드로 호출되며, 각 스킬은 특정 작업에 대한 상세한 절차, 체크리스트, 출력 형식을 정의합니다.
+스킬은 `.claude/skills/` 디렉토리에 정의된 **실행 가능한 전문 능력**입니다. 각 스킬은 `SKILL.md` 파일을 포함하는 디렉토리로 구성되며, 슬래시 커맨드로 호출하거나 Claude가 자동으로 매칭하여 실행합니다. 각 스킬은 특정 작업에 대한 상세한 절차, 체크리스트, 출력 형식을 정의합니다.
 
 <Callout type="info" title="프롬프트 vs 스킬">
   **프롬프트**는 "어떤 정보를 제공하고 무엇을 요청할지"의 템플릿이고,
@@ -118,13 +118,13 @@ import { templateFiles } from '../../data/template-files';
 | A06 | 불안전한 설계 | 위협 모델링, 보안 패턴 |
 | A07 | 인증 실패 | 세션 관리, 비밀번호 정책 |
 | A08 | 무결성 실패 | 서명 검증, 데이터 무결성 |
-| A09 | 로깅/모니터링 실패 | 감사 로그, 알림 |
+| A09 | 로깅 및 알림 실패 | 감사 로그, 알림 |
 | A10 | 예외 처리 미흡 | 에러 핸들링, fail-open 방지 |
 
 ## 스킬 커스터마이징
 
 <CodeBlock
-  code={`# .agent/skills/code-review.md 커스터마이징 예시
+  code={`# .claude/skills/code-review/SKILL.md 커스터마이징 예시
 
 ## 추가 체크리스트
 - [ ] 접근성 (a11y) 검사
