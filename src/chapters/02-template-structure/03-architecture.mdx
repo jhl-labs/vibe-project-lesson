@@ -17,17 +17,18 @@ import { templateFiles } from '../../data/template-files';
 
 <Callout type="info" title="원전과 실무 적용의 차이">
   Robert C. Martin의 Clean Architecture 원서(2017)는 Entities, Use Cases, Interface Adapters, Frameworks & Drivers의 4개 동심원 구조를 제안합니다.
+  핵심은 **Dependency Rule**(의존성은 항상 안쪽을 향한다)과 **SOLID 원칙**입니다.
   이 프로젝트 템플릿은 해당 원칙을 실무에 적용하여 Presentation, Application, Domain, Infrastructure 4레이어로 구성했습니다.
 </Callout>
 
-이 프로젝트 템플릿은 **Clean Architecture**의 핵심 원칙을 실무에 적용하여 4가지 원칙을 따릅니다:
+이 프로젝트 템플릿은 Clean Architecture의 **Dependency Rule**을 중심으로, 다음 4가지 설계 원칙을 채택합니다:
 
-| 원칙 | 설명 |
-|------|------|
-| **관심사의 분리** | 각 레이어/모듈은 명확한 책임을 가짐 |
-| **의존성 역전** | 고수준 모듈이 저수준 모듈에 의존하지 않음 |
-| **단일 진실 공급원** | 각 데이터는 하나의 위치에서만 관리 |
-| **실패를 위한 설계** | 모든 외부 호출은 실패할 수 있음을 가정 |
+| 원칙 | 설명 | 근거 |
+|------|------|------|
+| **관심사의 분리** | 각 레이어/모듈은 명확한 책임을 가짐 | Clean Architecture 핵심 원칙 |
+| **의존성 역전** | 고수준 모듈이 저수준 모듈에 의존하지 않음 | SOLID의 DIP 원칙 |
+| **단일 진실 공급원** | 각 데이터는 하나의 위치에서만 관리 | 일반 소프트웨어 공학 원칙 |
+| **실패를 위한 설계** | 모든 외부 호출은 실패할 수 있음을 가정 | 분산 시스템 설계 원칙 |
 
 ## 4레이어 구조
 
