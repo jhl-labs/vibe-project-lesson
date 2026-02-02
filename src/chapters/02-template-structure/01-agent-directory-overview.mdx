@@ -94,7 +94,18 @@ import { ChapterNav } from '../../components/ChapterNav';
             { name: 'test.md', type: 'file', description: '테스트 전략' },
           ],
         },
-        { name: 'settings.json', type: 'file', description: '훅, 권한 등 설정' },
+        {
+          name: 'rules/',
+          type: 'folder',
+          description: '모듈화된 프로젝트 규칙 (.md)',
+          children: [
+            { name: 'code-style.md', type: 'file', description: '코드 스타일 규칙' },
+            { name: 'testing.md', type: 'file', description: '테스트 규칙' },
+            { name: 'security.md', type: 'file', description: '보안 규칙' },
+          ],
+        },
+        { name: 'settings.json', type: 'file', description: '훅, 권한, MCP 서버 설정' },
+        { name: 'settings.local.json', type: 'file', description: '개인 설정 (.gitignore 대상)' },
       ],
     },
   ]}
@@ -117,25 +128,42 @@ import { ChapterNav } from '../../components/ChapterNav';
 | 디렉토리/파일 | 역할 | 비고 |
 |--------------|------|------|
 | `commands/` | 커스텀 슬래시 커맨드 | 개별 .md 파일이 `/파일명`으로 호출됨 |
-| `skills/` | 실행 가능한 스킬 (5개) | 각 스킬은 `SKILL.md`를 포함하는 디렉토리 |
-| `agents/` | 커스텀 서브에이전트 (4개) | 전문 분야별 에이전트 정의 |
-| `settings.json` | 훅, 권한 등 설정 | MCP 서버 설정 포함 |
+| `skills/` | 실행 가능한 스킬 | 각 스킬은 `SKILL.md`를 포함하는 디렉토리 |
+| `agents/` | 커스텀 서브에이전트 | YAML 프론트매터 + 마크다운으로 정의 |
+| `rules/` | 모듈화된 프로젝트 규칙 | CLAUDE.md 대안. path-scoped 규칙 지원 |
+| `settings.json` | 훅, 권한, MCP 서버 설정 | 팀 공유용 (Git 커밋) |
+| `settings.local.json` | 개인 설정 오버라이드 | `.gitignore` 대상 |
 
 ## CLAUDE.md와의 관계
 
 <CodeBlock
-  code={`# CLAUDE.md에서 .agent/ 파일 참조
+  code={`# CLAUDE.md (프로젝트 루트 또는 .claude/CLAUDE.md)
+
+## 프로젝트 개요
+- TypeScript + Express.js + PostgreSQL
+- Clean Architecture 4레이어
+
+## 빠른 명령어
+npm run dev / npm test / npm run lint
+
 ## 참고 문서
-- \`.agent/context.md\` - 상세 프로젝트 컨텍스트
-- \`.agent/conventions.md\` - 코딩 컨벤션 상세
-- \`docs/adr/\` - 아키텍처 결정 기록`}
+@.agent/context.md
+@.agent/conventions.md`}
   language="markdown"
   filename="CLAUDE.md"
 />
 
-<Callout type="tip" title="참조 방식">
-  CLAUDE.md에 간략한 규칙을 적고, 상세 내용은 .agent/ 파일을 참조하도록 구성하면
-  Claude가 필요할 때 상세 정보를 찾아볼 수 있습니다.
+<Callout type="info" title="@ 임포트 구문">
+  CLAUDE.md에서 `@path/to/file.md` 구문으로 외부 파일을 임포트할 수 있습니다.
+  최대 5단계까지 재귀 임포트가 가능하며, 코드 블록 내부의 `@`는 무시됩니다.
+  프로젝트에서 처음 임포트를 발견하면 승인 대화상자가 표시됩니다.
+</Callout>
+
+<Callout type="tip" title="CLAUDE.md vs .claude/rules/">
+  CLAUDE.md에 모든 규칙을 넣으면 컨텍스트 윈도우에서 핵심 정보가 묻히는 현상(fading memory)이 발생합니다.
+  핵심 규칙만 CLAUDE.md에 두고, 상세 내용은 `@.agent/context.md`로 임포트하거나
+  `.claude/rules/` 디렉토리에 주제별 규칙 파일로 분리하세요.
+  `.claude/rules/`는 YAML 프론트매터의 `paths` 필드로 특정 파일 패턴에만 적용되는 규칙을 정의할 수 있습니다.
 </Callout>
 
 ## 다른 AI 도구에서의 활용
@@ -143,13 +171,13 @@ import { ChapterNav } from '../../components/ChapterNav';
 | AI 도구 | 프로젝트 설정 파일 | .agent/ 참조 방식 |
 |---------|-------------------|------------------|
 | **Claude Code** | `CLAUDE.md` + `.claude/` | `@.agent/context.md` 임포트, 대화 중 직접 파일 읽기 |
-| **GitHub Copilot** | `.github/copilot-instructions.md` | 파일 참조로 컨텍스트 제공 |
-| **Cursor** | `.cursor/rules/*.mdc` | `@files`로 직접 참조 |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md`로 path-specific 규칙도 지원 |
+| **Cursor** | `.cursor/rules/*.mdc` | 규칙 내 `@file`로 직접 참조 |
 
-<Callout type="tip" title="도구 독립적인 구조">
-  `.agent/` 디렉토리는 특정 AI 도구에 종속되지 않습니다.
-  프로젝트 지식을 마크다운으로 관리하므로 어떤 AI 도구에서든 활용할 수 있습니다.
-  Claude Code에서는 CLAUDE.md의 임포트 구문(`@.agent/context.md`)으로, Cursor에서는 `@files`로 참조합니다.
+<Callout type="tip" title="크로스 도구 표준: AGENTS.md">
+  2025년부터 GitHub Copilot, Cursor 등 여러 AI 도구가 `AGENTS.md` 파일을 공통으로 인식하기 시작했습니다.
+  `.agent/` 디렉토리와 유사하게, 도구 독립적인 에이전트 지시사항을 마크다운으로 관리하는 표준입니다.
+  프로젝트에서 여러 AI 도구를 병행한다면 `AGENTS.md`도 함께 관리하는 것을 고려하세요.
 </Callout>
 
 <Callout type="warning" title="Cursor .cursorrules는 deprecated">

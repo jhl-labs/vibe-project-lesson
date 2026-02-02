@@ -92,8 +92,10 @@ import { templateFiles } from '../../data/template-files';
 | **예시 내용** | "PostgreSQL 15 사용" | "함수는 30줄 이내" |
 
 <Callout type="tip" title="CLAUDE.md에서 참조하기">
-  CLAUDE.md에 모든 규칙을 넣으면 "fading memory" 현상이 발생합니다.
-  핵심 규칙만 CLAUDE.md에 두고, 상세 내용은 `@.agent/context.md`와 `@.agent/conventions.md`로 분리하세요.
+  CLAUDE.md에 모든 규칙을 넣으면 컨텍스트 윈도우에서 핵심 정보가 묻힙니다(fading memory).
+  LLM은 컨텍스트의 처음과 끝 부분을 가장 잘 기억하므로, 중간에 묻힌 지시사항은 무시될 수 있습니다.
+  핵심 규칙만 CLAUDE.md에 두고, 상세 내용은 `@.agent/context.md`와 `@.agent/conventions.md`로 임포트하거나
+  `.claude/rules/` 디렉토리에 주제별 파일로 분리하세요.
 </Callout>
 
 <ChapterNav
