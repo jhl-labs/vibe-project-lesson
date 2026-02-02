@@ -30,9 +30,9 @@ import { templateFiles } from '../../data/template-files';
   ]}
 />
 
-## 내장 슬래시 커맨드 (주요)
+## 내장 커맨드 — Claude Code 기본 제공
 
-아래는 자주 사용하는 주요 내장 커맨드입니다. Claude Code는 지속적으로 업데이트되므로, `/help`를 실행하면 현재 버전의 전체 커맨드 목록을 확인할 수 있습니다.
+아래는 Claude Code에 **기본 내장**된 커맨드입니다. 별도 설정 없이 모든 프로젝트에서 바로 사용할 수 있습니다. Claude Code는 지속적으로 업데이트되므로, `/help`를 실행하면 현재 버전의 전체 커맨드 목록을 확인할 수 있습니다.
 
 ### 세션/컨텍스트 관리
 
@@ -69,36 +69,43 @@ import { templateFiles } from '../../data/template-files';
 | `/review` | 코드 리뷰 (내장) |
 | `/bug` | 버그 리포트 제출 |
 
-## 커스텀 슬래시 커맨드 (10개)
+---
 
-이 프로젝트 템플릿에서 정의한 10개의 커스텀 커맨드입니다:
+## 커스텀 커맨드 — 이 프로젝트 템플릿 정의 (10개)
 
-### 개발 워크플로우 커맨드
+아래 10개 커맨드는 Claude Code 내장이 **아닙니다**. 이 프로젝트 템플릿의 `.claude/commands/` 디렉토리에 마크다운 파일로 정의된 **프로젝트 전용 커스텀 커맨드**입니다. 팀의 워크플로우에 맞게 자유롭게 수정·추가할 수 있습니다.
 
-| 커맨드 | 설명 | 출력물 |
-|--------|------|--------|
-| `/commit` | 커밋 메시지 생성 | Conventional Commit 형식 메시지 |
-| `/pr` | PR 설명 생성 | PR 제목, 설명, 체크리스트 |
-| `/changelog` | 변경 이력 업데이트 | CHANGELOG 엔트리 |
-| `/hotfix` | 긴급 패치 가이드 | 핫픽스 워크플로우 |
-| `/migrate` | 마이그레이션 스크립트 | DB/스키마 마이그레이션 |
-
-### 코드 품질 커맨드
-
-| 커맨드 | 설명 | 출력물 |
-|--------|------|--------|
-| `/review` | 코드 리뷰 (내장 `/review`를 확장) | 리뷰 코멘트 및 제안 |
-| `/test` | 테스트 케이스 생성 | 단위 테스트 코드 |
-| `/refactor` | 리팩토링 제안 | 개선된 코드 및 설명 |
-| `/security` | 보안 스캔 | 취약점 리포트 |
-| `/doc` | 문서 생성 | API 문서, JSDoc 등 |
-
-<Callout type="info" title="커스텀 /review vs 내장 /review">
-  Claude Code에는 내장 `/review`가 있지만, 커스텀 커맨드로 동일 이름의 `/review`를 정의하면
-  커스텀 버전이 우선 실행됩니다. 프로젝트별 리뷰 기준(보안 체크리스트, 컨벤션 검증 등)을 반영할 수 있습니다.
+<Callout type="warning" title="커스텀 커맨드는 프로젝트마다 다릅니다">
+  아래 커맨드들은 이 템플릿이 제공하는 예시입니다. `.claude/commands/커맨드명.md` 파일이 있어야 동작하며,
+  다른 프로젝트에서는 해당 파일이 없으면 사용할 수 없습니다.
 </Callout>
 
-### /commit 커맨드 상세
+### 개발 워크플로우
+
+| 커맨드 | 설명 | 출력물 | 설정 파일 |
+|--------|------|--------|-----------|
+| `/commit` | 커밋 메시지 생성 | Conventional Commit 형식 메시지 | `.claude/commands/commit.md` |
+| `/pr` | PR 설명 생성 | PR 제목, 설명, 체크리스트 | `.claude/commands/pr.md` |
+| `/changelog` | 변경 이력 업데이트 | CHANGELOG 엔트리 | `.claude/commands/changelog.md` |
+| `/hotfix` | 긴급 패치 가이드 | 핫픽스 워크플로우 | `.claude/commands/hotfix.md` |
+| `/migrate` | 마이그레이션 스크립트 | DB/스키마 마이그레이션 | `.claude/commands/migrate.md` |
+
+### 코드 품질
+
+| 커맨드 | 설명 | 출력물 | 설정 파일 |
+|--------|------|--------|-----------|
+| `/review` | 코드 리뷰 (내장 확장) | 리뷰 코멘트 및 제안 | `.claude/commands/review.md` |
+| `/test` | 테스트 케이스 생성 | 단위 테스트 코드 | `.claude/commands/test.md` |
+| `/refactor` | 리팩토링 제안 | 개선된 코드 및 설명 | `.claude/commands/refactor.md` |
+| `/security` | 보안 스캔 | 취약점 리포트 | `.claude/commands/security.md` |
+| `/doc` | 문서 생성 | API 문서, JSDoc 등 | `.claude/commands/doc.md` |
+
+<Callout type="info" title="커스텀 /review vs 내장 /review">
+  Claude Code에는 내장 `/review`가 있지만, `.claude/commands/review.md`로 동일 이름의 커스텀 커맨드를 정의하면
+  **커스텀 버전이 우선 실행**됩니다. 프로젝트별 리뷰 기준(보안 체크리스트, 컨벤션 검증 등)을 반영할 수 있습니다.
+</Callout>
+
+### [커스텀] /commit 상세
 
 스테이징된 변경사항을 분석하여 Conventional Commits 형식의 커밋 메시지를 생성합니다.
 
@@ -139,7 +146,7 @@ Closes #123`}
 | `perf` | 성능 개선 |
 | `security` | 보안 관련 변경 |
 
-### /pr 커맨드 상세
+### [커스텀] /pr 상세
 
 브랜치의 변경사항을 분석하여 PR 제목과 설명을 생성합니다.
 
@@ -183,7 +190,7 @@ Closes #123
   filename="/pr 출력 예시"
 />
 
-### /review 커맨드 상세
+### [커스텀] /review 상세
 
 지정된 코드 또는 현재 변경사항에 대한 코드 리뷰를 수행합니다. Blocker/Suggestion/Question/Praise 4단계로 분류된 피드백을 생성합니다.
 
@@ -218,7 +225,7 @@ Closes #123
   filename="/review 출력 예시"
 />
 
-### /test 커맨드 상세
+### [커스텀] /test 상세
 
 지정된 코드에 대한 테스트 케이스를 생성합니다. 단위, 통합, E2E 테스트를 지원합니다.
 
@@ -255,7 +262,7 @@ describe('UserService', () => {
   filename="/test 출력 예시"
 />
 
-### /doc 커맨드 상세
+### [커스텀] /doc 상세
 
 코드에 대한 문서를 생성합니다. JSDoc, API 문서, README 등 다양한 형식을 지원합니다.
 
@@ -284,7 +291,7 @@ describe('UserService', () => {
   filename="/doc 출력 예시"
 />
 
-### /refactor 커맨드 상세
+### [커스텀] /refactor 상세
 
 코드 스멜을 탐지하고 리팩토링을 제안합니다. 성능, 가독성 등 포커스를 지정할 수 있습니다.
 
@@ -327,7 +334,7 @@ function processOrder(order) {
   filename="/refactor 출력 예시"
 />
 
-### /security 커맨드 상세
+### [커스텀] /security 상세
 
 코드의 보안 취약점을 분석합니다. Critical/High/Medium 심각도로 분류된 리포트를 생성합니다.
 
@@ -359,7 +366,7 @@ function processOrder(order) {
   filename="/security 출력 예시"
 />
 
-### /changelog 커맨드 상세
+### [커스텀] /changelog 상세
 
 최근 변경사항을 분석하여 CHANGELOG 엔트리를 생성합니다. Keep a Changelog 형식을 따릅니다.
 
@@ -388,7 +395,7 @@ function processOrder(order) {
   filename="/changelog 출력 예시"
 />
 
-### /migrate 커맨드 상세
+### [커스텀] /migrate 상세
 
 데이터베이스 또는 스키마 마이그레이션 스크립트를 생성합니다. SQL, Prisma 등 다양한 형식을 지원합니다.
 
@@ -413,7 +420,7 @@ ALTER TABLE users DROP COLUMN role;`}
   filename="/migrate 출력 예시"
 />
 
-### /hotfix 커맨드 상세
+### [커스텀] /hotfix 상세
 
 긴급 수정이 필요한 상황에서 브랜치 생성부터 배포, 모니터링까지의 전체 핫픽스 워크플로우를 안내합니다.
 
@@ -453,7 +460,7 @@ git push origin hotfix/ISSUE-123-critical-bug
   filename="/hotfix 출력 예시"
 />
 
-## 커맨드 조합 워크플로우
+## 커스텀 커맨드 조합 워크플로우
 
 <MermaidDiagram
   chart={`flowchart LR
