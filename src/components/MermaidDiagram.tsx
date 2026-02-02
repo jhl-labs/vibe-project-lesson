@@ -5,6 +5,7 @@ interface MermaidDiagramProps {
   chart: string;
   title?: string;
   caption?: string;
+  maxWidth?: string;
 }
 
 let mermaidInitialized = false;
@@ -46,6 +47,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
   chart,
   title,
   caption,
+  maxWidth,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>('');
@@ -80,6 +82,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
       border: '1px solid #e0d9cf',
       borderRadius: '8px',
       overflow: 'hidden',
+      ...(maxWidth ? { maxWidth, marginLeft: 'auto', marginRight: 'auto' } : {}),
     }}>
       {title && (
         <div style={{
