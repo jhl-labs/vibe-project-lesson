@@ -52,7 +52,7 @@ MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하�
 | **Notion** | Notion | 문서 읽기/쓰기 |
 | **Atlassian** | Atlassian | Jira/Confluence 연동 |
 | **Prisma** | Prisma | 데이터베이스 스키마 관리 |
-| **PostgreSQL** | Bytebase | DB 쿼리 실행 |
+| **DBHub** | Bytebase | DB 쿼리 실행 (PostgreSQL, MySQL, SQLite 등 6개 DB 지원) |
 
 ## 전송 방식 (Transport)
 
@@ -226,10 +226,11 @@ claude mcp serve`}
 
 ## 환경 변수
 
-| 변수 | 설명 |
-|------|------|
-| `MCP_TIMEOUT=10000` | MCP 서버 시작 타임아웃 (밀리초) |
-| `MAX_MCP_OUTPUT_TOKENS=50000` | MCP 출력 토큰 한도 |
+| 변수 | 설명 | 기본값 |
+|------|------|--------|
+| `MCP_TIMEOUT` | MCP 서버 시작 타임아웃 (밀리초) | `10000` (10초) |
+| `MCP_TOOL_TIMEOUT` | MCP 도구 실행 타임아웃 (밀리초) | `300000` (5분) |
+| `MAX_MCP_OUTPUT_TOKENS` | MCP 출력 토큰 최대값 | `25000` |
 
 ## 엔터프라이즈: Managed MCP
 

@@ -47,12 +47,11 @@ jobs:
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
+          anthropic_api_key: \${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             이 PR의 변경사항을 리뷰해주세요.
             보안, 성능, 코드 품질을 중점적으로 확인하고
-            .claude/skills/code-review/SKILL.md 기준을 따라주세요.
-        env:
-          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`}
+            .claude/skills/code-review/SKILL.md 기준을 따라주세요.`}
   language="yaml"
   filename="claude-pr-review.yml"
 />
@@ -81,13 +80,12 @@ jobs:
       - name: Analyze Issue
         uses: anthropics/claude-code-action@v1
         with:
+          anthropic_api_key: \${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             이 이슈를 분석하고:
             1. 적절한 라벨을 추가해주세요
             2. 우선순위를 판단해주세요
-            3. 관련 코드 영역을 파악해주세요
-        env:
-          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`}
+            3. 관련 코드 영역을 파악해주세요`}
   language="yaml"
   filename="claude-issue-triage.yml"
 />
@@ -111,13 +109,12 @@ jobs:
       - name: Suggest Improvements
         uses: anthropics/claude-code-action@v1
         with:
+          anthropic_api_key: \${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             이 PR의 코드를 분석하고 개선 제안을 해주세요:
             - 성능 최적화 기회
             - 더 나은 패턴/관용구
-            - 에러 처리 개선
-        env:
-          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`}
+            - 에러 처리 개선`}
   language="yaml"
   filename="claude-code-suggest.yml"
 />
@@ -142,13 +139,12 @@ jobs:
       - name: Check Doc Sync
         uses: anthropics/claude-code-action@v1
         with:
+          anthropic_api_key: \${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             코드와 문서의 동기화 상태를 확인해주세요:
             1. API 코드와 API 문서 일치 여부
             2. README와 실제 프로젝트 구조 일치 여부
-            3. 변경된 코드에 대한 문서 업데이트 필요 여부
-        env:
-          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`}
+            3. 변경된 코드에 대한 문서 업데이트 필요 여부`}
   language="yaml"
   filename="claude-doc-sync.yml"
 />
@@ -159,7 +155,6 @@ jobs:
       PR["PR 생성/업데이트"]
       ISSUE["이슈 생성"]
       SCHED["스케줄 (주간)"]
-      MERGE["main 머지"]
     end
     subgraph CLAUDE["🤖 Claude Actions"]
       REVIEW["PR Review<br/>코드 리뷰 자동화"]

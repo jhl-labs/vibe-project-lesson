@@ -22,6 +22,20 @@ import { templateFiles } from '../../data/template-files';
   다양한 도구(MCP 서버)를 꽂아서 AI의 능력을 확장할 수 있습니다.
 </Callout>
 
+## 핵심 기능 (Primitives)
+
+MCP는 단순히 "도구 호출"만 지원하는 것이 아닙니다. 세 가지 핵심 기능을 제공합니다:
+
+<ComparisonTable
+  title="MCP 핵심 기능"
+  headers={['기능', '방향', '설명', '예시']}
+  rows={[
+    { feature: 'Resources', values: ['서버 → 클라이언트', 'AI 컨텍스트에 데이터를 주입', '파일 내용, DB 스키마, 설정 문서'] },
+    { feature: 'Tools', values: ['클라이언트 → 서버', 'AI가 외부 시스템에서 액션을 실행', 'Git 커밋, API 호출, 쿼리 실행'] },
+    { feature: 'Prompts', values: ['서버 → 클라이언트', '재사용 가능한 프롬프트 템플릿 제공', '코드 리뷰 프롬프트, SQL 생성 프롬프트'] },
+  ]}
+/>
+
 ## 구조
 
 <MermaidDiagram
