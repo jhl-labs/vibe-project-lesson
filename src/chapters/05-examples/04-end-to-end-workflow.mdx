@@ -3,6 +3,7 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { Timeline } from '../../components/Timeline';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 5: 실전 예제/End-to-End 워크플로우" />
@@ -13,7 +14,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## 시나리오
 
-기존 Express.js API 프로젝트에 **"사용자 프로필 이미지 업로드"** 기능을 추가하는 실전 워크플로우입니다. 이 예제는 Part 1에서 배운 프롬프트 기법, Part 3의 워크플로우 도구들, Part 4의 MCP 통합을 모두 활용합니다.
+기존 Express.js API 프로젝트에 **"사용자 프로필 이미지 업로드"** 기능을 추가하는 실전 워크플로우입니다. Part 1에서 배운 프롬프트 기법, Part 3의 워크플로우 도구들, Part 4의 MCP 통합을 모두 활용합니다.
 
 <MermaidDiagram
   chart={`flowchart LR
@@ -31,6 +32,8 @@ import { ChapterNav } from '../../components/ChapterNav';
   title="End-to-End 워크플로우 6단계"
   caption="Anthropic 공식 권장: Explore → Plan → Implement → Commit"
 />
+
+---
 
 ## 1단계: 요구사항 분석 (Explore)
 
@@ -66,6 +69,8 @@ import { ChapterNav } from '../../components/ChapterNav';
   탐색 결과만 요약되어 돌아오므로 이후 구현 단계에서 컨텍스트가 부족해지는 문제를 방지합니다.
 </Callout>
 
+---
+
 ## 2단계: 설계 (Plan Mode)
 
 `Shift+Tab`으로 Plan Mode에 진입합니다. Plan Mode에서는 Claude가 파일을 수정하지 않고 **읽기와 계획만** 수행합니다.
@@ -92,6 +97,14 @@ import { ChapterNav } from '../../components/ChapterNav';
   language="text"
   filename="2단계: Plan Mode에서 설계"
 />
+
+<Callout type="info" title="Plan Mode 활용 팁">
+  - **think hard**: 프롬프트에 "think hard"를 포함하면 Claude가 확장 사고 모드로 더 깊이 분석합니다
+  - **계획 저장**: 복잡한 기능은 계획을 `.agent/tasks/` 파일로 저장하면 세션 간 참조 가능
+  - **위험도 매칭**: 고위험 변경(DB 스키마, 인증)은 Plan Mode에서 충분히 검토한 후 구현
+</Callout>
+
+---
 
 ## 3단계: 구현 (Implement)
 
@@ -124,7 +137,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 <Callout type="warning" title="검증 수단을 항상 포함하세요">
   각 단계에서 "구현 후 테스트를 실행해줘"를 포함하면
   Claude가 자기 검증 루프(self-verification loop)를 수행합니다.
-  이것이 Anthropic이 권장하는 **단일 최고 레버리지 팁**입니다.
+  Anthropic 공식 베스트 프랙티스에서 이를 **가장 효과적인 단일 기법**으로 권장합니다.
 </Callout>
 
 ### 구현 결과 예시
@@ -178,8 +191,10 @@ export class UploadAvatarUseCase {
 }`}
   language="typescript"
   filename="src/application/user/upload-avatar.use-case.ts"
-  highlightLines={[6, 7, 18, 19, 21, 22, 27, 28, 35, 36, 37]}
+  highlightLines={[6, 7, 18, 21, 26, 27, 35, 36, 41, 42]}
 />
+
+---
 
 ## 4단계: 테스트
 
@@ -199,6 +214,12 @@ export class UploadAvatarUseCase {
   filename="4단계: 테스트 작성 프롬프트"
 />
 
+<Callout type="tip" title="테스트 프롬프트 작성법">
+  테스트 케이스를 **번호로 나열**하면 Claude가 빠뜨리지 않습니다. "테스트를 작성해줘"보다 "다음 5개 케이스를 커버해줘"가 훨씬 정확한 결과를 만듭니다.
+</Callout>
+
+---
+
 ## 5단계: 코드 리뷰 (새 세션)
 
 Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
@@ -217,8 +238,23 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
 <Callout type="info" title="Writer/Reviewer 패턴">
   구현한 세션과 **다른 세션**에서 리뷰하면, 새로운 컨텍스트의 Claude가
   구현 과정의 편향 없이 객관적으로 코드를 평가합니다.
-  이것은 Anthropic 공식 베스트 프랙티스에서 권장하는 패턴입니다.
+  이 패턴은 Anthropic 공식 블로그와 커뮤니티에서 널리 권장됩니다.
 </Callout>
+
+### 리뷰에서 자주 발견되는 이슈
+
+<ComparisonTable
+  title="파일 업로드 보안 점검 항목"
+  headers={['취약점', '위험', '대응 방법']}
+  rows={[
+    { feature: 'MIME 위장', values: ['확장자를 바꿔 실행 파일 업로드', 'magic bytes 검증 (file-type 라이브러리)'] },
+    { feature: '파일명 인젝션', values: ['../../ 경로로 디렉토리 탐색', 'UUID로 파일명 생성, 원본 파일명 미사용'] },
+    { feature: '무제한 업로드', values: ['디스크/메모리 고갈', 'multer limits 설정 (5MB)'] },
+    { feature: '미인증 접근', values: ['누구나 이미지 업로드', 'authMiddleware 필수 적용'] },
+  ]}
+/>
+
+---
 
 ## 6단계: PR 생성
 
@@ -239,6 +275,8 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
   filename="6단계: PR 생성"
 />
 
+---
+
 ## 전체 프롬프트 요약
 
 <ComparisonTable
@@ -248,11 +286,13 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
     { feature: '1. 요구사항', values: ['인터뷰 패턴 + 서브에이전트 탐색', '정확한 스펙 확정 + 컨텍스트 보존'] },
     { feature: '2. 설계', values: ['Plan Mode (Shift+Tab)', '코드 수정 없이 계획만 수립'] },
     { feature: '3. 구현', values: ['단계별 분할 + 검증 포함', '각 단계를 독립적으로 검증'] },
-    { feature: '4. 테스트', values: ['구체적 테스트 케이스 명시', '엣지 케이스까지 커버'] },
+    { feature: '4. 테스트', values: ['구체적 테스트 케이스 번호 나열', '엣지 케이스까지 커버'] },
     { feature: '5. 리뷰', values: ['Writer/Reviewer 패턴', '편향 없는 객관적 리뷰'] },
     { feature: '6. PR', values: ['AI 사용 내역 포함', '투명한 AI 활용 기록'] },
   ]}
 />
+
+---
 
 ## 실패 시 대처
 
@@ -262,12 +302,25 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
 # 더 나은 프롬프트로 새 세션 시작
 
 # 특정 체크포인트로 되돌리기
-/rewind
+> 직전 작업을 취소하고 이전 상태로 돌아가줘
 
 # 구현 중 방향이 잘못되었을 때
 # Esc를 눌러 즉시 중단 → 방향 수정 후 재지시`}
   language="bash"
   filename="실패 대처 명령어"
+/>
+
+### 실패 시나리오별 대응 전략
+
+<ComparisonTable
+  title="실패 시나리오와 대응"
+  headers={['상황', '증상', '대응']}
+  rows={[
+    { feature: '같은 에러 반복', values: ['동일 수정을 2회 이상 시도', '/clear 후 에러 메시지와 함께 새 세션 시작'] },
+    { feature: '컨텍스트 소진', values: ['Claude 응답 품질 저하, 이전 내용 잊음', '/clear 후 핵심 컨텍스트만 다시 제공'] },
+    { feature: '잘못된 방향', values: ['구현이 요구사항과 다른 방향으로 진행', 'Esc로 중단, Plan Mode로 전환하여 재설계'] },
+    { feature: '테스트 실패', values: ['구현은 완료했으나 테스트가 통과하지 않음', '실패 로그를 복사하여 "이 테스트 실패를 수정해줘" 요청'] },
+  ]}
 />
 
 <Callout type="tip" title="Hooks 활용으로 품질 자동화">
@@ -276,6 +329,53 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
   - `Stop` + `agent` → 매 응답 후 자동 테스트 실행
   - `PreToolUse` + `Bash` → 위험 명령 차단
 </Callout>
+
+---
+
+## 실습: 전체 워크플로우 직접 해보기
+
+아래 프롬프트를 순서대로 Claude Code에 입력하여 전체 워크플로우를 체험합니다.
+
+<CodeBlock
+  code={`# === 실습 시나리오: 기존 API에 "비밀번호 변경" 기능 추가 ===
+
+# 1단계: 요구사항 인터뷰
+> 사용자 비밀번호 변경 기능을 추가하려고 해.
+> 구현 전에 내가 결정해야 할 사항들을 질문해줘.
+
+# (Claude의 질문에 답변: 현재 비밀번호 확인 필요, bcrypt 사용,
+#  최소 8자, 최근 3개 비밀번호 재사용 금지)
+
+# 2단계: 설계 (Shift+Tab으로 Plan Mode 진입)
+> 다음 요구사항으로 구현 계획을 세워줘:
+> - 현재 비밀번호 확인 후 변경
+> - bcrypt로 해싱
+> - 최소 8자, 대소문자+숫자+특수문자 포함
+> - 최근 3개 비밀번호 재사용 금지
+> - 변경 후 이메일 알림 발송
+
+# 3단계: 구현 (Shift+Tab으로 구현 모드)
+> 계획을 실행해줘. Domain Layer부터 시작해서
+> 각 레이어를 순서대로 구현해줘.
+> 각 단계마다 테스트를 실행해줘.
+
+# 4단계: 테스트
+> 다음 케이스를 커버하는 테스트를 작성하고 실행해줘:
+> 1. 정상 비밀번호 변경
+> 2. 현재 비밀번호 불일치
+> 3. 새 비밀번호가 정책 미충족 (8자 미만, 특수문자 없음 등)
+> 4. 최근 3개 비밀번호 재사용 시도
+> 5. 미인증 사용자 접근
+
+# 5단계: 리뷰 (새 세션에서)
+> git diff main 의 변경사항을 리뷰해줘.
+> 보안, 에러 처리, 테스트 커버리지를 중점 확인해.
+
+# 6단계: PR 생성
+> 변경사항을 커밋하고 PR을 생성해줘.`}
+  language="text"
+  filename="실습: 비밀번호 변경 기능 전체 워크플로우"
+/>
 
 <ChapterNav
   prev={{ title: '프론트엔드 프로젝트', path: '/docs/part-5--실전-예제-프론트엔드-프로젝트' }}
