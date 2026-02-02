@@ -100,9 +100,18 @@ import { templateFiles } from '../../data/template-files';
 
 ### /commit 커맨드 상세
 
+스테이징된 변경사항을 분석하여 Conventional Commits 형식의 커밋 메시지를 생성합니다.
+
 <CodeBlock
   code={`# 사용법
 /commit
+
+# 출력 형식
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
 
 # 출력 예시
 feat(auth): add JWT refresh token support
@@ -116,7 +125,67 @@ Closes #123`}
   filename="/commit 사용 예시"
 />
 
+**타입 선택 기준:**
+
+| 타입 | 사용 시점 |
+|------|----------|
+| `feat` | 새로운 기능 추가 |
+| `fix` | 버그 수정 |
+| `docs` | 문서만 변경 |
+| `style` | 코드 포맷팅 (기능 변화 없음) |
+| `refactor` | 기능 변화 없는 코드 개선 |
+| `test` | 테스트 추가/수정 |
+| `chore` | 빌드/설정 변경 |
+| `perf` | 성능 개선 |
+| `security` | 보안 관련 변경 |
+
+### /pr 커맨드 상세
+
+브랜치의 변경사항을 분석하여 PR 제목과 설명을 생성합니다.
+
+<CodeBlock
+  code={`# 사용법
+/pr
+/pr --base main
+/pr --template detailed
+
+# 출력 예시
+## PR 제목
+feat: JWT 리프레시 토큰 지원
+
+## 요약
+변경사항 요약 (2-3문장)
+
+## 변경 상세
+### 추가된 것
+- 리프레시 토큰 로테이션 구현
+- 토큰 블랙리스트 추가
+
+### 변경된 것
+- 인증 미들웨어 업데이트
+
+### 제거된 것
+- 레거시 토큰 검증 로직
+
+## 관련 이슈
+Closes #123
+
+## 테스트
+- [ ] 단위 테스트 추가
+- [ ] 통합 테스트 확인
+- [ ] 수동 테스트 완료
+
+## 체크리스트
+- [ ] 자체 코드 리뷰 완료
+- [ ] 문서 업데이트
+- [ ] 린트 통과`}
+  language="markdown"
+  filename="/pr 출력 예시"
+/>
+
 ### /review 커맨드 상세
+
+지정된 코드 또는 현재 변경사항에 대한 코드 리뷰를 수행합니다. Blocker/Suggestion/Question/Praise 4단계로 분류된 피드백을 생성합니다.
 
 <CodeBlock
   code={`# 사용법
@@ -135,17 +204,138 @@ Closes #123`}
 🚨 [src/api/users.ts:45] SQL 인젝션 취약점 발견
 
 ### 권장 사항 (Suggestion)
-💡 [src/services/user.ts:23] 에러 처리 개선 필요`}
+💡 [src/services/user.ts:23] 에러 처리 개선 필요
+
+### 질문 (Question)
+❓ [src/services/user.ts:50] 이 로직의 의도가 무엇인가요?
+
+### 좋은 점 (Praise)
+✨ 에러 핸들링이 일관적으로 잘 구현되어 있습니다
+
+### 결론
+수정 요청 (Blocker 해결 필요)`}
   language="markdown"
   filename="/review 출력 예시"
 />
 
+### /test 커맨드 상세
+
+지정된 코드에 대한 테스트 케이스를 생성합니다. 단위, 통합, E2E 테스트를 지원합니다.
+
+<CodeBlock
+  code={`# 사용법
+/test src/services/user.ts
+/test --type unit
+/test --type integration
+/test --coverage 80
+
+# 출력 예시
+describe('UserService', () => {
+  describe('createUser', () => {
+    it('should create a user with valid data', async () => {
+      // Arrange
+      const userData = { email: 'test@example.com', name: 'Test' };
+
+      // Act
+      const result = await userService.createUser(userData);
+
+      // Assert
+      expect(result.email).toBe('test@example.com');
+      expect(result.id).toBeDefined();
+    });
+
+    it('should throw ValidationError for invalid email', async () => {
+      const userData = { email: 'invalid', name: 'Test' };
+      await expect(userService.createUser(userData))
+        .rejects.toThrow(ValidationError);
+    });
+  });
+});`}
+  language="typescript"
+  filename="/test 출력 예시"
+/>
+
+### /doc 커맨드 상세
+
+코드에 대한 문서를 생성합니다. JSDoc, API 문서, README 등 다양한 형식을 지원합니다.
+
+<CodeBlock
+  code={`# 사용법
+/doc src/services/user.ts
+/doc --type jsdoc
+/doc --type api
+/doc --type readme
+
+# 출력 예시 (JSDoc)
+/**
+ * Creates a new user account.
+ *
+ * @param data - User creation data
+ * @returns Created user object
+ * @throws {ValidationError} When email is invalid
+ *
+ * @example
+ * const user = await createUser({
+ *   email: 'user@example.com',
+ *   name: 'John'
+ * });
+ */`}
+  language="typescript"
+  filename="/doc 출력 예시"
+/>
+
+### /refactor 커맨드 상세
+
+코드 스멜을 탐지하고 리팩토링을 제안합니다. 성능, 가독성 등 포커스를 지정할 수 있습니다.
+
+<CodeBlock
+  code={`# 사용법
+/refactor src/services/order.ts
+/refactor --focus performance
+/refactor --focus readability
+
+# 출력 예시
+## 리팩토링 제안
+
+### 대상
+- 파일: src/services/order.ts
+- 함수: processOrder
+
+### 발견된 코드 스멜
+1. Long Method (75줄)
+2. Complex Conditional (5단계 중첩)
+
+### 제안
+
+#### Step 1: Extract Function
+// Before
+function processOrder(order) {
+  // ... 75줄의 복잡한 로직 ...
+}
+
+// After
+function processOrder(order) {
+  validateOrder(order);
+  const pricing = calculatePricing(order);
+  return finalizeOrder(order, pricing);
+}
+
+### 예상 효과
+- 가독성 향상
+- 테스트 용이성 개선`}
+  language="markdown"
+  filename="/refactor 출력 예시"
+/>
+
 ### /security 커맨드 상세
+
+코드의 보안 취약점을 분석합니다. Critical/High/Medium 심각도로 분류된 리포트를 생성합니다.
 
 <CodeBlock
   code={`# 사용법
 /security
 /security src/api/
+/security --severity high
 
 # 출력 예시
 ## 보안 스캔 결과
@@ -160,9 +350,107 @@ Closes #123`}
 #### 🔴 SQL Injection
 - 위치: src/api/users.ts:45
 - 설명: 사용자 입력이 쿼리에 직접 사용됨
-- 수정 권고: 파라미터화된 쿼리 사용`}
+- 수정 권고: 파라미터화된 쿼리 사용
+
+### 권장 조치
+1. Critical/High 즉시 수정
+2. Medium 1주일 내 수정`}
   language="markdown"
   filename="/security 출력 예시"
+/>
+
+### /changelog 커맨드 상세
+
+최근 변경사항을 분석하여 CHANGELOG 엔트리를 생성합니다. Keep a Changelog 형식을 따릅니다.
+
+<CodeBlock
+  code={`# 사용법
+/changelog
+/changelog --version 1.2.0
+/changelog --since v1.1.0
+
+# 출력 예시
+## [1.2.0] - 2024-01-15
+
+### Added
+- JWT 리프레시 토큰 지원 (#123)
+- 사용자 프로필 API (#124)
+
+### Changed
+- 로그인 플로우 개선 (#125)
+
+### Fixed
+- 세션 만료 버그 수정 (#126)
+
+### Security
+- XSS 취약점 패치 (#127)`}
+  language="markdown"
+  filename="/changelog 출력 예시"
+/>
+
+### /migrate 커맨드 상세
+
+데이터베이스 또는 스키마 마이그레이션 스크립트를 생성합니다. SQL, Prisma 등 다양한 형식을 지원합니다.
+
+<CodeBlock
+  code={`# 사용법
+/migrate add-user-role-column
+/migrate --type sql
+/migrate --type prisma
+
+# 출력 예시 (SQL)
+-- Migration: add_user_role_column
+-- Created at: 2024-01-15
+
+-- Up
+ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'user';
+CREATE INDEX idx_users_role ON users(role);
+
+-- Down
+DROP INDEX idx_users_role;
+ALTER TABLE users DROP COLUMN role;`}
+  language="sql"
+  filename="/migrate 출력 예시"
+/>
+
+### /hotfix 커맨드 상세
+
+긴급 수정이 필요한 상황에서 브랜치 생성부터 배포, 모니터링까지의 전체 핫픽스 워크플로우를 안내합니다.
+
+<CodeBlock
+  code={`# 사용법
+/hotfix
+/hotfix --issue 123
+
+# 출력 예시
+## 핫픽스 워크플로우
+
+### 1. 브랜치 생성
+git checkout main
+git pull origin main
+git checkout -b hotfix/ISSUE-123-critical-bug
+
+### 2. 수정 및 테스트
+- [ ] 버그 수정
+- [ ] 단위 테스트 추가
+- [ ] 로컬 테스트
+
+### 3. 배포
+git add .
+git commit -m "fix: critical bug description"
+git push origin hotfix/ISSUE-123-critical-bug
+
+### 4. PR 생성
+- base: main
+- 리뷰어: @security-team
+- 라벨: hotfix, urgent
+
+### 5. 배포 후
+- [ ] 프로덕션 모니터링
+- [ ] 근본 원인 분석
+- [ ] develop 브랜치에 백포트`}
+  language="markdown"
+  filename="/hotfix 출력 예시"
 />
 
 ## 커맨드 조합 워크플로우
