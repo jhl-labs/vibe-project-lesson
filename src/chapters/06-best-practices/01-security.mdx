@@ -134,7 +134,8 @@ if (!API_KEY) {
 <Callout type="tip" title="Claude Code의 보안 지원">
   Claude Code의 CLAUDE.md에 보안 규칙을 명시하면 AI가 안전한 코드를 생성할 확률이 높아집니다.
   하지만 CLAUDE.md는 권고(advisory)이므로 100% 보장되지 않습니다.
-  커밋 전 린트/보안 스캔을 Hook으로 설정하면 확실한 보안 검증이 가능합니다.
+  PreToolUse Hook에서 Bash matcher를 사용해 git commit 명령을 인터셉트하면,
+  커밋 전 린트/보안 스캔을 자동으로 실행하고 실패 시 커밋을 차단할 수 있습니다.
 </Callout>
 
 <ChapterNav
