@@ -30,7 +30,7 @@ import { ChapterNav } from '../../components/ChapterNav';
     style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26
     style F fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
   title="End-to-End 워크플로우 6단계"
-  caption="Anthropic 공식 권장: Explore → Plan → Implement → Commit"
+  caption="예시 워크플로우: Explore → Plan → Implement → Commit"
 />
 
 ---
@@ -99,7 +99,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 />
 
 <Callout type="info" title="Plan Mode 활용 팁">
-  - **확장 사고(Extended Thinking)**: Claude Code는 기본적으로 확장 사고가 활성화되어 있습니다. 더 깊은 분석이 필요하면 `MAX_THINKING_TOKENS` 환경 변수로 토큰 예산을 조절할 수 있습니다
+  - **확장 사고(Extended Thinking)**: 기본값은 비활성화이며, 필요 시 설정(예: `MAX_THINKING_TOKENS`)이나 토글로 켤 수 있습니다.
   - **계획 저장**: 복잡한 기능은 계획을 별도 마크다운 파일로 저장하면 세션 간 참조 가능
   - **위험도 매칭**: 고위험 변경(DB 스키마, 인증)은 Plan Mode에서 충분히 검토한 후 구현
 </Callout>
@@ -134,9 +134,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 />
 
 <Callout type="warning" title="검증 수단을 항상 포함하세요">
-  각 단계에서 "구현 후 테스트를 실행해줘"를 포함하면
-  Claude가 자기 검증 루프(self-verification loop)를 수행합니다.
-  Anthropic 공식 베스트 프랙티스에서 이를 **가장 효과적인 단일 기법**으로 권장합니다.
+  각 단계에서 "구현 후 테스트를 실행해줘"를 포함하면 Claude가 **자기 검증 루프(self-verification loop)**를 수행합니다. Anthropic 문서는 테스트 실행을 통한 검증을 꾸준히 권장합니다.
 </Callout>
 
 ### Claude가 생성하는 것

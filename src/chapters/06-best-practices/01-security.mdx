@@ -63,8 +63,8 @@ AI 코딩 에이전트를 사용할 때 발생하는 보안 위협은 크게 세
   caption="각 영역은 서로 다른 방어 전략이 필요합니다"
 />
 
-OWASP는 2025년 **Top 10 for LLM Applications**에서 프롬프트 인젝션을 1위,
-2026년 **Top 10 for Agentic Applications**에서 에이전트 목표 탈취(Goal Hijack)를 1위로 선정했습니다.
+OWASP는 2025년 **[Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)**에서 프롬프트 인젝션을 1위,
+2026년 **[Top 10 for Agentic Applications](https://owasp.org/www-project-top-10-for-agentic-ai-applications/)**에서 에이전트 목표 탈취(Goal Hijack)를 1위로 선정했습니다.
 아래에서 각 위협과 개발자 레벨 방어 전략을 구체적으로 다룹니다.
 
 ## 프롬프트 인젝션 공격
@@ -103,7 +103,7 @@ def sanitize_input(text: str) -> str:
 ### 간접 프롬프트 인젝션
 
 외부 파일, 웹 페이지, 이슈 트래커 등에 숨겨진 악성 지시를 에이전트가 읽어들일 때 발생합니다.
-2025년 GitHub Copilot의 CVE-2025-53773은 소스 코드 파일이나 GitHub 이슈에 삽입된
+2025년 GitHub Copilot의 [CVE-2025-53773](https://nvd.nist.gov/vuln/detail/CVE-2025-53773)은 소스 코드 파일이나 GitHub 이슈에 삽입된
 악성 프롬프트를 통해 원격 코드 실행이 가능했던 실제 사례입니다(CVSS 7.8).
 
 <CodeBlock
@@ -165,7 +165,7 @@ AI 모델은 존재하지 않는 패키지, API, 문법을 "환각"으로 생성
 
 ### 패키지 환각의 공급망 공격 벡터
 
-USENIX Security 2025에서 발표된 연구("We Have a Package for You!")에 따르면,
+USENIX Security 2025에서 발표된 연구 ["We Have a Package for You!"](https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen)에 따르면,
 LLM은 코드 생성 시 존재하지 않는 패키지명을 반복적으로 환각합니다.
 공격자는 이 패턴을 악용하여 해당 이름으로 악성 패키지를 npm/PyPI에 등록할 수 있습니다.
 
