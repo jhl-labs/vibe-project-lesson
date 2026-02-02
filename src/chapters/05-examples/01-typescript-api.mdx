@@ -147,6 +147,109 @@ Claude Code에 아래 프롬프트를 입력하여 프로젝트를 세팅합니�
   "CLAUDE.md를 먼저 생성해줘. 기술 스택은 Express + Prisma + Jest이고, Clean Architecture를 따르며, Conventional Commits를 사용한다고 적어줘."
 </Callout>
 
+### Prisma 스키마
+
+<CodeBlock
+  code={`// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}`}
+  language="prisma"
+  filename="prisma/schema.prisma"
+  highlightLines={[11, 12, 13, 14, 15]}
+/>
+
+### Docker Compose (개발 환경)
+
+<CodeBlock
+  code={`# docker-compose.yml
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: clean_api
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:`}
+  language="yaml"
+  filename="docker-compose.yml"
+/>
+
+<CodeBlock
+  code={`# .env
+DATABASE_URL="postgresql://dev:devpass@localhost:5432/clean_api"`}
+  language="bash"
+  filename=".env"
+/>
+
+<CodeBlock
+  code={`# 실습 프롬프트: 환경 설정
+> docker-compose.yml로 PostgreSQL을 설정하고,
+> .env에 DATABASE_URL을 넣어줘.
+> Prisma 스키마에 User 모델을 정의하고 마이그레이션을 실행해줘.
+> npx prisma migrate dev --name init`}
+  language="text"
+  filename="실습: 환경 설정 프롬프트"
+/>
+
+### CLAUDE.md 예시
+
+<CodeBlock
+  code={`# CLAUDE.md
+
+## 프로젝트 개요
+Express + Prisma + Jest 기반 Clean Architecture API
+
+## 기술 스택
+- Runtime: Node.js 20, TypeScript 5
+- Framework: Express.js
+- ORM: Prisma (PostgreSQL)
+- Test: Jest + ts-jest + supertest
+
+## 아키텍처 규칙
+- src/domain/: 순수 비즈니스 로직 (외부 의존성 금지)
+- src/application/: 유스케이스 (Domain 인터페이스만 의존)
+- src/infrastructure/: DB, 외부 API 구현체
+- src/presentation/: HTTP 컨트롤러
+
+## 코딩 컨벤션
+- 파일명: kebab-case.ts
+- 클래스: PascalCase, 함수/변수: camelCase
+- Conventional Commits (feat:, fix:, refactor:)
+- 함수 최대 30줄
+
+## 테스트 규칙
+- 단위 테스트: Repository를 jest.Mocked로 mock
+- 통합 테스트: supertest + 테스트 DB
+- 테스트 파일: tests/*.test.ts`}
+  language="markdown"
+  filename="CLAUDE.md"
+/>
+
+<Callout type="info" title="CLAUDE.md가 중요한 이유">
+  Claude Code는 세션 시작 시 CLAUDE.md를 자동으로 읽습니다. 아키텍처 규칙, 네이밍 컨벤션, 테스트 패턴을 여기에 명시하면 매번 프롬프트에서 반복하지 않아도 됩니다.
+</Callout>
+
 ---
 
 ## 실습 2: Domain Layer 구현

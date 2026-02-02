@@ -73,7 +73,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## 2단계: 설계 (Plan Mode)
 
-`Shift+Tab`으로 Plan Mode에 진입합니다. Plan Mode에서는 Claude가 파일을 수정하지 않고 **읽기와 계획만** 수행합니다.
+`Shift+Tab`을 2회 눌러 Plan Mode에 진입합니다 (Normal → Auto-accept → **Plan Mode**). Plan Mode에서는 Claude가 파일을 수정하지 않고 **읽기와 계획만** 수행합니다.
 
 <CodeBlock
   code={`# Plan Mode 진입 후
@@ -93,14 +93,14 @@ import { ChapterNav } from '../../components/ChapterNav';
 # 5. 새 파일: src/presentation/api/users/upload-avatar.ts
 # 6. 새 파일: src/__tests__/upload-avatar.test.ts
 
-# 계획 승인 후 Shift+Tab으로 구현 모드로 전환`}
+# 계획 승인 후 Shift+Tab 2회로 구현 모드로 전환`}
   language="text"
   filename="2단계: Plan Mode에서 설계"
 />
 
 <Callout type="info" title="Plan Mode 활용 팁">
-  - **think hard**: 프롬프트에 "think hard"를 포함하면 Claude가 확장 사고 모드로 더 깊이 분석합니다
-  - **계획 저장**: 복잡한 기능은 계획을 `.agent/tasks/` 파일로 저장하면 세션 간 참조 가능
+  - **think hard**: 프롬프트에 "think hard"를 포함하면 Claude에 확장 사고 예산이 할당됩니다. "think" → "think hard" → "ultrathink" 순으로 더 깊이 분석합니다
+  - **계획 저장**: 복잡한 기능은 계획을 별도 마크다운 파일로 저장하면 세션 간 참조 가능
   - **위험도 매칭**: 고위험 변경(DB 스키마, 인증)은 Plan Mode에서 충분히 검토한 후 구현
 </Callout>
 
@@ -346,7 +346,7 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
 # (Claude의 질문에 답변: 현재 비밀번호 확인 필요, bcrypt 사용,
 #  최소 8자, 최근 3개 비밀번호 재사용 금지)
 
-# 2단계: 설계 (Shift+Tab으로 Plan Mode 진입)
+# 2단계: 설계 (Shift+Tab 2회로 Plan Mode 진입)
 > 다음 요구사항으로 구현 계획을 세워줘:
 > - 현재 비밀번호 확인 후 변경
 > - bcrypt로 해싱
@@ -354,7 +354,7 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
 > - 최근 3개 비밀번호 재사용 금지
 > - 변경 후 이메일 알림 발송
 
-# 3단계: 구현 (Shift+Tab으로 구현 모드)
+# 3단계: 구현 (Shift+Tab 2회로 구현 모드)
 > 계획을 실행해줘. Domain Layer부터 시작해서
 > 각 레이어를 순서대로 구현해줘.
 > 각 단계마다 테스트를 실행해줘.
@@ -376,6 +376,64 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
   language="text"
   filename="실습: 비밀번호 변경 기능 전체 워크플로우"
 />
+
+---
+
+## 실습: 프론트엔드 워크플로우 직접 해보기
+
+백엔드 시나리오와 별도로, 프론트엔드 기능을 처음부터 구현하는 워크플로우입니다.
+
+<CodeBlock
+  code={`# === 실습 시나리오: React 대시보드에 "알림 센터" 추가 ===
+
+# 1단계: 요구사항 인터뷰
+> 대시보드 헤더에 알림 센터(벨 아이콘 + 드롭다운)를 추가하려고 해.
+> 구현 전에 내가 결정해야 할 사항들을 질문해줘.
+
+# (Claude 질문 예시: 실시간 vs 폴링, 읽음/안읽음 구분,
+#  알림 타입, 최대 표시 개수, 알림 클릭 시 동작)
+
+# 2단계: 타입 먼저 정의 (Plan Mode)
+> 다음 요구사항으로 타입과 구현 계획을 세워줘:
+> - 알림 타입: info, warning, error, success
+> - 읽음/안읽음 상태
+> - 최대 50개, 오래된 순 자동 삭제
+> - 벨 아이콘에 안읽은 알림 수 배지
+> - 드롭다운에 알림 목록, "모두 읽음" 버튼
+
+# 3단계: 구현
+> @src/types/dashboard.ts 에 NotificationProps 타입을 추가하고,
+> @src/components/dashboard/StatCard.tsx 패턴을 따라
+> NotificationBell 컴포넌트를 구현해줘.
+> useNotifications 커스텀 훅도 만들어줘.
+> 구현 후 테스트를 실행해줘.
+
+# 4단계: 테스트
+> 다음 케이스를 커버하는 테스트를 작성하고 실행해줘:
+> 1. 알림이 없을 때 배지 숨김
+> 2. 안읽은 알림 수 배지 표시
+> 3. 벨 클릭 시 드롭다운 토글
+> 4. 알림 클릭 시 읽음 처리
+> 5. "모두 읽음" 클릭 시 전체 읽음
+> 6. 키보드 접근성 (Enter로 토글, Esc로 닫기)
+
+# 5단계: 리뷰 (새 세션에서)
+> git diff main 의 변경사항을 리뷰해줘.
+> 접근성, 메모리 누수(이벤트 리스너 cleanup), 상태 관리를 중점 확인해.
+
+# 6단계: PR 생성
+> 변경사항을 커밋하고 PR을 생성해줘.`}
+  language="text"
+  filename="실습: 알림 센터 기능 전체 워크플로우"
+/>
+
+<Callout type="info" title="프론트엔드 워크플로우 특징">
+  백엔드와 동일한 6단계지만 프론트엔드만의 차이가 있습니다:
+  - **타입 먼저**: props 인터페이스를 먼저 정의하면 구현이 정확해집니다
+  - **기존 패턴 참조**: `@` 기호로 기존 컴포넌트를 참조하여 일관성 유지
+  - **접근성 필수**: 키보드 내비게이션, aria 속성, 스크린 리더 지원을 테스트에 포함
+  - **cleanup 검증**: 이벤트 리스너, 타이머, 구독 등의 정리를 리뷰에서 확인
+</Callout>
 
 <ChapterNav
   prev={{ title: '프론트엔드 프로젝트', path: '/docs/part-5--실전-예제-프론트엔드-프로젝트' }}

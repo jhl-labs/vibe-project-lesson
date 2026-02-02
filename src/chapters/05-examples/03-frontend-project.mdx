@@ -586,6 +586,127 @@ describe('StatCard', () => {
   filename="실습: 대시보드 페이지 프롬프트"
 />
 
+### 대시보드 페이지 구현 결과 예시
+
+<CodeBlock
+  code={`// src/pages/Dashboard.tsx
+import { useState } from 'react';
+import { StatCard } from '../components/dashboard/StatCard';
+import { DataGrid, type DataGridColumn } from '../components/dashboard/DataGrid';
+import { useDebounce } from '../hooks/useDebounce';
+import { useFetch } from '../hooks/useFetch';
+
+interface Order {
+  id: string;
+  customer: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'cancelled';
+  date: string;
+}
+
+interface DashboardStats {
+  revenue: number;
+  revenueChange: number;
+  newUsers: number;
+  newUsersChange: number;
+  orders: number;
+  ordersChange: number;
+  conversionRate: number;
+  conversionChange: number;
+}
+
+const STATUS_BADGE: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  completed: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+};
+
+const columns: DataGridColumn<Order>[] = [
+  { key: 'id', header: '주문번호', width: '120px' },
+  { key: 'customer', header: '고객', sortable: true },
+  { key: 'amount', header: '금액', sortable: true,
+    render: (val) => \`₩\${Number(val).toLocaleString()}\` },
+  { key: 'status', header: '상태',
+    render: (val) => (
+      <span className={\`px-2 py-1 rounded-full text-xs font-medium \${STATUS_BADGE[val as string]}\`}>
+        {val === 'pending' ? '처리중' : val === 'completed' ? '완료' : '취소'}
+      </span>
+    )},
+  { key: 'date', header: '날짜', sortable: true },
+];
+
+export function Dashboard() {
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
+
+  const { data: stats, loading: statsLoading } = useFetch<DashboardStats>(
+    '/api/dashboard/stats'
+  );
+  const { data: orders, loading: ordersLoading } = useFetch<Order[]>(
+    \`/api/dashboard/orders?q=\${debouncedSearch}\`
+  );
+
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
+
+      {/* 통계 카드 - 반응형 그리드 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="총 매출" loading={statsLoading}
+          value={stats ? \`₩\${stats.revenue.toLocaleString()}\` : ''}
+          change={stats ? { value: stats.revenueChange, type: stats.revenueChange >= 0 ? 'increase' : 'decrease' } : undefined}
+        />
+        <StatCard
+          title="신규 사용자" loading={statsLoading}
+          value={stats?.newUsers ?? ''}
+          change={stats ? { value: stats.newUsersChange, type: stats.newUsersChange >= 0 ? 'increase' : 'decrease' } : undefined}
+        />
+        <StatCard
+          title="주문 수" loading={statsLoading}
+          value={stats?.orders ?? ''}
+          change={stats ? { value: stats.ordersChange, type: stats.ordersChange >= 0 ? 'increase' : 'decrease' } : undefined}
+        />
+        <StatCard
+          title="전환율" loading={statsLoading}
+          value={stats ? \`\${stats.conversionRate}%\` : ''}
+          change={stats ? { value: stats.conversionChange, type: stats.conversionChange >= 0 ? 'increase' : 'decrease' } : undefined}
+        />
+      </div>
+
+      {/* 검색 + 주문 그리드 */}
+      <div className="space-y-4">
+        <input
+          type="text"
+          placeholder="고객명으로 검색..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full max-w-sm px-4 py-2 border rounded-lg
+                     focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <DataGrid
+          columns={columns}
+          data={orders ?? []}
+          loading={ordersLoading}
+          onRowClick={(order) => console.log('주문 상세:', order.id)}
+          emptyMessage="주문이 없습니다"
+        />
+      </div>
+    </div>
+  );
+}`}
+  language="tsx"
+  filename="src/pages/Dashboard.tsx"
+  highlightLines={[33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 63, 64, 91, 92]}
+/>
+
+<Callout type="info" title="코드 포인트">
+  - **STATUS_BADGE**: 주문 상태에 따른 배지 색상을 객체로 관리 → 새 상태 추가 시 이 객체만 수정
+  - **render prop**: DataGrid의 커스텀 렌더러로 금액 포맷팅과 상태 배지를 구현
+  - **반응형 그리드**: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`로 화면 크기에 따라 열 수 조정
+  - **useDebounce**: 검색 입력이 300ms 동안 멈추면 API 호출 → 불필요한 네트워크 요청 방지
+</Callout>
+
 <Callout type="tip" title="프론트엔드에서 Claude Code 활용 팁">
   - **이미지 붙여넣기**: 디자인 스크린샷을 터미널에 붙여넣으면 Claude가 시각적으로 인식합니다
   - **기존 컴포넌트 참조**: `@` 기호로 기존 컴포넌트를 참조하면 일관된 패턴을 따릅니다
