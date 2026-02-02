@@ -344,7 +344,9 @@ OWASP Top 10 for LLM Applications(2025)에서 **2위(LLM02 Sensitive Information
 # .claude/hooks/post-edit-secret-scan.sh
 # PostToolUse Hook: 편집된 파일에서 시크릿 패턴 탐지
 
-FILE="$CLAUDE_FILE_PATH"
+# 표준 입력에서 JSON 읽기 (Hook은 stdin으로 JSON을 받음)
+INPUT=$(cat)
+FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 
 if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
   exit 0
@@ -361,7 +363,7 @@ PATTERNS=(
 
 for pattern in "\${PATTERNS[@]}"; do
   if grep -qP "$pattern" "$FILE" 2>/dev/null; then
-    echo "❌ 보안 경고: $FILE 에서 시크릿 패턴이 감지되었습니다"
+    echo "⚠️  보안 경고: $FILE 에서 시크릿 패턴이 감지되었습니다"
     echo "   패턴: $pattern"
     echo "   커밋 전에 반드시 제거하세요"
     exit 1

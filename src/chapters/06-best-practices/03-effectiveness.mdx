@@ -4,6 +4,7 @@ import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { PlotlyChart } from '../../components/PlotlyChart';
 import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { DataTable } from '../../components/DataTable';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 6: 모범 사례/효과 측정" />
@@ -12,33 +13,46 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 > AI 코딩 도구의 ROI를 측정하고 개선하는 방법
 
-## 측정의 목적
+## 왜 측정하는가
 
-<Callout type="info" title="왜 측정하나요?">
+AI 도구 도입의 효과를 체감하는 것과 **증명**하는 것은 다릅니다.
+"빨라진 것 같다"는 느낌만으로는 추가 투자, 팀 확대 적용, 관리자 설득이 어렵습니다.
+
+<Callout type="info" title="측정의 목적">
   "측정하지 않으면 개선할 수 없다." AI 도구 도입의 효과를 객관적으로 파악하고,
   더 효과적인 활용 방법을 찾기 위해 측정이 필요합니다.
 </Callout>
 
-| 목적 | 설명 |
-|------|------|
-| **ROI 증명** | AI 도구 도입의 투자 대비 효과 입증 |
-| **개선 영역 식별** | 더 효과적으로 활용할 수 있는 영역 파악 |
-| **모범 사례 발굴** | 성공적인 활용 패턴 공유 |
-| **교육 방향 설정** | 팀 교육의 우선순위 결정 |
+<ComparisonTable
+  title="효과 측정의 4가지 목적"
+  headers={['목적', '구체적 질문', '산출물']}
+  rows={[
+    { feature: 'ROI 증명', values: ['도구 비용 대비 생산성 향상이 얼마인가?', '경영진 보고용 ROI 계산서'] },
+    { feature: '개선 영역 식별', values: ['어떤 작업에서 AI가 가장 효과적인가?', '작업별 효율성 분석 리포트'] },
+    { feature: '모범 사례 발굴', values: ['누가 어떤 패턴으로 성과를 내고 있는가?', '팀 공유용 프롬프트/워크플로우'] },
+    { feature: '교육 방향 설정', values: ['어디에 교육 리소스를 집중해야 하는가?', '교육 로드맵 우선순위'] },
+  ]}
+/>
 
 ## 핵심 지표 (KPIs)
 
 ### 1. 생산성 지표
 
 <ComparisonTable
-  title="생산성 측정"
-  headers={['지표', '측정 방법', '목표']}
+  title="생산성 측정 지표"
+  headers={['지표', '측정 방법', '도구', '목표 (참고)']}
   rows={[
-    { feature: 'PR 생성 속도', values: ['PR 생성까지 평균 시간', '30% 단축'] },
-    { feature: '기능 완료율', values: ['스프린트당 완료 스토리', '20% 향상'] },
-    { feature: '코드 리뷰 시간', values: ['PR 리뷰 평균 시간', '40% 단축'] },
+    { feature: 'PR 생성 속도', values: ['작업 할당 → PR 생성까지 평균 시간', 'GitHub API / Jellyfish / LinearB', '30% 단축'] },
+    { feature: '기능 완료율', values: ['스프린트당 완료된 스토리 포인트', 'Jira / Linear', '20% 향상'] },
+    { feature: '코드 리뷰 시간', values: ['PR 생성 → 최종 승인까지 평균 시간', 'GitHub API / Faros AI', '유지 또는 단축'] },
+    { feature: '첫 커밋까지 시간', values: ['작업 할당 → 첫 커밋까지 소요 시간', 'Git log 분석', '50% 단축'] },
   ]}
 />
+
+<Callout type="warning" title="목표치는 팀마다 다릅니다">
+  위의 "목표" 수치는 참고용입니다. 팀의 현재 베이스라인을 먼저 측정하고,
+  그에 대한 상대적 개선을 목표로 설정하세요.
+</Callout>
 
 ### 활동별 AI 도구 효율성
 
@@ -71,28 +85,57 @@ import { ChapterNav } from '../../components/ChapterNav';
   height={350}
 />
 
+이 데이터에서 알 수 있는 것은, AI 도구가 **코드 생성과 문서 작성**에서 가장 효과적이고,
+**DB 쿼리 최적화** 같은 도메인 지식이 필요한 작업에서는 상대적으로 낮은 효율을 보인다는 점입니다.
+팀 교육 시 효율이 높은 영역부터 도입하면 빠르게 성과를 체감할 수 있습니다.
+
 ### 2. 품질 지표
 
-| 지표 | 측정 방법 | 목표 |
-|------|----------|------|
-| 버그 발생률 | 릴리스당 버그 수 | 20% 감소 |
-| 테스트 커버리지 | 코드 커버리지 % | 10% 향상 |
-| 코드 리뷰 수정 요청 | PR당 수정 요청 수 | 30% 감소 |
-| 기술 부채 | SonarQube 점수 | 유지/개선 |
+<ComparisonTable
+  title="코드 품질 측정 지표"
+  headers={['지표', '측정 방법', '도구', '목표 (참고)']}
+  rows={[
+    { feature: '버그 발생률', values: ['릴리스당 버그 수', 'Jira / Linear 이슈 추적', '20% 감소'] },
+    { feature: '테스트 커버리지', values: ['코드 커버리지 %', 'Jest / Istanbul / Codecov', '10% 향상'] },
+    { feature: '코드 리뷰 수정 요청', values: ['PR당 Change Request 수', 'GitHub PR 메트릭', '30% 감소'] },
+    { feature: '기술 부채', values: ['정적 분석 점수 추이', 'SonarQube / CodeClimate', '유지/개선'] },
+    { feature: '코드 변동률 (Churn)', values: ['2주 내 재수정되는 코드 비율', 'GitClear / git log 분석', '감소 추세'] },
+  ]}
+/>
 
-### 3. 팀 만족도
+### 3. 팀 경험 지표
+
+정량 지표만으로는 AI 도구의 실제 가치를 파악하기 어렵습니다.
+정기적인 팀 설문으로 정성적 데이터를 함께 수집하세요.
 
 <CodeBlock
-  code={`설문 항목 (1-5점):
+  code={`## 개발자 경험 설문 (분기별 실시 권장)
 
+### 생산성 (1-5점)
 1. AI 도구가 일상 업무에 도움이 되나요?
-2. 반복적인 작업이 줄었나요?
+2. 반복적인 작업(보일러플레이트, 테스트)이 줄었나요?
 3. 새로운 기술/코드베이스 학습에 도움이 되나요?
-4. 코드 품질에 대한 자신감이 높아졌나요?
-5. AI 도구 없이 작업하고 싶나요? (역점수)`}
-  language="text"
-  filename="개발자 경험 설문"
+
+### 품질 (1-5점)
+4. AI 생성 코드의 품질에 만족하나요?
+5. AI 도구 사용 후 코드 리뷰가 더 수월해졌나요?
+
+### 부작용 (1-5점, 역점수)
+6. AI에 과도하게 의존하고 있다고 느끼나요?
+7. AI 코드를 이해하지 못한 채 커밋한 적이 있나요?
+8. AI 도구 없이 작업하면 불안하나요?
+
+### 개방형 질문
+9. AI 도구를 가장 효과적으로 활용한 사례는?
+10. AI 도구로 인해 겪은 문제나 불편은?`}
+  language="markdown"
+  filename="개발자 경험 설문 템플릿"
 />
+
+<Callout type="tip" title="설문 분석 팁">
+  역점수 항목(6~8번)의 평균이 3점 이상이면 AI 의존도가 높아지고 있다는 신호입니다.
+  이 경우 "AI 없이 코딩하기" 세션이나 AI 코드 설명 연습을 팀 교육에 포함하세요.
+</Callout>
 
 ## 업계 조사 기반 도입 효과
 
@@ -113,22 +156,117 @@ import { ChapterNav } from '../../components/ChapterNav';
   ]}
 />
 
+## AI 생산성 역설과 대응 전략
+
+Faros AI의 2025년 연구에서 발견된 가장 중요한 인사이트는,
+개인 생산성 향상이 반드시 팀/조직 성과로 이어지지 않는다는 것입니다.
+
 <Callout type="warning" title="AI 생산성 역설 (Productivity Paradox)">
   Faros AI의 2025년 연구(1,255개 팀, 10,000+ 개발자)에 따르면, AI 고도 활용 팀에서
   PR 리뷰 시간이 91% 증가하고, PR 크기가 154% 커지며, 개발자당 버그가 9% 증가했습니다.
-  개인 생산성이 올라가더라도 리뷰 병목, 테스트 자동화, 릴리스 파이프라인을
-  함께 개선하지 않으면 조직 수준의 성과로 이어지지 않을 수 있습니다.
 </Callout>
 
-## 개선 사이클
+### 역설이 발생하는 이유
+
+<MermaidDiagram
+  chart={`flowchart LR
+    A["AI로 코드<br/>빠르게 생성"] --> B["PR 크기 증가<br/>(154%)"]
+    A --> C["PR 빈도 증가<br/>(47%)"]
+    B --> D["리뷰 시간 증가<br/>(91%)"]
+    C --> D
+    D --> E["리뷰 품질 저하"]
+    E --> F["버그 증가<br/>(9%)"]
+    B --> G["코드 이해도 저하"]
+    G --> F
+
+    style A fill:#e8f5e9,stroke:#4caf50,color:#333
+    style F fill:#f8d7da,stroke:#dc3545,color:#333
+    style D fill:#fff3e0,stroke:#ff9800,color:#333`}
+  title="AI 생산성 역설 메커니즘"
+  caption="개인 속도 향상 → PR 크기/빈도 증가 → 리뷰 병목 → 품질 저하의 연쇄"
+/>
+
+### 대응 전략
+
+<ComparisonTable
+  title="생산성 역설 대응 전략"
+  headers={['병목', '대응 전략', '구체적 방법']}
+  rows={[
+    { feature: 'PR 크기 증가', values: ['작업 분할 규칙', 'PR당 변경 200줄 이하 권장, AI에게 전체가 아닌 단위별 작업 요청 (Part 6 팀 협업 참조)'] },
+    { feature: '리뷰 시간 증가', values: ['AI 보조 리뷰 도입', 'AI가 1차 리뷰(린트, 패턴 검사) → 인간이 2차 리뷰(설계, 비즈니스 로직)'] },
+    { feature: '버그 증가', values: ['테스트 게이트 강화', 'CI에서 커버리지 임계값 설정, AI 생성 코드는 테스트 필수'] },
+    { feature: '코드 이해도 저하', values: ['작성자 설명 의무화', 'PR에 "AI 사용 내역" 섹션 필수, 리뷰 시 이해도 확인 질문'] },
+    { feature: '전체 처리량 정체', values: ['파이프라인 병렬화', '코드 소유권 분산, 리뷰어 풀 확대, 자동 리뷰어 할당'] },
+  ]}
+/>
+
+## ROI 계산
+
+AI 도구의 ROI를 경영진에게 보고하거나, 도입 확대를 검토할 때 사용할 수 있는 계산 프레임워크입니다.
+
+### ROI 공식
+
+<CodeBlock
+  code={`## AI 코딩 도구 ROI 계산 프레임워크
+
+### 비용 (Cost)
+월간_라이선스_비용 = 사용자수 × 월간_단가
+교육_비용 = 교육_시간 × 시간당_인건비 × 참여자수
+생산성_저하_기간 = 도입_초기_적응_기간(보통 2-4주) 동안의 생산성 감소분
+
+총_비용 = 월간_라이선스_비용 + 교육_비용 + 생산성_저하_기간
+
+### 효과 (Benefit)
+시간_절약 = 개발자수 × 일일_절약_시간 × 근무일수
+  # 예: 10명 × 1시간 × 22일 = 220시간/월
+
+시간당_가치 = 개발자_평균_연봉 ÷ 연간_근무시간
+  # 예: 6,000만원 ÷ 2,080시간 = 약 29,000원/시간
+
+월간_효과 = 시간_절약 × 시간당_가치
+  # 예: 220시간 × 29,000원 = 약 638만원/월
+
+### ROI
+ROI(%) = (월간_효과 - 총_비용) ÷ 총_비용 × 100
+
+### 주의사항
+# - 시간 절약은 실제 측정 데이터 기반으로 산출 (체감이 아닌 측정!)
+# - 품질 개선(버그 감소)에 따른 비용 절감도 별도 산출 가능
+# - 도입 초기(1-2개월)에는 ROI가 마이너스일 수 있음`}
+  language="text"
+  filename="AI 도구 ROI 계산 프레임워크"
+/>
+
+### ROI 시나리오 예시
+
+<ComparisonTable
+  title="ROI 시나리오 비교 (10인 개발팀, 월간)"
+  headers={['항목', '보수적', '표준', '낙관적']}
+  rows={[
+    { feature: '일일 시간 절약 (1인)', values: ['30분', '1시간', '2시간'] },
+    { feature: '월간 시간 절약 (팀)', values: ['110시간', '220시간', '440시간'] },
+    { feature: '월간 효과 (금액)', values: ['약 319만원', '약 638만원', '약 1,276만원'] },
+    { feature: '월간 라이선스 비용', values: ['약 50만원', '약 50만원', '약 50만원'] },
+    { feature: '월간 순효과', values: ['약 269만원', '약 588만원', '약 1,226만원'] },
+  ]}
+/>
+
+<Callout type="tip" title="측정 기반 보고의 설득력">
+  "AI 도구가 좋다"보다 "지난 분기 팀의 PR 생성 속도가 35% 향상되었고,
+  월간 약 588만원의 개발 시간을 절약했다"가 훨씬 설득력 있습니다.
+  아래의 MAIS 개선 사이클로 데이터를 지속적으로 수집하세요.
+</Callout>
+
+## MAIS 개선 사이클
+
+AI 도구 효과를 지속적으로 높이기 위한 **측정(Measure) → 분석(Analyze) → 개선(Improve) → 공유(Share)** 사이클입니다.
 
 <MermaidDiagram
   chart={`flowchart TB
-    M["📊 1. 측정 (Measure)<br/>주간/월간 지표 수집<br/>팀 설문 조사"]
-    A["🔍 2. 분석 (Analyze)<br/>트렌드 파악<br/>병목 지점 식별"]
-    I["🔧 3. 개선 (Improve)<br/>프롬프트 업데이트<br/>워크플로우 최적화"]
-    S["📢 4. 공유 (Share)<br/>성공 사례 문서화<br/>가이드라인 업데이트"]
-    M --> A --> I --> S --> M
+    M["1. 측정 (Measure)"] --> A["2. 분석 (Analyze)"]
+    A --> I["3. 개선 (Improve)"]
+    I --> S["4. 공유 (Share)"]
+    S --> M
     style M fill:#fdf2ee,stroke:#2563eb,color:#2d2a26
     style A fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
     style I fill:#fdf2ee,stroke:#16a34a,color:#2d2a26
@@ -137,25 +275,107 @@ import { ChapterNav } from '../../components/ChapterNav';
   caption="측정 → 분석 → 개선 → 공유의 순환 구조로 지속적으로 효과를 높여갑니다"
 />
 
-## 주의사항
+### 각 단계 상세
+
+<DataTable
+  title="MAIS 사이클 단계별 활동"
+  columns={[
+    { key: 'phase', header: '단계', width: '100px' },
+    { key: 'activity', header: '활동', width: '200px' },
+    { key: 'tool', header: '도구/방법', width: '200px' },
+    { key: 'frequency', header: '빈도', width: '100px' },
+  ]}
+  data={[
+    { phase: '1. 측정', activity: 'PR 메트릭 수집 (생성 속도, 크기, 리뷰 시간)', tool: 'GitHub API / Faros AI / LinearB', frequency: '자동 (매일)' },
+    { phase: '1. 측정', activity: '코드 품질 지표 수집 (커버리지, 정적 분석)', tool: 'SonarQube / Codecov', frequency: '자동 (매 PR)' },
+    { phase: '1. 측정', activity: '개발자 경험 설문 실시', tool: '설문 템플릿 (위 참조)', frequency: '분기별' },
+    { phase: '2. 분석', activity: '지표 트렌드 분석 (전월 대비, 분기 대비)', tool: '스프레드시트 / 대시보드', frequency: '월간' },
+    { phase: '2. 분석', activity: '병목 지점 식별 (리뷰 대기, 테스트 실패 등)', tool: 'GitHub Insights / Jira 리포트', frequency: '월간' },
+    { phase: '2. 분석', activity: 'AI 효율이 높은/낮은 작업 유형 분류', tool: '설문 + PR 데이터 교차 분석', frequency: '분기별' },
+    { phase: '3. 개선', activity: 'CLAUDE.md / 커스텀 커맨드 업데이트', tool: 'Git PR 프로세스', frequency: '수시' },
+    { phase: '3. 개선', activity: '워크플로우 최적화 (PR 크기 규칙, 리뷰 자동화 등)', tool: 'GitHub Actions / CI 설정', frequency: '월간' },
+    { phase: '3. 개선', activity: '교육 프로그램 갱신 (취약 영역 집중)', tool: '팀 교육 세션', frequency: '분기별' },
+    { phase: '4. 공유', activity: '성공/실패 사례 문서화', tool: '팀 위키 / .claude/commands/', frequency: '수시' },
+    { phase: '4. 공유', activity: '효과 보고서 작성 (경영진/팀 대상)', tool: 'ROI 계산 프레임워크', frequency: '분기별' },
+    { phase: '4. 공유', activity: '가이드라인 업데이트 및 팀 공유', tool: 'CLAUDE.md / 팀 미팅', frequency: '월간' },
+  ]}
+  searchable={true}
+  pageSize={12}
+/>
+
+### PR 메트릭 수집 자동화 예시
+
+<CodeBlock
+  code={`#!/bin/bash
+# ai-metrics-collect.sh
+# GitHub API로 AI 지원 PR 메트릭을 수집하는 스크립트
+
+REPO="owner/repo"
+SINCE=$(date -d "30 days ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || \
+        date -v-30d +%Y-%m-%dT%H:%M:%SZ)  # Linux / macOS 호환
+
+echo "=== AI 지원 PR 메트릭 ($SINCE ~ 현재) ==="
+
+# 1. 최근 30일 머지된 PR 수
+TOTAL_PRS=$(gh pr list --repo "$REPO" --state merged \
+  --search "merged:>=$SINCE" --limit 500 --json number | jq length)
+echo "머지된 PR 수: $TOTAL_PRS"
+
+# 2. AI Co-authored PR 비율
+AI_PRS=$(gh pr list --repo "$REPO" --state merged \
+  --search "merged:>=$SINCE Co-Authored-By" --limit 500 --json number | jq length)
+echo "AI 지원 PR 수: $AI_PRS ($((AI_PRS * 100 / (TOTAL_PRS + 1)))%)"
+
+# 3. 평균 PR 크기 (변경 라인 수)
+gh pr list --repo "$REPO" --state merged \
+  --search "merged:>=$SINCE" --limit 100 \
+  --json additions,deletions \
+  | jq '[.[] | .additions + .deletions] | add / length | round' \
+  | xargs -I {} echo "평균 PR 크기: {} 줄"
+
+# 4. 평균 리뷰 대기 시간 (PR 생성 → 첫 리뷰까지)
+echo "---"
+echo "상세 분석은 Faros AI, LinearB 등 전문 도구를 권장합니다."`}
+  language="bash"
+  filename="ai-metrics-collect.sh"
+/>
+
+## DORA 지표와 AI 도구
+
+DORA(DevOps Research and Assessment) 4대 지표는 소프트웨어 딜리버리 성과를 측정하는 업계 표준입니다.
+AI 도구 도입이 이 지표에 어떤 영향을 미치는지 추적하면, 조직 수준의 효과를 객관적으로 파악할 수 있습니다.
+
+<ComparisonTable
+  title="DORA 4대 지표와 AI 도구의 관계"
+  headers={['DORA 지표', '정의', 'AI 도구의 기대 효과', '주의점']}
+  rows={[
+    { feature: '배포 빈도', values: ['얼마나 자주 프로덕션에 배포하는가', '코드 생성 속도 향상으로 배포 주기 단축 가능', '테스트/리뷰 병목이 해소되지 않으면 효과 제한'] },
+    { feature: '변경 리드타임', values: ['커밋 → 프로덕션 배포까지 소요 시간', '코딩 단계 시간 단축, 전체 리드타임 개선', '리뷰 대기가 새로운 병목이 될 수 있음'] },
+    { feature: '변경 실패율', values: ['배포 후 장애/롤백이 발생하는 비율', '테스트 자동 생성으로 커버리지 향상 시 감소', 'AI 코드 검증 없이 속도만 높이면 오히려 증가'] },
+    { feature: '서비스 복구 시간', values: ['장애 발생 → 복구까지 소요 시간', 'AI 보조 디버깅으로 원인 파악 속도 향상', '근본적으로는 모니터링/알림 체계에 더 의존'] },
+  ]}
+/>
+
+## 측정 시 주의사항
 
 <Callout type="warning" title="측정하지 말아야 할 것">
-  - **순수 코드 라인 수**: 품질 없는 양적 지표는 의미 없음
-  - **개인별 비교**: 경쟁을 유발하고 협업을 저해함
-  - **AI 의존도 자체**: 도구 활용과 의존은 다름
+  - **순수 코드 라인 수**: 품질 없는 양적 지표는 의미 없음. AI가 많이 생성할수록 좋은 것이 아님
+  - **개인별 비교**: 경쟁을 유발하고 협업을 저해함. 팀 단위 지표에 집중
+  - **AI 의존도 자체**: 도구 활용과 의존은 다름. AI를 잘 쓰는 것을 벌하지 말 것
 </Callout>
 
 ### 올바른 관점
 
-- 팀 전체의 성과 향상에 집중
-- 품질과 생산성의 균형
-- 장기적인 트렌드 관찰
-- 정성적 피드백의 가치 인정
+- **팀 전체의 성과 향상에 집중**: 개인 생산성이 아닌 팀 처리량(throughput) 추적
+- **품질과 생산성의 균형**: 속도만 측정하면 품질이 희생됨. 반드시 품질 지표를 함께 추적
+- **장기적인 트렌드 관찰**: 단기 변동에 반응하지 말고, 분기 단위 추세를 관찰
+- **정성적 피드백의 가치 인정**: 숫자로 잡히지 않는 개발자 경험 개선도 중요한 성과
 
 <Callout type="tip" title="Claude Code OTel로 자동 측정">
-  Claude Code의 OpenTelemetry 지원으로 `claude_code.lines_of_code.count`, `claude_code.cost.usage`,
-  `claude_code.active_time.total` 등의 메트릭을 자동 수집할 수 있습니다.
-  Part 1의 엔터프라이즈 보안 챕터에서 OTel 설정 방법을 참고하세요.
+  Claude Code의 OpenTelemetry 지원으로 다음 메트릭을 자동 수집할 수 있습니다:
+  `claude_code.lines_of_code.count`, `claude_code.cost.usage`,
+  `claude_code.active_time.total`, `claude_code.session.count` 등.
+  OTel 설정 방법과 대시보드 구성은 **Part 1의 엔터프라이즈 보안 챕터**를 참고하세요.
 </Callout>
 
 <ChapterNav

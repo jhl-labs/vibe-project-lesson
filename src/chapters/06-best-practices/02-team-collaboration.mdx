@@ -2,6 +2,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { DataTable } from '../../components/DataTable';
 import { ChapterNav } from '../../components/ChapterNav';
 
@@ -11,113 +12,168 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 > AI 코드와 팀 워크플로우의 통합
 
-## AI 코드의 책임
+## 왜 AI 시대의 팀 협업이 다른가
+
+AI 코딩 에이전트 도입은 개인 생산성만의 문제가 아닙니다.
+AI가 짧은 시간에 대량의 코드를 생성할 수 있게 되면서,
+**리뷰 병목, PR 크기 증가, 코드 이해도 저하** 같은 새로운 팀 차원의 과제가 생겨납니다.
+
+Faros AI의 2025년 연구(1,255개 팀, 10,000+ 개발자)에 따르면,
+AI 고도 활용 팀에서 개인 PR 생성량은 47% 증가했지만 PR 리뷰 시간은 91% 증가했습니다.
+개인의 속도가 팀의 성과로 이어지려면, **워크플로우 전체를 함께 설계**해야 합니다.
 
 <Callout type="important" title="핵심 원칙">
   AI가 생성한 코드의 최종 책임은 항상 커밋한 개발자에게 있습니다.
+  "AI가 만들었으니 모르겠다"는 리뷰 코멘트나 장애 보고서에서 통하지 않습니다.
 </Callout>
+
+## AI 코딩 팀 워크플로우
+
+팀에서 AI 코딩 에이전트를 사용하는 전형적인 흐름입니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    A["작업 할당"] --> B["AI로 코드 생성"]
+    B --> C["개발자 검증"]
+    C --> D["PR 제출"]
+    D --> E["AI 코드 리뷰 보조"]
+    E --> F["인간 리뷰어 검토"]
+    F --> G{"승인?"}
+    G -->|Yes| H["머지 & 배포"]
+    G -->|No| I["수정"]
+    I --> C
+
+    B -.-> B1["CLAUDE.md 규칙 적용"]
+    B -.-> B2["Hook 자동 검사"]
+    D -.-> D1["Co-Authored-By 표기"]
+    D -.-> D2["AI 사용 내역 기록"]
+    F -.-> F1["환각 검사"]
+    F -.-> F2["보안 검증"]
+
+    style A fill:#e8f5e9,stroke:#4caf50,color:#333
+    style H fill:#e8f5e9,stroke:#4caf50,color:#333
+    style G fill:#fff9c4,stroke:#f9a825,color:#333`}
+  title="AI 코딩 팀 워크플로우"
+  caption="AI 생성 코드는 개발자 검증과 인간 리뷰를 반드시 거칩니다"
+/>
 
 ### 책임 체계
 
-| 역할 | 책임 |
-|------|------|
-| **코드 작성자** | AI 생성 코드 검토, 이해, 커밋 |
-| **코드 리뷰어** | AI 코드 포함 전체 PR 리뷰 |
-| **팀 리드** | AI 활용 가이드라인 수립/관리 |
-| **보안 담당** | AI 코드 보안 정책 수립/검증 |
+<ComparisonTable
+  title="AI 코드 협업 역할과 책임"
+  headers={['역할', '핵심 책임', '구체적 행동']}
+  rows={[
+    { feature: '코드 작성자', values: ['AI 생성 코드 검토, 이해, 커밋', 'PR에 AI 사용 내역 명시, 모든 코드를 설명할 수 있어야 함'] },
+    { feature: '코드 리뷰어', values: ['AI 코드 포함 전체 PR 리뷰', '환각 검사, 보안 확인, 과도한 복잡성 점검'] },
+    { feature: '팀 리드', values: ['AI 활용 가이드라인 수립/관리', '.claude/ 팀 설정 표준화, 리뷰 프로세스 설계'] },
+    { feature: '보안 담당', values: ['AI 코드 보안 정책 수립/검증', 'Hook 보안 규칙 관리, 정기 보안 감사'] },
+  ]}
+/>
+
+## .claude/ 팀 설정 공유
+
+Claude Code의 `.claude/` 디렉토리를 Git으로 관리하면 팀 전체가 동일한 AI 동작 규칙을 공유할 수 있습니다.
+
+### 팀 공유 대상 파일
+
+<ComparisonTable
+  title=".claude/ 디렉토리 — Git 공유 여부"
+  headers={['파일/디렉토리', 'Git 공유', '용도', '설정 주체']}
+  rows={[
+    { feature: '.claude/settings.json', values: ['yes', '팀 공통 권한/Hook 설정', '팀 리드'] },
+    { feature: '.claude/commands/', values: ['yes', '팀 공용 슬래시 커맨드', '팀 전체'] },
+    { feature: '.claude/skills/', values: ['yes', '팀 공용 스킬', '시니어/리드'] },
+    { feature: 'CLAUDE.md', values: ['yes', '프로젝트 컨벤션/규칙', '팀 전체'] },
+    { feature: 'CLAUDE.local.md', values: ['no (.gitignore)', '개인 설정/선호', '개인'] },
+    { feature: '.claude/settings.local.json', values: ['no (.gitignore)', '개인 권한 오버라이드', '개인'] },
+  ]}
+/>
+
+### 팀 표준 설정 예시
+
+<CodeBlock
+  code={`// .claude/settings.json — 팀 공통 설정
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(npm test)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)"
+    ],
+    "deny": [
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(rm -rf *)",
+      "Edit(package-lock.json)",
+      "Read(.env*)"
+    ]
+  }
+}
+
+// 팀원은 CLAUDE.local.md와 settings.local.json으로 개인 설정을 오버라이드할 수 있습니다.
+// 단, deny는 팀 설정이 항상 우선합니다.`}
+  language="json"
+  filename=".claude/settings.json — 팀 표준"
+/>
+
+### 팀 공용 커맨드 예시
+
+<CodeBlock
+  code={`---
+description: PR 제출 전 최종 점검을 수행합니다
+---
+
+다음 순서로 점검을 수행하세요:
+
+1. npm run lint — 린트 오류가 있으면 수정
+2. npm test — 테스트 실패가 있으면 수정
+3. git diff --staged — 변경 내용 요약
+4. 민감 정보(API 키, 비밀번호, .env 참조) 포함 여부 확인
+5. Co-Authored-By 태그 포함 여부 확인
+
+모든 점검 통과 시 "PR 준비 완료" 메시지 출력`}
+  language="markdown"
+  filename=".claude/commands/pr-check.md"
+/>
 
 ## PR에서의 AI 사용 표기
 
+AI를 사용한 코드가 PR에 포함될 때, **무엇을 AI가 만들었고 개발자가 무엇을 검증했는지**를
+명시하면 리뷰어의 검토 효율이 높아지고, 향후 감사 추적(audit trail)에도 도움이 됩니다.
+
+### PR 템플릿 자동화
+
 <CodeBlock
-  code={`## PR 설명
+  code={`<!-- .github/PULL_REQUEST_TEMPLATE.md -->
+## 변경 사항
 
-### AI 지원 여부
-- [x] 이 PR은 AI 에이전트의 도움을 받아 작성되었습니다
+<!-- 이 PR에서 변경한 내용을 설명하세요 -->
 
-### AI 사용 내역
-- 보일러플레이트 생성: UserController, UserService
-- 테스트 케이스 초안: user.service.test.ts
-- 리팩토링 제안 적용: utils/validation.ts
+## AI 지원 여부
+
+- [ ] 이 PR은 AI 에이전트의 도움을 받아 작성되었습니다
+
+### AI 사용 내역 (해당 시)
+
+| 작업 | 파일 | AI 기여도 |
+|------|------|----------|
+|      |      | 초안 생성 / 리팩토링 제안 / 테스트 생성 |
 
 ### 개발자 검증
-- [x] 모든 AI 생성 코드를 직접 검토했습니다
-- [x] 코드의 동작을 이해하고 설명할 수 있습니다
-- [x] 보안 취약점을 확인했습니다
-- [x] 테스트를 실행하여 검증했습니다`}
+
+- [ ] 모든 AI 생성 코드를 직접 검토했습니다
+- [ ] 코드의 동작을 이해하고 설명할 수 있습니다
+- [ ] 보안 취약점을 확인했습니다 (Part 6 보안 체크리스트)
+- [ ] 테스트를 실행하여 검증했습니다
+- [ ] AI가 추천한 새 의존성이 있다면 실존 여부를 확인했습니다`}
   language="markdown"
-  filename="PR 템플릿 예시"
+  filename=".github/PULL_REQUEST_TEMPLATE.md"
 />
 
-## 코드 리뷰 규칙
-
-### AI 코드 리뷰 시 추가 확인사항
-
-<ComparisonTable
-  title="일반 코드 vs AI 코드 리뷰"
-  headers={['항목', '일반 코드', 'AI 생성 코드']}
-  rows={[
-    { feature: '기능 검증', values: ['yes', 'yes'] },
-    { feature: '코딩 컨벤션', values: ['yes', 'yes'] },
-    { feature: '보안 검사', values: ['yes', 'yes (강화)'] },
-    { feature: '코드 이해도 확인', values: ['partial', 'yes (필수)'] },
-    { feature: '과도한 복잡성 확인', values: ['partial', 'yes (필수)'] },
-    { feature: '불필요한 코드 확인', values: ['partial', 'yes (필수)'] },
-    { feature: 'AI 환각 검사', values: ['no', 'yes'] },
-  ]}
-/>
-
-<Callout type="warning" title="AI 환각 (Hallucination) 주의">
-  AI가 존재하지 않는 API, 라이브러리, 메서드를 사용하는 코드를 생성할 수 있습니다.
-  코드 리뷰 시 모든 import와 API 호출이 실제로 존재하는지 확인하세요.
-</Callout>
-
-## 팀 교육
-
-### 효과적인 AI 활용을 위한 교육 체계
-
-<DataTable
-  title="AI 활용 교육 로드맵"
-  searchable={true}
-  columns={[
-    { key: 'stage', header: '단계' },
-    { key: 'content', header: '교육 내용' },
-    { key: 'target', header: '대상' },
-    { key: 'duration', header: '기간' },
-    { key: 'goal', header: '목표' },
-  ]}
-  data={[
-    { stage: '기초', content: '바이브 코딩 개념, 도구 설치, 기본 사용법', target: '전체 팀', duration: '1주', goal: '기본 명령어 실행 가능' },
-    { stage: '실전', content: '프롬프트 작성법, 슬래시 커맨드 활용', target: '개발자', duration: '2주', goal: '일상 업무에 AI 활용' },
-    { stage: '심화', content: '커스터마이징, 보안 검증, 스킬 제작', target: '시니어/리드', duration: '2주', goal: '팀 맞춤 설정 구축' },
-    { stage: '관리', content: '가이드라인 수립, 효과 측정, ROI 분석', target: '매니저', duration: '지속', goal: '조직 차원 AI 전략 수립' },
-  ]}
-/>
-
-### 지식 공유
-
-<CodeBlock
-  code={`## 팀 내 AI 활용 지식 공유 방법
-
-1. 프롬프트 라이브러리 공유
-   - .claude/commands/ 디렉토리에 검증된 커스텀 커맨드 추가
-   - .claude/skills/ 디렉토리에 팀 공용 스킬 추가
-   - Git으로 버전 관리
-
-2. 코드 리뷰에서 좋은 AI 활용 사례 공유
-   - PR 코멘트에 "이 부분은 AI가 잘 생성한 예시"로 표기
-   
-3. 정기 세션
-   - 주간/격주 "AI 활용 팁" 공유 미팅
-   - 실패 사례도 공유 (더 중요!)
-
-4. 팀 위키
-   - 효과적인 프롬프트 패턴 문서화
-   - AI 사용 FAQ 관리`}
-  language="markdown"
-  filename="지식 공유 방법"
-/>
-
-## 커밋 표기
+### 커밋 표기
 
 <CodeBlock
   code={`# AI 지원 커밋 표기 (Co-Authored-By)
@@ -131,6 +187,232 @@ Co-Authored-By: Claude <noreply@anthropic.com>"`}
   filename="AI 지원 커밋 예시"
 />
 
+<Callout type="tip" title="Claude Code의 자동 표기">
+  Claude Code는 커밋 시 자동으로 `Co-Authored-By: Claude` 태그를 추가합니다.
+  이 태그는 GitHub에서 공동 작성자로 표시되며, git log에서 AI 지원 커밋을 필터링할 수 있습니다.
+</Callout>
+
+## AI 코드 리뷰
+
+AI가 생성한 코드를 리뷰할 때는 일반 코드 리뷰에 추가적인 확인 항목이 필요합니다.
+
+### 일반 코드 vs AI 코드 리뷰
+
+<ComparisonTable
+  title="일반 코드 vs AI 코드 리뷰 항목"
+  headers={['항목', '일반 코드', 'AI 생성 코드']}
+  rows={[
+    { feature: '기능 검증', values: ['yes', 'yes'] },
+    { feature: '코딩 컨벤션', values: ['yes', 'yes'] },
+    { feature: '보안 검사', values: ['yes', 'yes (강화)'] },
+    { feature: '작성자 이해도 확인', values: ['partial', 'yes (필수)'] },
+    { feature: '과도한 복잡성 확인', values: ['partial', 'yes (필수)'] },
+    { feature: '불필요한 코드 확인', values: ['partial', 'yes (필수)'] },
+    { feature: 'AI 환각 검사', values: ['no', 'yes'] },
+    { feature: '의존성 실존 확인', values: ['no', 'yes'] },
+  ]}
+/>
+
+### AI 코드 리뷰 실전 포인트
+
+AI가 생성한 코드에서 흔히 발견되는 문제와 리뷰 시 확인 방법입니다.
+
+<CodeBlock
+  code={`// ⚠️ AI 코드 리뷰 포인트 1: 환각 라이브러리
+// AI가 존재하지 않는 라이브러리를 import하는 경우
+import { validateEmail } from 'express-validator-plus'; // ❌ 실존하지 않는 패키지
+import { body, validationResult } from 'express-validator'; // ✅ 실제 패키지
+
+// 리뷰어 행동: npm view express-validator-plus 로 존재 여부 확인
+
+// ⚠️ AI 코드 리뷰 포인트 2: 존재하지 않는 API
+const result = await response.json.parse(); // ❌ .json.parse()는 미존재
+const result = await response.json();       // ✅ 올바른 API
+
+// ⚠️ AI 코드 리뷰 포인트 3: 과도한 추상화
+// AI는 "좋은 코드"를 작성하려다 불필요한 패턴을 추가하는 경향이 있음
+class UserRepositoryFactory {              // ❌ 단순 CRUD에 Factory 패턴
+  createRepository(type: string) { ... }
+}
+const userRepo = prisma.user;              // ✅ 충분히 단순한 구현
+
+// ⚠️ AI 코드 리뷰 포인트 4: Deprecated API
+const buf = new Buffer('hello');           // ❌ Node.js 6+에서 deprecated
+const buf = Buffer.from('hello');          // ✅ 현재 API`}
+  language="typescript"
+  filename="AI 코드 리뷰 포인트"
+/>
+
+<Callout type="warning" title="AI 환각 (Hallucination) 주의">
+  AI가 존재하지 않는 API, 라이브러리, 메서드를 사용하는 코드를 생성할 수 있습니다.
+  코드 리뷰 시 새로 추가된 import와 API 호출이 실제로 존재하는지 확인하세요.
+  특히 `npm view [패키지명]`으로 패키지 존재 여부를, 공식 문서에서 API 존재 여부를 검증하세요.
+</Callout>
+
+### 리뷰어를 위한 질문 체크리스트
+
+<CodeBlock
+  code={`## AI 코드 리뷰 질문 목록 (리뷰어용)
+
+### 이해도 확인
+- [ ] 작성자에게 "이 함수가 왜 이 로직을 사용하는지" 물어봄
+- [ ] 작성자가 AI 출력을 그대로 수용했는지, 수정했는지 확인
+
+### 환각 검사
+- [ ] 새로 추가된 의존성이 npm/PyPI에 실제 존재하는지 확인
+- [ ] 사용된 API/메서드가 해당 라이브러리 버전에 존재하는지 확인
+- [ ] CLI 플래그나 설정 옵션이 공식 문서에 있는지 확인
+
+### 코드 품질
+- [ ] 불필요한 추상화나 디자인 패턴이 없는지 확인
+- [ ] 유사한 코드가 프로젝트에 이미 존재하지 않는지 확인
+- [ ] 에러 메시지가 디버깅에 유용한지 확인
+
+### 보안 (Part 6 보안 챕터 참조)
+- [ ] 하드코딩된 시크릿 없음
+- [ ] SQL 파라미터화, XSS 방지 확인
+- [ ] 새 의존성의 보안 취약점 확인`}
+  language="markdown"
+  filename="AI 코드 리뷰 체크리스트"
+/>
+
+## 브랜치 전략과 PR 크기 관리
+
+AI가 대량의 코드를 빠르게 생성할 수 있으므로, PR 크기가 급격히 커질 수 있습니다.
+Faros AI의 연구에 따르면 AI 고도 활용 팀에서 PR 크기가 **154% 증가**했고,
+이는 리뷰 시간 증가의 주요 원인이 됩니다.
+
+### PR 크기 가이드라인
+
+<ComparisonTable
+  title="PR 크기별 권장 사항"
+  headers={['PR 크기', '변경 라인 수', '리뷰 시간', '권장 여부']}
+  rows={[
+    { feature: '소형', values: ['~200줄 이하', '30분 이내', 'yes'] },
+    { feature: '중형', values: ['200~500줄', '1시간 이내', 'partial'] },
+    { feature: '대형', values: ['500줄 이상', '수 시간', 'no'] },
+  ]}
+/>
+
+### AI 대량 변경을 관리하는 전략
+
+<CodeBlock
+  code={`# 1. 작업 단위 분할: AI에게 한 번에 전체를 맡기지 않기
+# ❌ "전체 인증 시스템을 구현해줘"
+# ✅ "JWT 토큰 발급 함수를 작성해줘" → PR 1
+# ✅ "토큰 검증 미들웨어를 작성해줘" → PR 2
+# ✅ "리프레시 토큰 로직을 추가해줘" → PR 3
+
+# 2. Stacked PRs: 의존성이 있는 변경을 순서대로 쌓기
+git checkout -b feat/auth-token       # PR 1: 토큰 발급
+git checkout -b feat/auth-middleware   # PR 2: 미들웨어 (feat/auth-token 기반)
+git checkout -b feat/auth-refresh     # PR 3: 리프레시 (feat/auth-middleware 기반)
+
+# 3. 리팩토링과 기능 추가를 분리
+# ❌ AI가 기능 추가와 기존 코드 리팩토링을 한 PR에 섞기
+# ✅ 리팩토링 PR → 기능 추가 PR 순서로 분리`}
+  language="bash"
+  filename="PR 크기 관리 전략"
+/>
+
+## 팀 교육과 온보딩
+
+### AI 활용 교육 로드맵
+
+<DataTable
+  title="AI 활용 교육 로드맵"
+  searchable={true}
+  columns={[
+    { key: 'stage', header: '단계', width: '80px' },
+    { key: 'content', header: '교육 내용', width: '250px' },
+    { key: 'target', header: '대상', width: '100px' },
+    { key: 'goal', header: '목표', width: '200px' },
+  ]}
+  data={[
+    { stage: '기초', content: 'Claude Code 설치, 기본 명령어, CLAUDE.md 이해', target: '전체 팀', goal: '기본 대화형 코딩 수행 가능' },
+    { stage: '실전', content: '프롬프트 작성법, 슬래시 커맨드, Hook 활용', target: '개발자', goal: '일상 업무에 AI를 자연스럽게 활용' },
+    { stage: '심화', content: '커스텀 커맨드/스킬 제작, 보안 Hook 설정', target: '시니어/리드', goal: '팀 맞춤 설정과 자동화 구축' },
+    { stage: '관리', content: '가이드라인 수립, 효과 측정(Part 6 효과 측정 참조), ROI 분석', target: '매니저', goal: '조직 차원 AI 전략과 개선 사이클 운영' },
+  ]}
+/>
+
+### 신규 팀원 온보딩 체크리스트
+
+새 팀원이 AI 도구를 사용하는 팀에 합류할 때의 온보딩 절차입니다.
+
+<CodeBlock
+  code={`## 신규 팀원 AI 온보딩 체크리스트
+
+### 1일차: 환경 설정
+- [ ] Claude Code 설치 및 인증
+- [ ] 프로젝트 클론 후 .claude/ 설정 자동 적용 확인
+- [ ] CLAUDE.md 읽고 프로젝트 컨벤션 파악
+- [ ] .claude/commands/ 목록 확인
+
+### 1주차: 기본 활용
+- [ ] 간단한 작업(테스트 작성, 문서화)으로 AI 에이전트 체험
+- [ ] PR 템플릿의 "AI 지원 여부" 섹션 작성 연습
+- [ ] 시니어 개발자의 AI 활용 PR을 관찰/리뷰 참여
+- [ ] 팀 커스텀 커맨드 사용법 익히기
+
+### 2주차: 실전 적용
+- [ ] 실제 작업에 AI 활용하여 PR 제출
+- [ ] AI 코드 리뷰 체크리스트 기반으로 동료 PR 리뷰
+- [ ] 실패 사례나 의문점을 팀 채널에 공유
+
+### 지속: 습관화
+- [ ] 정기 "AI 활용 팁" 공유 미팅 참석
+- [ ] 효과적인 프롬프트 패턴을 팀 위키에 기록`}
+  language="markdown"
+  filename="신규 팀원 AI 온보딩 체크리스트"
+/>
+
+## 지식 공유
+
+### 프롬프트/커맨드 라이브러리 공유
+
+<CodeBlock
+  code={`# .claude/commands/ 디렉토리를 팀 프롬프트 라이브러리로 활용
+
+# 팀 공용 커맨드 예시 구조
+.claude/
+├── commands/
+│   ├── pr-check.md         # PR 제출 전 점검
+│   ├── code-review.md      # AI 보조 코드 리뷰
+│   ├── test-generate.md    # 테스트 코드 생성
+│   └── refactor.md         # 리팩토링 가이드
+├── skills/
+│   ├── security-audit.md   # 보안 감사 스킬
+│   └── api-design.md       # API 설계 스킬
+└── settings.json            # 팀 공통 설정
+
+# Git으로 버전 관리 — PR로 추가/수정 → 팀 리뷰 → 머지
+# 새 커맨드를 추가할 때도 코드와 동일한 리뷰 프로세스를 거칩니다.`}
+  language="text"
+  filename=".claude/ 팀 라이브러리 구조"
+/>
+
+### 실패 사례 공유의 가치
+
+성공 사례보다 **실패 사례**가 팀 학습에 더 큰 가치를 줍니다.
+
+<ComparisonTable
+  title="팀 공유 추천 사례"
+  headers={['유형', '공유 내용', '학습 효과']}
+  rows={[
+    { feature: '환각 사례', values: ['AI가 존재하지 않는 패키지/API를 추천한 경우', '리뷰 시 검증 습관 형성'] },
+    { feature: '과도한 복잡성', values: ['AI가 불필요한 패턴을 추가한 경우', '간결한 코드 요구 방법 학습'] },
+    { feature: '보안 실수', values: ['AI가 시크릿을 하드코딩한 경우', 'Hook 자동 검사의 중요성 인식'] },
+    { feature: '대형 PR', values: ['AI에게 전체를 맡겨 리뷰 불가 PR이 된 경우', '작업 분할 전략 학습'] },
+    { feature: '효과적 프롬프트', values: ['명확한 프롬프트로 좋은 결과를 얻은 경우', '프롬프트 패턴 라이브러리 확장'] },
+  ]}
+/>
+
+<Callout type="tip" title="정기 공유 미팅">
+  주간 또는 격주로 15~30분 "AI 활용 회고" 미팅을 권장합니다.
+  각자 한 가지씩 성공 또는 실패 사례를 공유하고,
+  유용한 패턴은 `.claude/commands/`에, 주의사항은 CLAUDE.md에 반영합니다.
+</Callout>
 
 <ChapterNav
   prev={{ title: '보안', path: '/docs/part-6--모범-사례-보안' }}
