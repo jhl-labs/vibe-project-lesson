@@ -16,7 +16,7 @@ import { templateFiles } from '../../data/template-files';
 
 ## 개요
 
-스킬은 `.claude/skills/` 디렉토리에 정의된 **실행 가능한 전문 능력**입니다. 각 스킬은 `SKILL.md` 파일을 포함하는 디렉토리로 구성되며, 슬래시 커맨드로 호출하거나 Claude가 자동으로 매칭하여 실행합니다. 각 스킬은 특정 작업에 대한 상세한 절차, 체크리스트, 출력 형식을 정의합니다.
+스킬은 `.claude/skills/` 디렉토리에 정의된 **실행 가능한 전문 능력**입니다. 각 스킬은 `SKILL.md` 파일을 포함하는 디렉토리로 구성되며, 슬래시 커맨드(`/스킬명`)로 직접 호출하거나, Claude가 대화 내용과 스킬의 `description`을 매칭하여 자동으로 실행합니다. 각 스킬은 특정 작업에 대한 상세한 절차, 체크리스트, 출력 형식을 정의합니다.
 
 <Callout type="info" title="프롬프트 vs 스킬">
   **프롬프트**는 "어떤 정보를 제공하고 무엇을 요청할지"의 템플릿이고,
@@ -120,6 +120,30 @@ import { templateFiles } from '../../data/template-files';
 | A08 | 무결성 실패 | 서명 검증, 데이터 무결성 |
 | A09 | 로깅 및 알림 실패 | 감사 로그, 알림 |
 | A10 | 예외 처리 미흡 | 에러 핸들링, fail-open 방지 |
+
+## 스킬 호출 제어
+
+스킬의 프론트매터로 누가 호출할 수 있는지 제어합니다:
+
+| 프론트매터 | 사용자 호출 | Claude 자동 호출 | 설명 |
+|-----------|:---------:|:--------------:|------|
+| (기본값) | O | O | description이 항상 컨텍스트에 포함 |
+| `disable-model-invocation: true` | O | X | 수동 호출만 허용 |
+| `user-invocable: false` | X | O | Claude만 자동 호출 가능 |
+
+<CodeBlock
+  code={`---
+name: deploy-production
+description: Deploy to production environment
+disable-model-invocation: true
+---
+
+# Production Deploy
+이 스킬은 반드시 /deploy-production으로 직접 호출해야 합니다.
+Claude가 임의로 실행하지 않습니다.`}
+  language="markdown"
+  filename=".claude/skills/deploy-production/SKILL.md"
+/>
 
 ## 스킬 커스터마이징
 
