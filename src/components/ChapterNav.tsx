@@ -6,6 +6,12 @@ interface ChapterNavProps {
   next?: { title: string; path: string };
 }
 
+const toStoryId = (path: string): string => {
+  let storyId = path.replace(/^\/docs\//, '');
+  storyId = storyId.replace(/--/g, '-');
+  return `${storyId}--docs`;
+};
+
 const NavButton: React.FC<{
   direction: 'prev' | 'next';
   title: string;
@@ -14,21 +20,23 @@ const NavButton: React.FC<{
   const isPrev = direction === 'prev';
 
   const handleClick = () => {
-    // path를 Storybook story ID로 변환
-    // MDX path 예: "/docs/part-1--기초-바이브-코딩이란"
-    // Storybook ID: "part-1-기초-바이브-코딩이란--docs"
-    let storyId = path.replace(/^\/docs\//, '');
-    // "part-1--기초" → "part-1-기초" (더블 하이픈을 싱글로)
-    storyId = storyId.replace(/--/g, '-');
-    // 끝에 --docs 붙이기
-    storyId = `${storyId}--docs`;
+    const storyId = toStoryId(path);
 
-    const targetUrl = `${window.location.origin}/?path=/docs/${storyId}`;
-    if (window.top) {
-      window.top.location.href = targetUrl;
-    } else {
-      window.location.href = targetUrl;
+    // Storybook 내부 채널 API로 네비게이션 (iframe/inline 모두 지원)
+    const channel =
+      (window as any).__STORYBOOK_ADDONS_CHANNEL__ ||
+      (window as any).parent?.__STORYBOOK_ADDONS_CHANNEL__ ||
+      (window as any).top?.__STORYBOOK_ADDONS_CHANNEL__;
+
+    if (channel) {
+      channel.emit('selectStory', { storyId });
+      return;
     }
+
+    // 채널 없을 경우 URL 기반 fallback
+    const top = window.top || window;
+    const base = top.location.href.split('?')[0];
+    top.location.href = `${base}?path=/docs/${storyId}`;
   };
 
   return (
