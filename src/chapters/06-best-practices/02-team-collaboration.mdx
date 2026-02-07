@@ -414,6 +414,68 @@ git checkout -b feat/auth-refresh     # PR 3: 리프레시 (feat/auth-middleware
   유용한 패턴은 `.claude/commands/`에, 주의사항은 CLAUDE.md에 반영합니다.
 </Callout>
 
+---
+
+## Agent Teams로 팀 생산성 극대화
+
+2026년 2월 출시된 **Agent Teams**를 팀 단위로 활용하는 패턴입니다.
+
+### 팀 워크플로우에 Agent Teams 통합
+
+<MermaidDiagram
+  chart={`flowchart TB
+    PM["PM: 요구사항 정의"] --> TL["Team Lead: Agent Teams 구성"]
+    TL --> FE["Agent 1: 프론트엔드"]
+    TL --> BE["Agent 2: 백엔드"]
+    TL --> QA["Agent 3: 테스트"]
+    TL --> DOC["Agent 4: 문서"]
+    FE --> INT["통합 & 코드 리뷰"]
+    BE --> INT
+    QA --> INT
+    DOC --> INT
+    INT --> REVIEW["인간 리뷰어 검토"]
+    REVIEW --> DEPLOY["배포"]
+
+    style PM fill:#e8f5e9,stroke:#4caf50,color:#333
+    style DEPLOY fill:#e8f5e9,stroke:#4caf50,color:#333
+    style REVIEW fill:#fff9c4,stroke:#f9a825,color:#333`}
+  title="Agent Teams 기반 팀 워크플로우"
+  caption="PM이 요구사항을 정의하면, Agent Teams가 병렬로 작업하고 인간 리뷰어가 최종 검토합니다"
+/>
+
+### Cowork로 비개발자 협업
+
+2026년 1월 출시된 **Claude Cowork**는 PM, 디자이너, QA 등 비개발자도 AI 에이전트를 활용할 수 있게 합니다.
+
+<ComparisonTable
+  title="Cowork 역할별 활용"
+  headers={['역할', 'Cowork 활용', '효과']}
+  rows={[
+    { feature: 'PM', values: ['요구사항 문서 자동 정리, PRD에서 기술 스펙 초안 생성', '기획-개발 간 의사소통 시간 단축'] },
+    { feature: 'QA', values: ['테스트 시나리오 자동 생성, 리그레션 테스트 스크립트 작성', '수동 테스트 시간 50%+ 감소'] },
+    { feature: '디자이너', values: ['Figma 목업에서 컴포넌트 스펙 추출, 디자인 토큰 문서화', '디자인 핸드오프 자동화'] },
+    { feature: '테크니컬 라이터', values: ['API 문서 초안 자동 작성, 코드 변경에 따른 문서 업데이트 감지', '문서-코드 동기화 보장'] },
+  ]}
+/>
+
+### 엔터프라이즈 도입 사례
+
+<ComparisonTable
+  title="엔터프라이즈 AI 에이전트 도입 사례"
+  headers={['기업', '규모', '성과', '출처']}
+  rows={[
+    { feature: 'Ramp (핀테크)', values: ['엔지니어링 팀 전체', '30일간 100만줄+ AI 코드, 인시던트 80% 감소', 'Anthropic 블로그'] },
+    { feature: 'Bridgewater (헤지펀드)', values: ['투자 분석팀', '주니어 애널리스트 수준의 투자 분석 자동화', 'Amazon Bedrock 사례'] },
+    { feature: 'Anthropic 내부', values: ['보안/마케팅/법무팀', '프로덕션 이슈 해결 67% 단축', '공식 블로그'] },
+  ]}
+/>
+
+<Callout type="info" title="팀 전체의 도구로 확장">
+  Agent Teams와 Cowork는 '개발자만의 도구'에서 '팀 전체의 도구'로 AI 에이전트의 활용 범위를 확장합니다.
+</Callout>
+
+---
+
 <ChapterNav
   prev={{ title: '보안', path: '/docs/part-6--모범-사례-보안' }}
   next={{ title: '효과 측정', path: '/docs/part-6--모범-사례-효과-측정' }}
