@@ -939,7 +939,7 @@ Slack MCP 서버는 채널 메시지 읽기/쓰기, 사용자 정보 조회, 파
 <CodeBlock
   code={`# Slack MCP 서버 설정 (Bot Token 필요)
 claude mcp add --transport stdio slack -- \\
-  npx -y @anthropic/mcp-server-slack \\
+  npx -y @modelcontextprotocol/server-slack \\
   --env SLACK_BOT_TOKEN=\${SLACK_BOT_TOKEN} \\
   --env SLACK_TEAM_ID=\${SLACK_TEAM_ID}
 

@@ -44,9 +44,9 @@ MCP는 2024년 말 공개 이후 빠르게 발전하며 업계 표준으로 자�
       description: 'SSE를 대체하는 Streamable HTTP 전송 방식 추가. 원격 서버 연결이 더 간편해짐.',
     },
     {
-      date: '2025-05',
-      title: 'OAuth 2.1 인증 표준화',
-      description: 'MCP 서버의 인증 흐름이 OAuth 2.1 기반으로 표준화. 보안성과 사용 편의성 향상.',
+      date: '2025-03-26',
+      title: 'OAuth 2.1 인증 도입',
+      description: '2025-03-26 스펙에서 MCP 서버의 인증 흐름에 OAuth 2.1이 도입됨. 2025-06-18 스펙에서 대폭 개선.',
     },
     {
       date: '2025-06',
@@ -614,7 +614,7 @@ claude mcp add --transport stdio sqlite -- \\
 <CodeBlock
   code={`# Slack MCP 서버 설정
 claude mcp add --transport stdio slack -- \\
-  npx -y @anthropic/mcp-server-slack \\
+  npx -y @modelcontextprotocol/server-slack \\
   --env SLACK_BOT_TOKEN=xoxb-your-token
 
 # 활용 예시

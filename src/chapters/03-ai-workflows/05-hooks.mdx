@@ -59,6 +59,8 @@ Claude Code는 14가지 이벤트 타입을 지원합니다 (Agent Teams의 Team
     { event: 'SubagentStop', timing: '서브에이전트 완료 시', blockable: '예', matcher: '에이전트 타입' },
     { event: 'Notification', timing: '알림 발생 시', blockable: '아니오', matcher: '알림 유형' },
     { event: 'PreCompact', timing: '컨텍스트 압축 전', blockable: '아니오', matcher: 'manual, auto' },
+    { event: 'TeammateIdle', timing: '팀원 에이전트 대기 시', blockable: '아니오', matcher: '(없음)' },
+    { event: 'TaskCompleted', timing: '할당된 작업 완료 시', blockable: '아니오', matcher: '(없음)' },
   ]}
 />
 
