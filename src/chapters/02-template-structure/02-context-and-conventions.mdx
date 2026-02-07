@@ -2,6 +2,8 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import { Callout } from '../../components/Callout';
 import { TemplateFileViewer } from '../../components/TemplateFileViewer';
 import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { ChapterNav } from '../../components/ChapterNav';
 import { templateFiles } from '../../data/template-files';
 
@@ -10,6 +12,12 @@ import { templateFiles } from '../../data/template-files';
 # 컨텍스트와 컨벤션
 
 > 프로젝트 정보와 코딩 규칙 정의
+
+AI 에이전트가 올바른 코드를 생성하려면 두 가지 핵심 입력이 필요합니다.
+첫째는 **컨텍스트** -- 프로젝트가 무엇이고, 어떤 기술을 사용하며, 어떤 제약이 있는지.
+둘째는 **컨벤션** -- 코드를 어떤 스타일로, 어떤 패턴에 맞춰 작성해야 하는지.
+이 두 가지가 정확하게 정의되어 있으면, AI는 "그 프로젝트에서 일하는 시니어 개발자"처럼 행동합니다.
+반대로 이것이 없으면, AI는 일반적인 베스트 프랙티스를 추측하여 적용하게 되어 프로젝트와 맞지 않는 코드를 만들어냅니다.
 
 ## context.md - 프로젝트 컨텍스트
 
@@ -104,6 +112,847 @@ import { templateFiles } from '../../data/template-files';
   이 파일은 자동 로드되며 `.gitignore`에 자동 추가됩니다.
   개인 코딩 스타일, 선호 도구, 실험적 설정 등을 팀 설정과 분리할 때 유용합니다.
 </Callout>
+
+---
+
+## 컨텍스트 계층 구조
+
+AI 에이전트에게 전달되는 컨텍스트는 단일 파일이 아니라 **계층적 구조**로 구성됩니다.
+각 계층은 서로 다른 역할을 담당하며, Claude Code는 이 계층을 자동으로 탐색하여 하나의 통합된 컨텍스트를 구성합니다.
+
+<MermaidDiagram
+  chart={`graph TD
+    A["CLAUDE.md<br/>(프로젝트 루트)"] --> B["핵심 지시사항<br/>빌드 명령, 핵심 규칙"]
+    A --> C[".claude/rules/<br/>(자동 로드 규칙)"]
+    C --> D["conventions.md<br/>코딩 규칙"]
+    C --> E["guidelines.md<br/>AI 사용 가이드"]
+    C --> F["architecture.md<br/>아키텍처 원칙"]
+    A --> G["docs/<br/>(@ 임포트 문서)"]
+    G --> H["context.md<br/>프로젝트 컨텍스트"]
+    G --> I["adr/<br/>아키텍처 결정 기록"]
+    A --> J["CLAUDE.local.md<br/>(개인 설정, gitignore)"]
+
+    style A fill:#fdf2ee,stroke:#da7756,stroke-width:2px,color:#2d2a26
+    style C fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style G fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style J fill:#faf9f7,stroke:#8c857c,stroke-dasharray:5 5,color:#2d2a26
+  `}
+  title="Claude Code 컨텍스트 계층 구조"
+  caption="CLAUDE.md가 진입점이 되고, .claude/rules/는 자동 로드, docs/는 @ 임포트로 연결됩니다"
+/>
+
+### 계층별 역할과 로드 방식
+
+| 계층 | 파일/디렉토리 | 로드 방식 | 역할 |
+|------|-------------|----------|------|
+| **1단계** | `CLAUDE.md` | 자동 (대화 시작 시) | 핵심 지시사항, 빠른 명령어, 프로젝트 개요 |
+| **2단계** | `.claude/rules/*.md` | 자동 (모든 대화에서) | 코딩 규칙, 가이드라인, 아키텍처 원칙 |
+| **3단계** | `docs/context.md` 등 | `@` 임포트 또는 명시적 참조 | 상세 프로젝트 컨텍스트, 도메인 지식 |
+| **개인** | `CLAUDE.local.md` | 자동 (Git 미추적) | 개인 선호 설정, 실험적 옵션 |
+
+<Callout type="info" title="자동 로드 vs 수동 참조">
+  `.claude/rules/` 디렉토리의 파일은 모든 대화에서 **자동으로 로드**됩니다.
+  반면 `docs/` 아래의 파일은 CLAUDE.md에서 `@docs/context.md`로 명시적으로 임포트하거나,
+  대화 중에 Claude Code가 필요에 따라 직접 읽어야 합니다.
+  자주 참조해야 하는 핵심 규칙은 `.claude/rules/`에, 필요할 때만 참조하는 상세 문서는 `docs/`에 배치하세요.
+</Callout>
+
+---
+
+## context.md 작성 실전 가이드
+
+context.md를 잘 작성하면 AI의 코드 품질이 극적으로 달라집니다.
+다음은 단계별 작성 가이드입니다.
+
+### 1단계: 프로젝트 정체성 정의
+
+AI가 가장 먼저 파악해야 하는 것은 "이 프로젝트가 무엇인가"입니다. 이름, 목적, 현재 상태를 간결하게 정의하세요.
+
+<CodeBlock
+  code={`# Project Context
+
+## 프로젝트 개요
+- **이름**: commerce-api
+- **목적**: B2C 이커머스 플랫폼의 주문/결제 백엔드 API
+- **상태**: 프로덕션 운영 중 (v2.3.1)
+- **사용자 규모**: 일 평균 5만 명, 피크 시 10만+ 동시 접속
+- **팀**: 백엔드 4명, 프론트 3명, DevOps 1명`}
+  language="markdown"
+  filename="docs/context.md -- 좋은 예시: 프로젝트 정체성"
+/>
+
+<CodeBlock
+  code={`# Context
+
+## 개요
+- 이름: 프로젝트
+- 설명: API 서버
+- 상태: 개발 중`}
+  language="markdown"
+  filename="docs/context.md -- 나쁜 예시: 모호한 정체성"
+/>
+
+<Callout type="warning" title="모호한 정보는 모호한 코드를 만든다">
+  "API 서버"라고만 적으면 AI는 REST인지 GraphQL인지, 어떤 도메인인지 추측해야 합니다.
+  추측은 곧 오류입니다. 구체적일수록 AI의 첫 번째 결과물이 정확해집니다.
+</Callout>
+
+### 2단계: 기술 스택과 버전 명시
+
+프레임워크나 라이브러리 이름뿐 아니라 **버전**을 반드시 명시하세요.
+버전에 따라 API가 완전히 달라지기 때문입니다.
+
+<CodeBlock
+  code={`## 기술 스택
+
+### 핵심
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| Node.js | 20 LTS | 런타임 |
+| TypeScript | 5.4 | 언어 (strict mode) |
+| NestJS | 10.x | 프레임워크 |
+| PostgreSQL | 16 | 메인 DB |
+| Redis | 7.x | 캐시, 세션, 큐 |
+| Prisma | 5.x | ORM |
+
+### 주요 라이브러리
+| 라이브러리 | 용도 | 비고 |
+|-----------|------|------|
+| zod | 입력 검증 | class-validator 대신 사용 |
+| bullmq | 작업 큐 | Redis 기반 |
+| pino | 로깅 | winston 대신 사용 (성능) |
+| vitest | 테스트 | jest 대신 사용 |
+
+### 반드시 사용하지 않는 것
+- moment.js → dayjs 사용
+- lodash → 네이티브 메서드 우선
+- class-validator → zod 사용`}
+  language="markdown"
+  filename="docs/context.md -- 기술 스택 상세"
+/>
+
+<Callout type="tip" title="'사용하지 않는 것'이 중요한 이유">
+  AI는 학습 데이터에서 가장 빈번하게 등장하는 라이브러리를 기본적으로 추천합니다.
+  예를 들어 TypeScript 프로젝트에서 `moment.js`나 `lodash`를 습관적으로 임포트할 수 있습니다.
+  "사용하지 않는 것" 목록을 명시하면 이런 불필요한 의존성 추가를 사전에 차단합니다.
+</Callout>
+
+### 3단계: 도메인 지식 전달
+
+기술 스택만으로는 부족합니다. **비즈니스 도메인**을 이해해야 적절한 변수명, 함수명, 에러 메시지를 만들 수 있습니다.
+
+<CodeBlock
+  code={`## 도메인 용어 사전
+
+| 용어 | 영문 | 설명 |
+|------|------|------|
+| 주문 | Order | 사용자가 상품을 구매하는 행위 |
+| 결제 | Payment | 주문에 대한 금액 지불 (PG 연동) |
+| 배송 | Shipment | 주문 상품의 물리적 전달 |
+| 정산 | Settlement | 판매자에게 수익을 정산하는 절차 |
+| SKU | SKU | Stock Keeping Unit, 재고 관리 단위 |
+
+## 비즈니스 규칙
+- 주문 취소는 "배송 준비 중" 상태까지만 가능
+- 부분 환불 시 쿠폰 할인액은 비례 배분
+- 판매자 정산은 구매 확정 후 D+7 영업일
+- 재고가 0인 상품은 자동으로 "품절" 상태 전환
+- 동일 상품 최대 구매 수량: 10개`}
+  language="markdown"
+  filename="docs/context.md -- 도메인 지식"
+/>
+
+### 4단계: 현재 상태와 알려진 이슈
+
+AI는 현재 코드베이스의 "상태"를 알아야 맥락에 맞는 코드를 생성합니다.
+기술 부채나 마이그레이션 중인 부분을 알리지 않으면, AI가 레거시 패턴을 그대로 답습할 수 있습니다.
+
+<CodeBlock
+  code={`## 현재 상태
+
+### 진행 중인 작업
+- [ ] REST API → GraphQL 마이그레이션 (2단계 진행 중)
+- [ ] 모놀리스 → 마이크로서비스 분리 (주문 서비스 완료, 결제 서비스 진행 중)
+- [ ] PostgreSQL 16 업그레이드 (스테이징 완료, 프로덕션 예정)
+
+### 알려진 기술 부채
+- src/legacy/ 디렉토리: 구형 Express 라우터, NestJS로 마이그레이션 필요
+- 일부 테스트에서 실제 DB 사용 중 → 테스트 컨테이너로 전환 예정
+- 에러 코드 체계 미통일 (레거시: 숫자 코드, 신규: 문자열 코드)
+
+### 절대 건드리지 말 것
+- src/core/payment-gateway.ts: PG사 인증 완료된 코드, 변경 시 재인증 필요
+- database/migrations/: 이미 실행된 마이그레이션은 수정 금지`}
+  language="markdown"
+  filename="docs/context.md -- 현재 상태"
+/>
+
+<Callout type="warning" title="'절대 건드리지 말 것' 섹션의 중요성">
+  AI 에이전트에게 리팩토링을 요청하면, 관련 파일을 폭넓게 수정할 수 있습니다.
+  변경하면 안 되는 파일(인증된 코드, 실행된 마이그레이션, 외부 계약이 있는 API 등)을
+  명시적으로 알려주지 않으면 의도치 않게 손상될 수 있습니다.
+</Callout>
+
+---
+
+## conventions.md 안티패턴
+
+좋은 컨벤션 문서를 작성하는 것 못지않게, **흔한 실수를 피하는 것**이 중요합니다.
+다음은 실제 프로젝트에서 자주 관찰되는 안티패턴들입니다.
+
+### 안티패턴 1: 규칙의 폭발
+
+<CodeBlock
+  code={`# conventions.md (안티패턴: 200+ 규칙)
+
+## 네이밍 규칙
+1. 변수명은 camelCase
+2. 상수는 UPPER_SNAKE_CASE
+3. 클래스는 PascalCase
+4. 인터페이스는 PascalCase (I prefix 없음)
+5. 타입은 PascalCase
+6. Enum은 PascalCase
+7. Enum 값은 UPPER_SNAKE_CASE
+8. 파일명은 kebab-case
+9. 테스트 파일은 .test.ts 접미사
+10. 스토리 파일은 .stories.tsx 접미사
+... (190개 규칙 더)
+
+## 문제점:
+# - AI가 200개 규칙을 모두 기억하지 못함
+# - 규칙 간 충돌 가능성 증가
+# - 유지보수 부담 급증
+# - 팀원도 모든 규칙을 기억하지 못함`}
+  language="markdown"
+  filename="안티패턴: 규칙이 너무 많은 경우"
+/>
+
+<Callout type="warning" title="규칙 수의 황금 비율">
+  컨벤션 문서의 규칙은 **20~40개**가 적정합니다.
+  이보다 많으면 AI도 사람도 모두 기억하지 못하고, 이보다 적으면 일관성을 보장할 수 없습니다.
+  ESLint나 Prettier 같은 도구로 자동화할 수 있는 규칙은 문서에서 빼고 도구에 맡기세요.
+</Callout>
+
+### 안티패턴 2: 모호한 규칙
+
+<CodeBlock
+  code={`# conventions.md (안티패턴: 모호한 규칙)
+
+## 코드 스타일
+- 깨끗한 코드를 작성하세요
+- 적절한 추상화를 사용하세요
+- 성능을 고려하세요
+- 가독성 좋은 코드를 작성하세요
+- 적절한 에러 처리를 하세요
+
+## 문제점:
+# - "깨끗한"의 기준이 사람마다 다름
+# - "적절한"이 어느 수준인지 알 수 없음
+# - AI가 해석할 수 없는 주관적 기준`}
+  language="markdown"
+  filename="안티패턴: 모호한 규칙"
+/>
+
+<CodeBlock
+  code={`# conventions.md (개선: 구체적인 규칙)
+
+## 코드 스타일
+- 함수 길이: 최대 30줄 (테스트 제외)
+- 함수 파라미터: 최대 3개 (초과 시 객체로 묶기)
+- 중첩 깊이: 최대 3단계 (초과 시 early return 적용)
+- 에러 처리: 모든 async 함수에 try-catch 또는 .catch() 필수
+- 타입 안전: any 사용 금지 (unknown 사용 후 타입 가드)`}
+  language="markdown"
+  filename="개선: 측정 가능한 구체적 규칙"
+/>
+
+### 안티패턴 3: 예시 없는 규칙
+
+<CodeBlock
+  code={`# conventions.md (안티패턴: 예시 부재)
+
+## 에러 처리
+- 커스텀 에러 클래스를 사용하세요
+- 적절한 HTTP 상태 코드를 반환하세요
+
+## 문제점:
+# - "커스텀 에러 클래스"가 어떤 형태인지 모름
+# - 기존 에러 클래스 구조를 AI가 추측해야 함`}
+  language="markdown"
+  filename="안티패턴: 예시 없는 규칙"
+/>
+
+<CodeBlock
+  code={`# conventions.md (개선: 코드 예시 포함)
+
+## 에러 처리
+
+\`\`\`typescript
+// 이 프로젝트의 에러 클래스 패턴
+class AppError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly statusCode: number = 500,
+    public readonly details?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = 'AppError';
+  }
+}
+
+// 사용 예시
+throw new AppError(
+  '주문을 찾을 수 없습니다',
+  'ORDER_NOT_FOUND',
+  404,
+  { orderId }
+);
+\`\`\``}
+  language="markdown"
+  filename="개선: 코드 예시가 포함된 규칙"
+/>
+
+### 안티패턴 4: 업데이트되지 않는 문서
+
+<Callout type="warning" title="죽은 문서는 잘못된 코드를 만든다">
+  컨벤션 문서가 실제 코드베이스와 다르면, AI는 문서를 따르지만 기존 코드와 불일치하는 결과를 만듭니다.
+  예를 들어 문서에는 "Jest 사용"이라 적혀 있지만 실제로는 Vitest로 전환했다면,
+  AI는 Jest 문법으로 테스트를 작성하게 됩니다.
+  컨벤션 문서의 변경 이력을 관리하고, 기술 스택 변경 시 즉시 문서를 업데이트하세요.
+</Callout>
+
+---
+
+## 팀 규모별 운영 전략
+
+컨텍스트와 컨벤션 문서의 복잡도는 팀 규모에 비례해야 합니다.
+1인 프로젝트에 엔터프라이즈급 문서 체계를 만들면 오버엔지니어링이고,
+대규모 팀에서 간단한 메모만 두면 혼란이 발생합니다.
+
+<ComparisonTable
+  title="팀 규모별 컨텍스트/컨벤션 전략"
+  headers={['항목', '소규모 (1~3명)', '중규모 (4~10명)', '대규모 (10명+)']}
+  rows={[
+    { feature: 'CLAUDE.md 분량', values: ['20~50줄', '50~100줄', '100~150줄'] },
+    { feature: 'context.md', values: ['CLAUDE.md에 통합', '별도 파일 1개', '도메인별 여러 파일'] },
+    { feature: 'conventions.md', values: ['핵심 10~15개 규칙', '20~40개 규칙 + 예시', '규칙 + 예시 + ADR'] },
+    { feature: '.claude/rules/', values: ['1~2개 파일', '3~5개 파일', '5~10개 주제별 파일'] },
+    { feature: 'CLAUDE.local.md', values: ['불필요', '선택적', '권장'] },
+    { feature: '문서 리뷰 주기', values: ['필요 시', '월 1회', '스프린트마다'] },
+    { feature: '자동화 (ESLint 등)', values: ['기본 설정', '커스텀 규칙', '커스텀 + CI 통합'] },
+    { feature: '온보딩 문서', values: ['불필요', '간단한 가이드', '상세 온보딩 체크리스트'] },
+  ]}
+/>
+
+### 소규모 팀 (1~3명): 간결함 우선
+
+<CodeBlock
+  code={`# CLAUDE.md (소규모 팀 예시 - 모든 것을 하나에)
+
+## 프로젝트
+- 개인 블로그 플랫폼 (Next.js 14 + Supabase)
+- TypeScript strict mode
+
+## 명령어
+- dev: npm run dev
+- test: npm test
+- build: npm run build
+
+## 규칙
+- 컴포넌트: src/components/ (PascalCase)
+- 페이지: src/app/ (Next.js App Router)
+- 함수 30줄 이내, 파라미터 3개 이내
+- any 금지, Tailwind CSS만 사용 (인라인 스타일 금지)
+- 에러 처리: AppError 클래스 사용 (src/lib/errors.ts)
+- 커밋: Conventional Commits`}
+  language="markdown"
+  filename="소규모 팀 CLAUDE.md - 단일 파일로 충분"
+/>
+
+### 중규모 팀 (4~10명): 역할 분리
+
+중규모 팀에서는 파일을 분리하여 각 영역의 담당자가 독립적으로 관리할 수 있도록 합니다.
+
+<CodeBlock
+  code={`# 중규모 팀 파일 구조
+project-root/
+  CLAUDE.md                        # 핵심 개요 + 빌드 명령
+  CLAUDE.local.md                  # 개인 설정 (gitignore)
+  .claude/
+    rules/
+      conventions.md               # 코딩 규칙 (테크리드 관리)
+      guidelines.md                # AI 사용 가이드 (팀 합의)
+      architecture.md              # 아키텍처 원칙 (아키텍트 관리)
+    settings.json                  # 팀 공통 권한 설정
+    settings.local.json            # 개인 권한 (gitignore)
+  docs/
+    context.md                     # 프로젝트 컨텍스트
+    adr/                           # 아키텍처 결정 기록`}
+  language="text"
+  filename="중규모 팀 디렉토리 구조"
+/>
+
+### 대규모 팀 (10명+): 도메인별 분리
+
+<CodeBlock
+  code={`# 대규모 팀 파일 구조
+project-root/
+  CLAUDE.md                        # 전체 개요, 모노레포 구조 설명
+  .claude/
+    rules/
+      conventions.md               # 공통 코딩 규칙
+      guidelines.md                # 공통 AI 가이드라인
+      architecture.md              # 전체 아키텍처
+      security.md                  # 보안 규칙 (보안팀 관리)
+      testing.md                   # 테스트 전략
+      api-design.md                # API 설계 규칙
+  docs/
+    context.md                     # 전체 프로젝트 컨텍스트
+    domains/
+      order-context.md             # 주문 도메인 컨텍스트
+      payment-context.md           # 결제 도메인 컨텍스트
+      user-context.md              # 사용자 도메인 컨텍스트
+    adr/                           # 아키텍처 결정 기록
+    runbooks/                      # 운영 매뉴얼`}
+  language="text"
+  filename="대규모 팀 디렉토리 구조"
+/>
+
+<Callout type="tip" title="대규모 팀의 문서 거버넌스">
+  10명 이상의 팀에서는 컨텍스트 문서의 **오너십**을 명확히 해야 합니다.
+  conventions.md는 테크리드가, security.md는 보안팀이, 각 도메인 context는 해당 도메인 담당자가 관리합니다.
+  PR 리뷰 시 관련 문서 변경이 포함되었는지 확인하는 것을 체크리스트에 추가하세요.
+</Callout>
+
+---
+
+## 실전: 프로젝트 유형별 context.md 템플릿
+
+프로젝트 유형에 따라 강조해야 할 컨텍스트가 다릅니다.
+다음은 주요 프로젝트 유형별 context.md 핵심 섹션 템플릿입니다.
+
+### 웹 프론트엔드 애플리케이션
+
+<CodeBlock
+  code={`# Project Context: 웹 프론트엔드
+
+## 프로젝트 개요
+- **이름**: admin-dashboard
+- **유형**: 관리자용 SPA (Single Page Application)
+- **프레임워크**: Next.js 14 (App Router)
+- **상태 관리**: Zustand + TanStack Query
+- **스타일링**: Tailwind CSS + shadcn/ui
+
+## 라우팅 구조
+- /dashboard         → 대시보드 메인
+- /dashboard/orders  → 주문 관리
+- /dashboard/users   → 사용자 관리
+- /settings          → 설정
+
+## 컴포넌트 구조
+- src/components/ui/    → 범용 UI (shadcn 기반)
+- src/components/forms/ → 폼 컴포넌트 (react-hook-form + zod)
+- src/components/layout/→ 레이아웃 (Sidebar, Header, Footer)
+- src/features/         → 도메인별 기능 모듈
+
+## API 연동
+- 백엔드: commerce-api (OpenAPI 3.0 스펙)
+- 인증: NextAuth.js (JWT, OAuth2.0)
+- API 클라이언트: src/lib/api-client.ts (axios 기반)
+
+## 접근성 요구사항
+- WCAG 2.1 AA 준수
+- 키보드 네비게이션 필수
+- aria-label 필수 적용`}
+  language="markdown"
+  filename="웹 프론트엔드 context.md 템플릿"
+/>
+
+### API 서버 (백엔드)
+
+<CodeBlock
+  code={`# Project Context: API 서버
+
+## 프로젝트 개요
+- **이름**: commerce-api
+- **유형**: RESTful API 서버
+- **프레임워크**: NestJS 10 (TypeScript)
+- **DB**: PostgreSQL 16 + Redis 7
+
+## API 버전 관리
+- 현재 버전: v2 (v1은 deprecation 중, 2024-12 제거 예정)
+- 베이스 URL: /api/v2
+- 응답 형식: { data, meta, error } 통일 구조
+
+## 데이터베이스
+- ORM: Prisma 5.x
+- 마이그레이션: prisma migrate
+- 시딩: prisma/seed.ts
+- 커넥션 풀: 최대 20
+
+## 인증/인가
+- JWT 액세스 토큰 (15분 만료)
+- 리프레시 토큰 (7일 만료, 로테이션 적용)
+- RBAC: admin, seller, customer 3개 역할
+- Guards: src/common/guards/
+
+## 외부 서비스 연동
+| 서비스 | 용도 | SDK/클라이언트 |
+|--------|------|---------------|
+| 토스페이먼츠 | 결제 PG | @tosspayments/sdk |
+| AWS S3 | 파일 스토리지 | @aws-sdk/client-s3 |
+| SendGrid | 이메일 발송 | @sendgrid/mail |
+| Sentry | 에러 추적 | @sentry/nestjs |`}
+  language="markdown"
+  filename="API 서버 context.md 템플릿"
+/>
+
+### 데이터 파이프라인
+
+<CodeBlock
+  code={`# Project Context: 데이터 파이프라인
+
+## 프로젝트 개요
+- **이름**: analytics-pipeline
+- **유형**: ETL 데이터 파이프라인
+- **언어**: Python 3.12
+- **오케스트레이터**: Apache Airflow 2.8
+
+## 데이터 소스
+| 소스 | 유형 | 갱신 주기 | 볼륨 |
+|------|------|----------|------|
+| commerce-db | PostgreSQL | 실시간 CDC | ~100만 행/일 |
+| clickstream | Kafka | 실시간 | ~500만 이벤트/일 |
+| marketing-api | REST API | 일 1회 배치 | ~10만 행 |
+
+## 처리 계층
+- Bronze (Raw): S3 원본 데이터 저장
+- Silver (Cleaned): 정제/변환 데이터
+- Gold (Aggregated): 분석용 집계 데이터
+
+## 데이터 품질 규칙
+- null 비율 5% 초과 시 파이프라인 중단
+- 스키마 변경 감지 시 알림 발송
+- 중복 레코드 자동 제거 (deduplicate by event_id)
+
+## 네이밍 규칙
+- DAG 파일: dags/{domain}_{frequency}_{task}.py
+- 테이블: {layer}_{domain}_{entity} (예: gold_order_daily_summary)
+- 변수: snake_case (PEP 8)`}
+  language="markdown"
+  filename="데이터 파이프라인 context.md 템플릿"
+/>
+
+### 모바일 애플리케이션
+
+<CodeBlock
+  code={`# Project Context: 모바일 앱
+
+## 프로젝트 개요
+- **이름**: commerce-app
+- **유형**: 크로스 플랫폼 모바일 앱
+- **프레임워크**: React Native 0.73 (Expo 50)
+- **최소 지원**: iOS 15+, Android 10+ (API 29)
+
+## 네비게이션 구조
+- (tabs)/          → 메인 탭 네비게이터
+  - home           → 홈 피드
+  - search         → 상품 검색
+  - cart           → 장바구니
+  - mypage         → 마이페이지
+- (stack)/         → 스택 네비게이터
+  - product/[id]   → 상품 상세
+  - order/[id]     → 주문 상세
+  - checkout       → 결제
+
+## 상태 관리
+- 서버 상태: TanStack Query (캐시 5분)
+- 클라이언트 상태: Zustand
+- 폼 상태: react-hook-form
+
+## 플랫폼별 주의사항
+- iOS: 앱 내 결제 시 Apple IAP 사용 필수 (30% 수수료)
+- Android: back 버튼 네비게이션 처리 필수
+- 공통: 오프라인 모드 지원 (MMKV 로컬 캐시)`}
+  language="markdown"
+  filename="모바일 앱 context.md 템플릿"
+/>
+
+---
+
+## 컨벤션 자동화
+
+문서로 규칙을 정의하는 것만으로는 일관성을 보장할 수 없습니다.
+규칙 중 **자동으로 검증하고 강제할 수 있는 것**은 도구에 맡기고,
+conventions.md에는 도구로 검증할 수 없는 **설계 원칙과 패턴**만 남기는 것이 이상적입니다.
+
+<MermaidDiagram
+  chart={`graph LR
+    A["conventions.md<br/>(규칙 정의)"] --> B{"자동화 가능?"}
+    B -->|Yes| C["도구로 강제"]
+    B -->|No| D["문서 + 코드 리뷰"]
+    C --> E["ESLint<br/>코드 스타일"]
+    C --> F["Prettier<br/>포맷팅"]
+    C --> G["TypeScript<br/>타입 안전"]
+    C --> H["Hooks<br/>자동 실행"]
+    D --> I["설계 패턴"]
+    D --> J["네이밍 의미"]
+    D --> K["아키텍처 결정"]
+
+    style B fill:#fdf2ee,stroke:#da7756,stroke-width:2px,color:#2d2a26
+    style C fill:#f0ece5,stroke:#16a34a,color:#2d2a26
+    style D fill:#f0ece5,stroke:#d97706,color:#2d2a26
+  `}
+  title="컨벤션 자동화 의사결정 흐름"
+  caption="자동화 가능한 규칙은 도구에 맡기고, conventions.md에는 판단이 필요한 규칙만 남깁니다"
+/>
+
+### ESLint + Prettier 설정과 연동
+
+<CodeBlock
+  code={`// .eslintrc.js -- conventions.md 규칙의 자동화
+module.exports = {
+  rules: {
+    // conventions.md: "함수 길이 최대 30줄"
+    'max-lines-per-function': ['error', { max: 30, skipComments: true }],
+
+    // conventions.md: "중첩 깊이 최대 3단계"
+    'max-depth': ['error', 3],
+
+    // conventions.md: "파라미터 최대 3개"
+    'max-params': ['error', 3],
+
+    // conventions.md: "any 사용 금지"
+    '@typescript-eslint/no-explicit-any': 'error',
+
+    // conventions.md: "console.log 금지 (pino 사용)"
+    'no-console': ['error', { allow: ['warn', 'error'] }],
+
+    // conventions.md: "import 순서"
+    'import/order': ['error', {
+      groups: [
+        'builtin',       // Node.js 내장
+        'external',      // 외부 패키지
+        'internal',      // 절대 경로 (@/)
+        'parent',        // 상위 디렉토리
+        'sibling',       // 같은 디렉토리
+      ],
+      'newlines-between': 'always',
+    }],
+  },
+};`}
+  language="javascript"
+  filename=".eslintrc.js -- 컨벤션 자동화"
+/>
+
+### Claude Code Hooks로 자동 린트 적용
+
+<CodeBlock
+  code={`{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx eslint --fix $CLAUDE_FILE_PATH 2>/dev/null; npx prettier --write $CLAUDE_FILE_PATH 2>/dev/null"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename=".claude/settings.json -- PostToolUse Hook으로 자동 포맷팅"
+/>
+
+<Callout type="tip" title="Hook + 린터 = 실시간 컨벤션 강제">
+  PostToolUse Hook에 ESLint와 Prettier를 연결하면, Claude Code가 파일을 생성하거나 수정할 때마다
+  자동으로 린트와 포맷팅이 적용됩니다. AI가 컨벤션을 어긴 코드를 작성해도 즉시 교정되므로,
+  컨벤션 위반이 커밋까지 전달되는 것을 방지할 수 있습니다.
+</Callout>
+
+### 자동화할 수 있는 규칙 vs 없는 규칙
+
+<ComparisonTable
+  title="자동화 가능 여부 판별"
+  headers={['규칙 유형', '자동화 가능', '자동화 도구']}
+  rows={[
+    { feature: '들여쓰기, 줄바꿈, 따옴표 스타일', values: ['yes', 'Prettier'] },
+    { feature: '함수 길이, 파라미터 수, 중첩 깊이', values: ['yes', 'ESLint'] },
+    { feature: 'import 순서', values: ['yes', 'ESLint (import/order)'] },
+    { feature: 'any 사용 금지, 타입 안전', values: ['yes', 'TypeScript strict'] },
+    { feature: '사용하지 않는 변수, 미사용 import', values: ['yes', 'ESLint / TypeScript'] },
+    { feature: '커밋 메시지 형식', values: ['yes', 'commitlint'] },
+    { feature: '의미 있는 변수명', values: ['no', '코드 리뷰'] },
+    { feature: '적절한 추상화 수준', values: ['no', '코드 리뷰'] },
+    { feature: '비즈니스 로직의 정확성', values: ['no', '코드 리뷰 + 테스트'] },
+    { feature: '아키텍처 패턴 준수', values: ['partial', 'ESLint (import 제한) + 리뷰'] },
+  ]}
+/>
+
+---
+
+## 컨텍스트 최적화 기법
+
+LLM의 컨텍스트 윈도우는 유한합니다.
+아무리 많은 정보를 넣더라도, 정보 배치가 잘못되면 AI가 핵심을 놓칠 수 있습니다.
+이 섹션에서는 컨텍스트를 효율적으로 구성하는 기법을 다룹니다.
+
+### Lost in the Middle 현상
+
+LLM 연구에서 밝혀진 중요한 패턴이 있습니다.
+**컨텍스트의 시작과 끝에 배치된 정보는 잘 기억하지만, 중간에 배치된 정보는 무시하는 경향이 있다**는 것입니다.
+이를 "Lost in the Middle" 현상이라고 합니다.
+
+<MermaidDiagram
+  chart={`graph TD
+    subgraph context["컨텍스트 윈도우"]
+      A["시작 영역<br/>높은 주의력"] --> B["중간 영역<br/>낮은 주의력<br/>(Lost in the Middle)"]
+      B --> C["끝 영역<br/>높은 주의력"]
+    end
+
+    A -.- D["핵심 지시사항 배치<br/>프로젝트 개요, 핵심 규칙"]
+    C -.- E["현재 작업 관련 정보<br/>구체적 요구사항, 제약"]
+    B -.- F["참조용 상세 정보<br/>전체 API 목록, 상세 스키마"]
+
+    style A fill:#fdf2ee,stroke:#16a34a,stroke-width:2px,color:#2d2a26
+    style B fill:#f0ece5,stroke:#dc2626,stroke-width:2px,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#16a34a,stroke-width:2px,color:#2d2a26
+  `}
+  title="Lost in the Middle 현상과 정보 배치 전략"
+  caption="시작과 끝에는 핵심 정보를, 중간에는 참조용 상세 정보를 배치합니다"
+/>
+
+### CLAUDE.md 구조 최적화
+
+이 원리를 CLAUDE.md에 적용하면 다음과 같은 구조가 됩니다.
+
+<CodeBlock
+  code={`# CLAUDE.md -- 최적화된 구조
+
+## [시작] 핵심 지시사항 (가장 중요, 절대 무시 금지)
+- TypeScript strict mode, any 금지
+- 에러 처리는 AppError 클래스 사용
+- 모든 함수에 단위 테스트 필수
+- 커밋 메시지: Conventional Commits
+
+## [시작] 빠른 명령어
+- dev: npm run dev
+- test: npm test
+- build: npm run build
+- lint: npm run lint
+
+## [중간] 프로젝트 개요
+- NestJS 10 기반 이커머스 API
+- PostgreSQL 16 + Redis 7
+- Prisma 5.x ORM
+
+## [중간] 상세 참조 (필요 시 확인)
+- 상세 컨텍스트: @docs/context.md
+- 코딩 규칙: .claude/rules/conventions.md (자동 로드)
+- 아키텍처: .claude/rules/architecture.md (자동 로드)
+
+## [끝] 현재 주의사항 (최근 변경, 반드시 확인)
+- src/legacy/ 디렉토리: 마이그레이션 중, 새 코드에서 import 금지
+- v1 API: deprecated, 새 엔드포인트는 반드시 v2로 생성
+- payment-gateway.ts: 수정 금지 (PG 인증 코드)`}
+  language="markdown"
+  filename="CLAUDE.md -- Lost in the Middle 최적화 구조"
+  highlightLines={[1, 2, 3, 4, 5, 22, 23, 24, 25]}
+/>
+
+### 토큰 효율화 전략
+
+컨텍스트 윈도우의 토큰은 유한한 자원입니다.
+불필요한 토큰 소모를 줄여 핵심 정보의 밀도를 높이는 전략이 필요합니다.
+
+**전략 1: 테이블은 프로즈보다 효율적이다**
+
+<CodeBlock
+  code={`## 비효율적 (토큰 소모 높음)
+
+이 프로젝트는 TypeScript 5.4를 사용하며, 프레임워크는 NestJS 10을 채택하고
+있습니다. 데이터베이스로는 PostgreSQL 16을 메인으로 사용하고, 캐시 레이어에는
+Redis 7을 활용하고 있습니다. ORM으로는 Prisma 5.x를 사용하며...
+
+## 효율적 (같은 정보, 적은 토큰)
+
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| TypeScript | 5.4 | 언어 |
+| NestJS | 10 | 프레임워크 |
+| PostgreSQL | 16 | 메인 DB |
+| Redis | 7 | 캐시 |
+| Prisma | 5.x | ORM |`}
+  language="markdown"
+  filename="토큰 효율화: 테이블 vs 산문체"
+/>
+
+**전략 2: 불렛 포인트로 핵심만 추출**
+
+<CodeBlock
+  code={`## 비효율적
+
+에러를 처리할 때는 반드시 AppError 클래스를 상속받아 커스텀 에러를 만들어야 하며,
+각 에러에는 고유한 에러 코드를 부여해야 합니다. HTTP 상태 코드는 해당 에러의
+의미에 맞게 설정하고, 에러 메시지는 사용자에게 노출될 수 있으므로
+민감한 정보를 포함하지 않아야 합니다.
+
+## 효율적
+
+에러 처리:
+- AppError 클래스 상속 필수
+- 에러 코드: 고유 문자열 (예: ORDER_NOT_FOUND)
+- HTTP 상태 코드: 의미에 맞게 설정
+- 메시지: 민감 정보 미포함`}
+  language="markdown"
+  filename="토큰 효율화: 불렛 vs 산문체"
+/>
+
+**전략 3: 계층적 로딩으로 필요한 것만 로드**
+
+<CodeBlock
+  code={`# CLAUDE.md (항상 로드 = 최소한의 핵심만)
+
+핵심 규칙 5개만 여기에 작성
+
+# .claude/rules/*.md (자동 로드 = 자주 필요한 것)
+
+코딩 규칙, 가이드라인, 아키텍처 원칙
+
+# docs/*.md (@ 임포트 = 필요할 때만)
+
+@docs/context.md → 전체 프로젝트 컨텍스트
+@docs/api-spec.md → API 스펙 (API 작업 시에만)
+@docs/db-schema.md → DB 스키마 (데이터 모델 작업 시에만)`}
+  language="markdown"
+  filename="계층적 로딩 전략"
+/>
+
+<Callout type="tip" title="컨텍스트 다이어트의 원칙">
+  컨텍스트 최적화의 핵심 원칙은 하나입니다: **"AI가 다음 작업에 필요한 정보만 제공하라."**
+  모든 것을 한번에 넣는 대신, 계층적으로 구성하여 필요한 시점에 필요한 정보가 로드되도록 설계하세요.
+  CLAUDE.md는 "목차"이고, 실제 내용은 참조 파일에 두는 것이 가장 효율적입니다.
+</Callout>
+
+---
+
+## 핵심 요약
+
+context.md와 conventions.md는 AI 에이전트의 "업무 매뉴얼"입니다.
+이 두 파일이 정확하고 구체적일수록, AI가 생성하는 코드의 품질은 비례하여 높아집니다.
+
+| 원칙 | 실천 방법 |
+|------|----------|
+| **구체적으로** | 모호한 표현 대신 측정 가능한 기준 제시 |
+| **예시와 함께** | 규칙마다 코드 예시 첨부 |
+| **계층적으로** | CLAUDE.md에 핵심만, 상세는 별도 파일 |
+| **자동화와 함께** | 도구로 강제할 수 있는 것은 도구에 위임 |
+| **최신 상태로** | 기술 스택 변경 시 즉시 문서 업데이트 |
+| **팀에 맞게** | 규모에 비례하는 문서 복잡도 유지 |
 
 <ChapterNav
   prev={{ title: '프로젝트 지식 구조', path: '/docs/part-2--프로젝트-템플릿-구조-프로젝트-지식-구조' }}
