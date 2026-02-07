@@ -1,0 +1,1082 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 3: AI Agent 워크플로우/Agent Teams" />
+
+# Agent Teams
+
+> Claude Code의 실험적 멀티 에이전트 협업 시스템
+
+## 개요
+
+**Agent Teams**는 2026년 2월 5일 Claude Opus 4.6과 함께 출시된 Claude Code의 **네이티브 멀티 에이전트 협업 기능**입니다. 기존 서브에이전트가 메인 에이전트에서 서브에이전트로의 일방향 위임이었다면, Agent Teams는 하나의 **팀 리드(Team Lead)**가 여러 **팀원(Teammates)**을 생성하고 조율하며, 팀원들이 서로 직접 메시지를 교환하는 완전한 멀티 에이전트 시스템입니다.
+
+각 팀원은 독립적인 Claude Code 인스턴스로 실행되며, 자체 컨텍스트 윈도우를 보유합니다. 팀원들은 **공유 작업 목록(Task List)**과 **메일박스(Messaging)** 메커니즘을 통해 실시간으로 협업합니다.
+
+<Callout type="warning" title="Research Preview">
+  Agent Teams는 현재 **Research Preview(실험적)** 단계입니다. API와 동작이 변경될 수 있으며, 프로덕션 환경에서는 주의하여 사용하세요. 세션 재개 시 팀원 복원이 불가능한 등의 제한사항이 있습니다.
+</Callout>
+
+<Callout type="info" title="왜 Agent Teams가 필요한가?">
+  서브에이전트는 메인 에이전트가 모든 작업을 관리하는 **중앙 집중형**입니다. 작업이 복잡해지면 메인 에이전트의 컨텍스트가 과부하되고, 서브에이전트 간 소통이 불가능합니다. Agent Teams는 이 한계를 극복하여 **분산 협업**을 가능하게 합니다.
+</Callout>
+
+---
+
+## Agent Teams 아키텍처
+
+Agent Teams의 핵심 아키텍처는 팀 리드를 중심으로 팀원들이 독립적으로 작업하면서도 서로 직접 통신할 수 있는 구조입니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph TeamLead["팀 리드 (Team Lead)"]
+      TL["작업 조율 & 할당\n모델: Opus 4.6\n공유 작업 목록 관리"]
+    end
+    subgraph Teammates["팀원 (Teammates)"]
+      T1["팀원 1\n프론트엔드\n독립 컨텍스트"]
+      T2["팀원 2\n백엔드 API\n독립 컨텍스트"]
+      T3["팀원 3\n테스트\n독립 컨텍스트"]
+      T4["팀원 4\n문서화\n독립 컨텍스트"]
+    end
+    subgraph SharedResources["공유 리소스"]
+      TK["공유 작업 목록\npending / in_progress / completed"]
+      FS["파일 시스템\n(동일 코드베이스)"]
+      MB["메일박스\n(직접 메시지)"]
+    end
+    TL -->|"작업 할당"| T1
+    TL -->|"작업 할당"| T2
+    TL -->|"작업 할당"| T3
+    TL -->|"작업 할당"| T4
+    T1 <-->|"메시지"| T2
+    T2 <-->|"메시지"| T3
+    T3 <-->|"메시지"| T4
+    T1 --> TK
+    T2 --> TK
+    T3 --> TK
+    T4 --> TK
+    TK --> FS
+    style TeamLead fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Teammates fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style SharedResources fill:#e8f5e9,stroke:#4CAF50,color:#2d2a26`}
+  title="Agent Teams 전체 아키텍처"
+  caption="팀 리드가 작업을 조율하고, 팀원들은 독립 컨텍스트에서 작업하면서 메일박스와 공유 작업 목록으로 협업합니다"
+/>
+
+### 핵심 구성 요소
+
+| 구성 요소 | 설명 |
+|-----------|------|
+| **팀 리드 (Team Lead)** | 팀을 생성하고 작업을 조율하는 메인 Claude Code 인스턴스. 리더십을 다른 팀원에게 이전할 수 없음 |
+| **팀원 (Teammates)** | 독립적인 Claude Code 인스턴스. 각자 자체 컨텍스트 윈도우를 가지며 별도 프로세스로 실행 |
+| **공유 작업 목록 (Task List)** | 모든 팀원이 접근하는 공유 작업 관리 시스템. pending, in_progress, completed 상태와 의존성 지원 |
+| **메일박스 (Messaging)** | 팀원 간 직접 메시지 교환 메커니즘. 서브에이전트와 달리 팀원끼리 직접 소통 가능 |
+| **파일 잠금 (File Locking)** | 여러 팀원이 동일 파일을 동시 수정하는 충돌을 방지하는 메커니즘 |
+
+### 파일 구조
+
+<CodeBlock
+  code={`# Agent Teams 관련 파일 위치
+
+# 팀 설정 파일
+~/.claude/teams/{team-name}/config.json
+
+# 작업 목록 파일
+~/.claude/tasks/{team-name}/
+
+# 메일박스 (팀원 간 메시지)
+~/.claude/teams/{team-name}/mailbox/`}
+  language="bash"
+  filename="Agent Teams 파일 구조"
+/>
+
+---
+
+## 활성화 방법과 설정
+
+Agent Teams는 실험적 기능이므로 명시적으로 활성화해야 합니다.
+
+### 활성화
+
+<CodeBlock
+  code={`# 방법 1: 환경 변수로 활성화
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+
+# 방법 2: settings.json에서 활성화
+# ~/.claude/settings.json 또는 .claude/settings.json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+
+# 방법 3: Claude Code 실행 시 플래그
+claude --experimental-agent-teams`}
+  language="bash"
+  filename="Agent Teams 활성화 방법"
+/>
+
+<Callout type="tip" title="프로젝트별 활성화">
+  팀 전체에서 Agent Teams를 사용하려면 프로젝트의 `.claude/settings.json`에 설정을 추가하세요. 개인적으로만 사용하려면 `~/.claude/settings.json`에 추가합니다.
+</Callout>
+
+---
+
+## 팀 생성과 관리
+
+Agent Teams의 가장 큰 장점은 **자연어로 팀을 구성**할 수 있다는 점입니다. 복잡한 설정 파일 없이 대화형으로 팀을 만들 수 있습니다.
+
+### 자연어로 팀 구성
+
+<CodeBlock
+  code={`# 예시 1: 기능 개발 팀 구성
+> "결제 시스템을 구현해야 해. 프론트엔드, 백엔드, 테스트를 각각 담당할
+> 3명의 팀원으로 팀을 구성해줘. 백엔드는 Opus로, 나머지는 Sonnet으로."
+
+# Claude의 응답:
+# 팀을 구성합니다:
+# - [frontend] 프론트엔드 담당 (Sonnet) - 결제 UI 컴포넌트 구현
+# - [backend] 백엔드 담당 (Opus) - 결제 API 및 비즈니스 로직 구현
+# - [tester] 테스트 담당 (Sonnet) - 단위/통합 테스트 작성
+
+# 예시 2: 디버깅 팀 구성
+> "프로덕션에서 간헐적으로 500 에러가 발생해. 3가지 가설을 세워서
+> 각각 별도 팀원이 동시에 조사해줘."
+
+# Claude의 응답:
+# 디버깅 팀을 구성합니다:
+# - [hypothesis-db] DB 커넥션 풀 고갈 가설 조사
+# - [hypothesis-memory] 메모리 누수 가설 조사
+# - [hypothesis-race] 레이스 컨디션 가설 조사
+
+# 예시 3: 코드 리뷰 팀 구성
+> "이 PR을 다각도로 리뷰하고 싶어. 보안, 성능, 코드 품질을
+> 각각 전문으로 리뷰하는 팀을 만들어줘."
+
+# Claude의 응답:
+# 리뷰 팀을 구성합니다:
+# - [security-reviewer] 보안 취약점 분석
+# - [perf-reviewer] 성능 이슈 및 최적화 기회 분석
+# - [quality-reviewer] 코드 품질, 컨벤션, 유지보수성 분석`}
+  language="markdown"
+  filename="자연어로 팀 구성하기"
+/>
+
+### 팀원별 모델 지정
+
+각 팀원에게 작업 특성에 맞는 모델을 지정할 수 있습니다. 탐색은 가벼운 모델로, 핵심 구현은 고성능 모델로 배치하여 비용을 최적화합니다.
+
+<CodeBlock
+  code={`# 팀원별 모델 지정 예시
+> "다음과 같이 팀을 구성해줘:
+> - 탐색/분석 담당: Sonnet (비용 절감)
+> - 핵심 구현 담당: Opus (최고 품질)
+> - 테스트 작성 담당: Sonnet (패턴 기반 작업)"
+
+# 또는 구성 후 개별 지정
+> "[backend] 팀원의 모델을 Opus로 변경해줘"`}
+  language="markdown"
+  filename="팀원별 모델 지정"
+/>
+
+<ComparisonTable
+  title="작업 유형별 권장 모델 배치"
+  headers={['작업 유형', '권장 모델', '이유']}
+  rows={[
+    { feature: '코드베이스 탐색/분석', values: ['Sonnet', '읽기 전용 작업에 고비용 모델 불필요'] },
+    { feature: '핵심 비즈니스 로직 구현', values: ['Opus', '복잡한 추론과 정확한 구현 필요'] },
+    { feature: '테스트 코드 작성', values: ['Sonnet', '패턴 기반 코드 생성에 적합'] },
+    { feature: '보안 분석', values: ['Opus', '취약점 발견에 높은 정확도 필수'] },
+    { feature: '문서화', values: ['Sonnet', '텍스트 생성 능력이 충분'] },
+    { feature: '디버깅 가설 검증', values: ['Opus', '복잡한 시스템 추론 필요'] },
+  ]}
+/>
+
+---
+
+## 디스플레이 모드
+
+Agent Teams는 두 가지 디스플레이 모드를 지원합니다. 각 팀원의 작업을 어떻게 시각적으로 관리할지 결정합니다.
+
+### In-Process 모드
+
+메인 터미널에서 모든 팀원의 출력을 관리합니다. `Shift+Up`/`Shift+Down` 키로 팀원 간 전환합니다.
+
+<CodeBlock
+  code={`# In-Process 모드 (기본값)
+# 하나의 터미널에서 팀원 간 전환
+
+# Shift+Up: 이전 팀원으로 전환
+# Shift+Down: 다음 팀원으로 전환
+
+# 화면 구성:
+# ┌─────────────────────────────────────────┐
+# │ [Team Lead] [frontend] [backend] [test] │  ← 팀원 탭
+# ├─────────────────────────────────────────┤
+# │                                         │
+# │  현재 선택된 팀원의 작업 출력            │
+# │                                         │
+# ├─────────────────────────────────────────┤
+# │ 팀 상태: 3/4 작업 진행중                │  ← 상태 바
+# └─────────────────────────────────────────┘
+
+# 장점: 추가 도구 설치 불필요
+# 단점: 한 번에 하나의 팀원만 볼 수 있음`}
+  language="text"
+  filename="In-Process 모드"
+/>
+
+### Split Panes 모드
+
+tmux 또는 iTerm2를 사용하여 각 팀원을 별도 패인에 표시합니다. 모든 팀원의 작업을 동시에 관찰할 수 있습니다.
+
+<CodeBlock
+  code={`# Split Panes 모드 (tmux / iTerm2)
+# 각 팀원이 별도 패인에서 실행
+
+# tmux 기반 화면 구성:
+# ┌──────────────────┬──────────────────┐
+# │ [Team Lead]      │ [frontend]       │
+# │                  │                  │
+# │ 작업 조율 중     │ UI 구현 중       │
+# │                  │                  │
+# ├──────────────────┼──────────────────┤
+# │ [backend]        │ [tester]         │
+# │                  │                  │
+# │ API 구현 중      │ 테스트 작성 중   │
+# │                  │                  │
+# └──────────────────┴──────────────────┘
+
+# 장점: 모든 팀원의 작업을 동시에 모니터링
+# 단점: tmux 또는 iTerm2 필요
+# 설정: Agent Teams 활성화 시 자동으로 tmux 세션 생성`}
+  language="text"
+  filename="Split Panes 모드"
+/>
+
+<ComparisonTable
+  title="디스플레이 모드 비교"
+  headers={['항목', 'In-Process', 'Split Panes']}
+  rows={[
+    { feature: '추가 도구', values: ['불필요', 'tmux 또는 iTerm2 필요'] },
+    { feature: '동시 관찰', values: ['한 번에 하나의 팀원만', '모든 팀원 동시 확인'] },
+    { feature: '전환 방법', values: ['Shift+Up/Down 키', '마우스 클릭 또는 tmux 단축키'] },
+    { feature: '적합한 상황', values: ['팀원 2-3명, 순차 확인', '팀원 4명 이상, 병렬 모니터링'] },
+    { feature: '터미널 크기', values: ['작은 화면에서도 사용 가능', '충분히 넓은 화면 필요'] },
+  ]}
+/>
+
+---
+
+## 서브에이전트와의 비교
+
+Agent Teams와 기존 서브에이전트의 차이점을 정확히 이해하는 것이 중요합니다. 각각 적합한 사용 사례가 다릅니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph Subagent["서브에이전트 모델"]
+      MA["메인 에이전트"] -->|"Task 호출"| SA1["서브에이전트 A"]
+      MA -->|"Task 호출"| SA2["서브에이전트 B"]
+      SA1 -->|"결과 반환"| MA
+      SA2 -->|"결과 반환"| MA
+      SA1 -.-x|"통신 불가"| SA2
+    end
+    subgraph AgentTeams["Agent Teams 모델"]
+      TL["팀 리드"] -->|"작업 할당"| TA1["팀원 A"]
+      TL -->|"작업 할당"| TA2["팀원 B"]
+      TA1 <-->|"직접 메시지"| TA2
+      TA1 -->|"상태 보고"| TL
+      TA2 -->|"상태 보고"| TL
+    end
+    style Subagent fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style AgentTeams fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26`}
+  title="서브에이전트 vs Agent Teams 통신 모델"
+  caption="서브에이전트는 메인에게만 결과를 반환하지만, Agent Teams는 팀원 간 직접 메시지가 가능합니다"
+/>
+
+<ComparisonTable
+  title="서브에이전트 vs Agent Teams 상세 비교"
+  headers={['비교 항목', '서브에이전트 (Task)', 'Agent Teams']}
+  rows={[
+    { feature: '컨텍스트', values: ['독립 컨텍스트, 결과만 메인에 반환', '독립 컨텍스트, 완전 독립적 인스턴스'] },
+    { feature: '통신 방향', values: ['메인 → 서브 (일방향 위임)', '팀원 간 양방향 직접 메시지'] },
+    { feature: '작업 조율', values: ['메인 에이전트가 모든 작업 관리', '공유 작업 목록으로 분산 관리'] },
+    { feature: '수명', values: ['Task 완료 시 자동 소멸', '팀 세션 동안 지속'] },
+    { feature: '병렬 처리', values: ['가능하나 결과 취합은 메인이 담당', '팀원 간 실시간 조율하며 병렬 처리'] },
+    { feature: '비용', values: ['낮음 (단일 호출)', '높음 (각 팀원이 별도 인스턴스)'] },
+    { feature: '설정 복잡도', values: ['낮음 (.claude/agents/ 파일)', '보통 (환경 변수 활성화 + 자연어 구성)'] },
+    { feature: '최적 사용 시기', values: ['독립적인 단일 작업 위임', '상호 의존적인 복합 작업'] },
+  ]}
+/>
+
+### 언제 무엇을 선택할 것인가
+
+<CodeBlock
+  code={`## 선택 가이드
+
+### 서브에이전트를 선택해야 하는 경우
+- 독립적인 단일 작업 (예: "이 파일의 보안 취약점 분석")
+- 결과만 필요하고 중간 과정 소통이 불필요한 경우
+- 비용을 최소화해야 하는 경우
+- 단순 탐색/분석 작업
+
+### Agent Teams를 선택해야 하는 경우
+- 여러 영역에 걸친 복합 작업 (예: "프론트/백/테스트를 동시 개발")
+- 작업 간 의존성이 있어 실시간 소통이 필요한 경우
+- 여러 가설을 동시에 검증하는 디버깅
+- 다각도 코드 리뷰 (보안 + 성능 + 품질)
+- 대규모 리팩토링 또는 마이그레이션`}
+  language="markdown"
+  filename="서브에이전트 vs Agent Teams 선택 가이드"
+/>
+
+---
+
+## Delegate Mode와 Plan Approval
+
+Agent Teams의 두 가지 핵심 운영 모드를 이해하면 팀을 더 효과적으로 관리할 수 있습니다.
+
+### Delegate Mode
+
+`Shift+Tab`으로 팀 리드를 **코디네이션 전용 모드**로 전환합니다. 이 모드에서 팀 리드는 직접 코드를 작성하지 않고, 오직 작업 분배와 팀원 조율에만 집중합니다.
+
+<CodeBlock
+  code={`# Delegate Mode 활성화
+# Shift+Tab 키를 눌러 토글
+
+# Delegate Mode ON:
+# ┌─────────────────────────────────────────────────┐
+# │ [DELEGATE MODE] 팀 리드는 코디네이션만 수행      │
+# │                                                  │
+# │ 가능한 작업:                                     │
+# │ - 새 팀원 생성                                   │
+# │ - 작업 할당 및 재할당                            │
+# │ - 팀원 간 메시지 조율                            │
+# │ - 작업 목록 관리                                 │
+# │ - 결과 검토 및 피드백                            │
+# │                                                  │
+# │ 불가능한 작업:                                   │
+# │ - 직접 파일 수정                                 │
+# │ - 직접 명령어 실행                               │
+# │ - 직접 코드 작성                                 │
+# └─────────────────────────────────────────────────┘
+
+# Delegate Mode OFF:
+# 팀 리드가 직접 작업도 수행 가능 (기본 모드)`}
+  language="text"
+  filename="Delegate Mode 동작"
+/>
+
+<Callout type="tip" title="Delegate Mode 활용 시점">
+  팀원이 3명 이상이고 작업이 복잡할 때 Delegate Mode를 켜면 팀 리드가 "관리자" 역할에 집중하여 전체 작업 효율이 올라갑니다. 팀원이 1-2명이면 Delegate Mode 없이 팀 리드가 직접 작업도 수행하는 것이 더 효율적입니다.
+</Callout>
+
+### Plan Approval
+
+팀원에게 **계획 승인**을 요구할 수 있습니다. 팀원이 작업을 시작하기 전에 계획을 세우고, 팀 리드가 승인한 후에만 실행에 들어갑니다.
+
+<CodeBlock
+  code={`# Plan Approval 흐름
+
+# 1. 팀 리드가 작업 할당 시 plan approval 요청
+> "backend 팀원에게 결제 API를 구현하도록 할당해줘.
+>  단, 구현 전에 계획을 먼저 제출하도록 해줘."
+
+# 2. 팀원이 계획 제출
+# [backend] 결제 API 구현 계획:
+# 1. POST /api/payments - 결제 생성
+# 2. GET /api/payments/:id - 결제 조회
+# 3. POST /api/payments/:id/refund - 환불 처리
+# 사용할 라이브러리: stripe-sdk
+# 예상 소요: 약 15분
+#
+# 이 계획을 승인하시겠습니까?
+
+# 3. 팀 리드가 승인 또는 수정 요청
+> "승인. 단, 환불 처리는 부분 환불도 지원하도록 수정해줘."
+
+# 4. 팀원이 승인된 계획에 따라 실행`}
+  language="markdown"
+  filename="Plan Approval 흐름"
+/>
+
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant TL as 팀 리드
+    participant TM as 팀원
+    TL->>TM: 작업 할당 (plan approval 요청)
+    TM->>TM: 계획 수립
+    TM->>TL: 계획 제출
+    alt 승인
+        TL->>TM: 계획 승인
+        TM->>TM: 구현 시작
+        TM->>TL: 작업 완료 보고
+    else 수정 요청
+        TL->>TM: 수정 피드백
+        TM->>TM: 계획 수정
+        TM->>TL: 수정된 계획 제출
+        TL->>TM: 승인
+        TM->>TM: 구현 시작
+    end`}
+  title="Plan Approval 워크플로우"
+  caption="팀 리드가 팀원의 계획을 사전 검토하여 방향이 맞는지 확인한 후 실행을 승인합니다"
+/>
+
+---
+
+## 공유 작업 목록 (Task List)
+
+Agent Teams의 핵심 조율 메커니즘인 공유 작업 목록은 모든 팀원이 접근할 수 있는 중앙 작업 관리 시스템입니다.
+
+### 작업 상태
+
+| 상태 | 설명 |
+|------|------|
+| `pending` | 아직 시작되지 않은 작업 |
+| `in_progress` | 팀원이 현재 작업 중 |
+| `completed` | 완료된 작업 |
+
+### 의존성 지원
+
+작업 간 의존성을 설정하면 선행 작업이 완료된 후에만 후속 작업이 시작됩니다.
+
+<CodeBlock
+  code={`# 작업 목록 예시 (의존성 포함)
+
+## 공유 작업 목록 — 결제 시스템 구현
+
+### Task 1: DB 스키마 설계 [completed]
+  담당: backend
+  상태: completed
+
+### Task 2: API 엔드포인트 구현 [in_progress]
+  담당: backend
+  상태: in_progress
+  의존: Task 1 (완료됨)
+
+### Task 3: UI 컴포넌트 구현 [in_progress]
+  담당: frontend
+  상태: in_progress
+  의존: Task 1 (완료됨)
+
+### Task 4: API 연동 [pending]
+  담당: frontend
+  상태: pending
+  의존: Task 2, Task 3 (대기 중)
+  → Task 2와 Task 3이 모두 완료되어야 시작
+
+### Task 5: 통합 테스트 [pending]
+  담당: tester
+  상태: pending
+  의존: Task 4 (대기 중)`}
+  language="markdown"
+  filename="공유 작업 목록 예시"
+/>
+
+<MermaidDiagram
+  chart={`flowchart LR
+    T1["Task 1\nDB 스키마 설계\n✅ completed"] --> T2["Task 2\nAPI 엔드포인트\n🔄 in_progress"]
+    T1 --> T3["Task 3\nUI 컴포넌트\n🔄 in_progress"]
+    T2 --> T4["Task 4\nAPI 연동\n⏳ pending"]
+    T3 --> T4
+    T4 --> T5["Task 5\n통합 테스트\n⏳ pending"]
+    style T1 fill:#dcfce7,stroke:#16a34a,color:#2d2a26
+    style T2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style T3 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style T4 fill:#fef3c7,stroke:#d97706,color:#2d2a26
+    style T5 fill:#fef3c7,stroke:#d97706,color:#2d2a26`}
+  title="작업 의존성 그래프"
+  caption="Task 4는 Task 2와 Task 3이 모두 완료되어야 시작됩니다. 의존성을 통해 작업 순서가 자동으로 관리됩니다."
+/>
+
+---
+
+## 팀원 간 직접 메시지
+
+Agent Teams의 가장 혁신적인 기능은 팀원 간 **직접 메시지 교환**입니다. 서브에이전트에서는 불가능했던 실시간 조율이 가능해집니다.
+
+### 통신 흐름
+
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant TL as 팀 리드
+    participant FE as frontend 팀원
+    participant BE as backend 팀원
+    participant TE as tester 팀원
+    TL->>FE: 결제 UI 구현
+    TL->>BE: 결제 API 구현
+    TL->>TE: 테스트 전략 수립
+    Note over BE: POST /api/payments 구현 중
+    BE->>FE: API 스키마 공유 - POST /api/payments 응답 형식
+    Note over FE: API 스키마에 맞춰 fetch 코드 작성
+    FE->>BE: 프론트에서 필요한 추가 필드 요청 (결제 상태 enum)
+    BE->>FE: PaymentStatus enum 공유 (pending, processing, completed, failed)
+    BE->>TE: API 엔드포인트 목록 전달
+    TE->>FE: UI 테스트에 필요한 mock 데이터 형식 문의
+    FE->>TE: mock 데이터 형식 전달
+    BE-->>TL: API 구현 완료
+    FE-->>TL: UI 구현 완료
+    TE-->>TL: 테스트 작성 완료`}
+  title="팀원 간 직접 메시지 흐름"
+  caption="백엔드가 API 스키마를 프론트엔드에 직접 공유하고, 테스터가 mock 데이터 형식을 문의하는 등 자율적으로 소통합니다"
+/>
+
+### 팀 리드가 팀원에게 직접 메시지 보내기
+
+팀 리드는 특정 팀원에게 직접 메시지를 보내 추가 지시나 피드백을 전달할 수 있습니다.
+
+<CodeBlock
+  code={`# 팀 리드 → 특정 팀원에게 메시지
+> "@backend 결제 API에 rate limiting을 추가해줘. 분당 100회로 제한."
+
+# 팀 리드 → 모든 팀원에게 브로드캐스트
+> "@all API 응답 형식을 { data, error, meta } 구조로 통일해줘."
+
+# 특정 팀원의 진행 상황 확인
+> "@frontend 현재 진행 상황을 알려줘."
+
+# 팀원 간 직접 소통 (팀원이 자발적으로)
+# [frontend]: @backend API 응답에 pagination 정보를 포함해줄 수 있어?
+# [backend]: @frontend 네, meta.pagination에 추가했습니다.
+#            { totalCount, currentPage, pageSize, totalPages }`}
+  language="markdown"
+  filename="팀원 간 메시지 예시"
+/>
+
+---
+
+## Hook 이벤트: TeammateIdle과 TaskCompleted
+
+Agent Teams는 기존 Hook 시스템에 두 가지 새로운 이벤트를 추가합니다.
+
+### TeammateIdle
+
+팀원이 할당된 작업을 모두 완료하고 유휴 상태가 되었을 때 발생합니다. 이 이벤트를 활용하면 유휴 팀원에게 새 작업을 자동 할당할 수 있습니다.
+
+<CodeBlock
+  code={`// .claude/settings.json
+{
+  "hooks": {
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/teammate-idle-handler.sh"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="TeammateIdle Hook 설정"
+/>
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/teammate-idle-handler.sh
+# 유휴 팀원 감지 시 자동 알림
+
+INPUT=$(cat)
+TEAMMATE_NAME=$(echo "$INPUT" | jq -r '.teammate_name')
+COMPLETED_TASKS=$(echo "$INPUT" | jq -r '.completed_tasks | length')
+
+# Slack 또는 로그로 알림
+echo "[Agent Teams] $TEAMMATE_NAME 팀원이 유휴 상태입니다. 완료한 작업: $COMPLETED_TASKS개" >&2
+
+# 팀 리드에게 알림 메시지 반환
+cat <<EOJSON
+{
+  "hookSpecificOutput": {
+    "hookEventName": "TeammateIdle",
+    "message": "$TEAMMATE_NAME 팀원이 $COMPLETED_TASKS개 작업을 완료하고 유휴 상태입니다. 추가 작업을 할당하시겠습니까?"
+  }
+}
+EOJSON
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/teammate-idle-handler.sh"
+/>
+
+### TaskCompleted
+
+공유 작업 목록에서 작업이 완료 상태로 전환될 때 발생합니다. 의존성이 있는 후속 작업의 자동 시작이나, 완료 알림 전송에 활용합니다.
+
+<CodeBlock
+  code={`// .claude/settings.json
+{
+  "hooks": {
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/task-completed-handler.sh"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="TaskCompleted Hook 설정"
+/>
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/task-completed-handler.sh
+# 작업 완료 시 알림 및 후속 처리
+
+INPUT=$(cat)
+TASK_ID=$(echo "$INPUT" | jq -r '.task_id')
+TASK_NAME=$(echo "$INPUT" | jq -r '.task_name')
+TEAMMATE=$(echo "$INPUT" | jq -r '.completed_by')
+DEPENDENT_TASKS=$(echo "$INPUT" | jq -r '.dependent_tasks | length')
+
+echo "[TaskCompleted] $TEAMMATE 팀원이 '$TASK_NAME' 작업을 완료했습니다." >&2
+
+if [ "$DEPENDENT_TASKS" -gt 0 ]; then
+  echo "[TaskCompleted] $DEPENDENT_TASKS개의 후속 작업이 시작 가능합니다." >&2
+fi
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/task-completed-handler.sh"
+/>
+
+---
+
+## 실전 시나리오 1: 크로스 레이어 기능 개발
+
+프론트엔드, 백엔드, 테스트를 동시에 개발하는 가장 일반적인 Agent Teams 사용 시나리오입니다.
+
+<CodeBlock
+  code={`# 시나리오: 사용자 프로필 편집 기능 개발
+
+## 팀 구성 요청
+> "사용자 프로필 편집 기능을 개발해야 해.
+>  - 프론트엔드: React 컴포넌트 + 폼 밸리데이션
+>  - 백엔드: REST API + DB 업데이트 로직
+>  - 테스트: 단위/통합 테스트
+>  팀을 구성하고 동시에 작업해줘.
+>  프론트엔드와 백엔드는 API 스키마를 먼저 합의하고 시작해줘."
+
+## 실행 과정
+
+### Phase 1: API 스키마 합의 (자동)
+# [backend] → [frontend]: API 스키마 공유
+#   PUT /api/users/:id/profile
+#   Request: { displayName, bio, avatarUrl }
+#   Response: { user: { id, displayName, bio, avatarUrl, updatedAt } }
+#
+# [frontend] → [backend]: 추가 필드 요청
+#   avatarUrl 대신 avatar 파일 업로드 지원 요청
+#
+# [backend] → [frontend]: 수정된 스키마 공유
+#   PUT /api/users/:id/profile (multipart/form-data)
+#   Fields: displayName, bio, avatar (file)
+
+### Phase 2: 병렬 구현
+# [frontend]: ProfileEditForm.tsx, useProfileUpdate.ts 작성 중
+# [backend]: profile.controller.ts, profile.service.ts 작성 중
+# [tester]: 테스트 케이스 목록 작성 + mock 데이터 준비
+
+### Phase 3: 테스트 및 통합
+# [tester]: 단위 테스트 작성 후 실행
+# [frontend] → [tester]: 컴포넌트 렌더링 테스트 결과 공유
+# [backend] → [tester]: API 응답 형식 전달
+
+## 최종 산출물
+# - src/components/ProfileEditForm.tsx (프론트엔드)
+# - src/hooks/useProfileUpdate.ts (프론트엔드)
+# - src/api/profile.controller.ts (백엔드)
+# - src/services/profile.service.ts (백엔드)
+# - tests/profile.test.ts (테스트)
+# - tests/ProfileEditForm.test.tsx (테스트)`}
+  language="markdown"
+  filename="크로스 레이어 기능 개발 시나리오"
+/>
+
+---
+
+## 실전 시나리오 2: 경쟁 가설 디버깅
+
+프로덕션 이슈를 여러 가설로 동시에 조사하는 고급 디버깅 패턴입니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Issue["프로덕션 이슈: 간헐적 500 에러"]
+      TL["팀 리드\n증상 분석 및 가설 수립"]
+    end
+    subgraph Hypotheses["병렬 가설 검증"]
+      H1["가설 1 팀원\nDB 커넥션 풀 고갈\n→ 커넥션 수 로그 분석"]
+      H2["가설 2 팀원\n메모리 누수\n→ 힙 덤프 분석"]
+      H3["가설 3 팀원\n레이스 컨디션\n→ 동시성 패턴 분석"]
+    end
+    subgraph Results["결과 취합"]
+      TL2["팀 리드\n가설 검증 결과 비교\n→ 근본 원인 확정"]
+    end
+    TL --> H1
+    TL --> H2
+    TL --> H3
+    H1 -->|"결과: 가능성 낮음"| TL2
+    H2 -->|"결과: 근본 원인 발견"| TL2
+    H3 -->|"결과: 부분 기여"| TL2
+    style Issue fill:#fee2e2,stroke:#dc2626,color:#2d2a26
+    style Hypotheses fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Results fill:#dcfce7,stroke:#16a34a,color:#2d2a26`}
+  title="경쟁 가설 디버깅 패턴"
+  caption="여러 가설을 병렬로 검증하여 근본 원인을 빠르게 찾아냅니다"
+/>
+
+<CodeBlock
+  code={`# 경쟁 가설 디버깅 프롬프트
+
+> "프로덕션에서 간헐적으로 500 에러가 발생해. 에러 로그를 보면
+>  src/services/order.service.ts의 processOrder 함수에서 발생하고 있어.
+>
+>  다음 3가지 가설로 팀을 구성해서 동시에 조사해줘:
+>
+>  1. DB 커넥션 풀 고갈: src/infrastructure/database.ts 의
+>     커넥션 풀 설정과 누수 가능성 분석
+>
+>  2. 메모리 누수: processOrder의 대량 데이터 처리 시
+>     메모리 사용 패턴 분석
+>
+>  3. 레이스 컨디션: 동시 주문 처리 시 공유 상태 접근
+>     패턴 분석
+>
+>  각 팀원은 자신의 가설에 대한 근거와 확인 방법을 보고해줘."
+
+# 결과: 3명의 팀원이 각자의 가설을 독립적으로 검증
+# 팀 리드가 결과를 비교하여 근본 원인 확정
+# → 가설 2 (메모리 누수)가 근본 원인으로 확인됨
+# → 가설 3 (레이스 컨디션)이 부분적으로 기여하고 있음을 추가 발견`}
+  language="markdown"
+  filename="경쟁 가설 디버깅 프롬프트"
+/>
+
+---
+
+## 실전 시나리오 3: 다각도 코드 리뷰
+
+하나의 PR을 여러 관점에서 동시에 리뷰합니다.
+
+<CodeBlock
+  code={`# 다각도 코드 리뷰 팀 구성
+
+> "PR #147을 리뷰해야 해. 다음 관점에서 각각 전문 리뷰어 팀을 구성해줘:
+>
+>  1. 보안 리뷰어: OWASP Top 10 기반 취약점 분석
+>  2. 성능 리뷰어: 쿼리 최적화, 알고리즘 효율성, 메모리 사용
+>  3. 코드 품질 리뷰어: SOLID 원칙, 코딩 컨벤션, 가독성
+>
+>  각 리뷰어는 독립적으로 분석하고, 결과를 심각도별로 분류해서 보고해줘."
+
+## 결과 예시
+
+### [security-reviewer] 보안 리뷰 결과
+- Critical (1건): src/api/auth.ts:45 - SQL Injection 가능
+- High (2건): CSRF 토큰 검증 누락, 세션 만료 미처리
+- Medium (1건): 에러 메시지에 스택 트레이스 노출
+
+### [perf-reviewer] 성능 리뷰 결과
+- High (1건): N+1 쿼리 패턴 발견 (src/services/order.ts:78)
+- Medium (2건): 불필요한 전체 테이블 스캔, 인덱스 미활용
+- Low (1건): 캐시 가능한 반복 계산
+
+### [quality-reviewer] 코드 품질 리뷰 결과
+- High (1건): 단일 책임 원칙 위반 (OrderService에 결제 로직 혼재)
+- Medium (3건): 매직 넘버 사용, 중복 코드, 미사용 import
+- Low (2건): 변수명 개선 제안, 주석 부족`}
+  language="markdown"
+  filename="다각도 코드 리뷰 시나리오"
+/>
+
+---
+
+## 비용 관리 전략
+
+Agent Teams는 각 팀원이 독립적인 Claude Code 인스턴스이므로 비용이 크게 증가할 수 있습니다. 효과적인 비용 관리가 필수입니다.
+
+### 비용 구조 이해
+
+<CodeBlock
+  code={`## Agent Teams 비용 구조
+
+### 비용 발생 지점
+- 팀 리드: 조율 및 관리를 위한 토큰 소비
+- 팀원 N명: 각각 독립 세션으로 토큰 소비
+- 팀원 간 메시지: 추가 토큰 소비
+- 공유 작업 목록: 상태 동기화를 위한 토큰 소비
+
+### 비용 추정 공식 (대략적)
+총 비용 ≈ (팀 리드 비용) + (팀원 수 x 평균 팀원 비용) + (메시지 오버헤드)
+
+### 예시: 3명 팀 (Opus 리드 + Sonnet 팀원 3명)
+- 팀 리드 (Opus): 약 $5-15 / 세션
+- 팀원 3명 (Sonnet 각): 약 $1-5 / 세션 x 3
+- 메시지 오버헤드: 약 10-20% 추가
+- 총 예상: $10-35 / 세션`}
+  language="markdown"
+  filename="비용 구조"
+/>
+
+### 비용 최적화 5가지 전략
+
+<ComparisonTable
+  title="비용 최적화 전략"
+  headers={['전략', '방법', '예상 절감']}
+  rows={[
+    { feature: '모델 차등 배치', values: ['탐색은 Sonnet, 핵심 구현만 Opus', '30-50%'] },
+    { feature: '팀 규모 최소화', values: ['필요한 최소 인원으로 팀 구성', '팀원 1명당 비용 절감'] },
+    { feature: '작업 범위 한정', values: ['각 팀원의 작업 범위를 구체적으로 지정', '20-30%'] },
+    { feature: 'Plan Approval 활용', values: ['잘못된 방향 조기 차단으로 재작업 방지', '10-20%'] },
+    { feature: '서브에이전트와 혼용', values: ['독립 작업은 서브에이전트, 협업만 Agent Teams', '40-60%'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`## 비용 절감 실전 팁
+
+### 1. 팀 구성 전 체크리스트
+- [ ] 이 작업이 정말 Agent Teams가 필요한가?
+      (서브에이전트나 단일 에이전트로 충분하지 않은가?)
+- [ ] 필요한 최소 팀원 수는 몇 명인가?
+- [ ] 각 팀원에 적합한 모델은 무엇인가?
+
+### 2. 작업 분할 원칙
+- 파일이 겹치지 않도록 분할 (충돌 방지 + 효율성)
+- 단순 탐색은 서브에이전트(Task)로 처리
+- Agent Teams는 실시간 소통이 필요한 작업에만 사용
+
+### 3. 세션 관리
+- 작업이 끝난 팀원은 즉시 종료
+- 장시간 유휴 상태인 팀원 식별 및 해제
+- TeammateIdle Hook으로 유휴 팀원 모니터링`}
+  language="markdown"
+  filename="비용 절감 실전 팁"
+/>
+
+<Callout type="warning" title="비용 주의">
+  Agent Teams는 서브에이전트 대비 **3-10배** 높은 비용이 발생할 수 있습니다. 단순한 작업에 Agent Teams를 사용하는 것은 비용 낭비입니다. 반드시 팀원 간 실시간 소통이 필요한 복합 작업에만 사용하세요.
+</Callout>
+
+---
+
+## 트러블슈팅 가이드
+
+Agent Teams 사용 시 자주 발생하는 문제와 해결 방법입니다.
+
+### 일반적인 문제
+
+<ComparisonTable
+  title="Agent Teams 트러블슈팅"
+  headers={['문제', '원인', '해결 방법']}
+  rows={[
+    { feature: '팀 생성 실패', values: ['환경 변수 미설정', 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 확인'] },
+    { feature: '팀원 간 메시지 전달 안됨', values: ['팀원 이름 오타 또는 팀원 종료됨', '팀 상태 확인 후 팀원 재생성'] },
+    { feature: '파일 충돌 발생', values: ['여러 팀원이 동일 파일 수정', '작업 범위를 파일 단위로 명확히 분할'] },
+    { feature: '세션 재개 시 팀원 사라짐', values: ['알려진 제한사항', '새 팀을 구성하여 작업 재개'] },
+    { feature: '비용 과다 발생', values: ['불필요한 팀원 또는 고비용 모델', '팀 규모 축소, 모델 다운그레이드'] },
+    { feature: '작업 목록 동기화 지연', values: ['네트워크 또는 파일 시스템 지연', '잠시 대기 후 재시도'] },
+    { feature: '팀원이 잘못된 작업 수행', values: ['작업 지시가 모호함', '구체적인 파일 경로와 기대 결과 명시'] },
+    { feature: 'Delegate Mode 전환 불가', values: ['단축키 충돌 또는 터미널 호환성', '터미널 설정 확인, 대체 터미널 사용'] },
+  ]}
+/>
+
+### 파일 충돌 방지 전략
+
+<CodeBlock
+  code={`## 파일 충돌 방지 — 작업 분할 가이드
+
+### 원칙: 한 파일은 한 팀원만 수정
+
+### 좋은 분할 예시
+# [frontend] 담당 파일:
+#   src/components/Payment*.tsx
+#   src/hooks/usePayment*.ts
+#   src/styles/payment.css
+#
+# [backend] 담당 파일:
+#   src/api/payment.controller.ts
+#   src/services/payment.service.ts
+#   src/models/payment.model.ts
+#
+# [tester] 담당 파일:
+#   tests/payment.test.ts
+#   tests/payment.integration.test.ts
+
+### 나쁜 분할 예시 (충돌 위험)
+# [frontend]와 [backend]가 모두 src/types/payment.ts 수정
+# → 해결: 공유 타입 파일은 팀 리드가 먼저 작성 후 팀원에게 전달
+
+### 공유 파일 처리 전략
+# 1. 팀 리드가 공유 인터페이스/타입을 먼저 정의
+# 2. 팀원들은 해당 파일을 읽기만 하고 수정하지 않음
+# 3. 수정이 필요하면 팀 리드에게 요청`}
+  language="markdown"
+  filename="파일 충돌 방지 전략"
+/>
+
+### 디버깅 명령어
+
+<CodeBlock
+  code={`# 팀 상태 확인
+# Claude Code 내에서:
+> "현재 팀 상태를 알려줘"
+# → 팀원 목록, 각 팀원의 작업 상태, 메시지 히스토리 표시
+
+# 특정 팀원의 상세 상태
+> "@backend 현재 무엇을 하고 있는지 상세히 알려줘"
+
+# 작업 목록 확인
+> "현재 작업 목록의 전체 상태를 보여줘"
+
+# 팀원 재시작
+> "frontend 팀원을 재시작해줘"
+
+# 팀 해산
+> "현재 팀을 해산하고 단일 에이전트 모드로 돌아가줘"`}
+  language="bash"
+  filename="Agent Teams 디버깅 명령어"
+/>
+
+---
+
+## 제한사항
+
+현재 Agent Teams의 알려진 제한사항을 정확히 이해하고 사용하는 것이 중요합니다.
+
+| 제한사항 | 설명 | 완화 방법 |
+|----------|------|----------|
+| **세션 재개 불가** | in-process 모드에서 세션 종료 후 팀원 복원 불가 | 중요 결과는 파일로 저장, 작업 분할을 작게 유지 |
+| **중첩 팀 불가** | 팀원이 자체적으로 하위 팀을 생성할 수 없음 | 팀 리드가 필요한 팀원을 모두 직접 생성 |
+| **단일 팀 제한** | 한 세션에서 하나의 팀만 운영 가능 | 순차적으로 팀 해산 후 새 팀 구성 |
+| **리드 고정** | 팀 리더십을 다른 팀원에게 이전 불가 | 팀 리드를 신중하게 설정 |
+| **Research Preview** | API와 동작이 예고 없이 변경될 수 있음 | 핵심 워크플로우에 과도하게 의존하지 않기 |
+
+<Callout type="info" title="향후 개선 예상">
+  Agent Teams는 Research Preview 단계이므로, 위 제한사항들은 향후 버전에서 개선될 가능성이 있습니다. Anthropic 공식 블로그와 릴리스 노트를 주기적으로 확인하세요.
+</Callout>
+
+---
+
+## Agent Teams 도입 체크리스트
+
+<CodeBlock
+  code={`## Agent Teams 도입 전 체크리스트
+
+### 환경 설정
+- [ ] CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS 환경 변수 설정
+- [ ] 디스플레이 모드 선택 (in-process vs split panes)
+- [ ] tmux 설치 (split panes 사용 시)
+
+### 작업 계획
+- [ ] 이 작업이 Agent Teams에 적합한지 평가
+      (팀원 간 소통 필요? 병렬 처리 이점?)
+- [ ] 최소 필요 팀원 수 결정
+- [ ] 각 팀원의 역할과 담당 파일 범위 정의
+- [ ] 공유 인터페이스/타입 사전 정의
+- [ ] 각 팀원에 적합한 모델 선택
+
+### 비용 관리
+- [ ] 예상 비용 산정
+- [ ] 모델 차등 배치 (탐색: Sonnet, 구현: Opus)
+- [ ] 작업 범위를 구체적으로 한정
+- [ ] Plan Approval 사용 여부 결정
+
+### 실행 중 관리
+- [ ] 작업 목록 진행 상황 정기 확인
+- [ ] 파일 충돌 여부 모니터링
+- [ ] 유휴 팀원 식별 및 관리
+- [ ] 중간 결과를 파일로 저장 (세션 복구 대비)
+
+### 완료 후
+- [ ] 모든 변경 사항 테스트
+- [ ] 팀원 간 생성 코드의 일관성 검증
+- [ ] 비용 리뷰 (예상 대비 실제)
+- [ ] 개선 사항 기록 (다음 세션을 위한 학습)`}
+  language="markdown"
+  filename="Agent Teams 도입 체크리스트"
+/>
+
+---
+
+## 서브에이전트 시스템 진화 전체 개관
+
+서브에이전트에서 Agent Teams까지의 진화 단계를 정리합니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Layer1["1단계: 서브에이전트 (Task)"]
+      M1["메인 에이전트"] -->|"Task 호출"| S1["서브에이전트"]
+      S1 -->|"결과 반환"| M1
+      L1N["특징: 일방향 위임, 낮은 비용"]
+    end
+    subgraph Layer2["2단계: Agent Teams"]
+      TL["팀 리드"] --> T1["팀원 A"]
+      TL --> T2["팀원 B"]
+      T1 <-->|"직접 메시지"| T2
+      L2N["특징: 양방향 통신, 공유 작업 목록"]
+    end
+    subgraph Layer3["3단계: Agent SDK"]
+      CODE["개발자 코드"] --> SDK["Agent SDK"]
+      SDK --> AG1["Agent 1"]
+      SDK --> AG2["Agent 2"]
+      AG1 <--> AG2
+      L3N["특징: 프로그래밍 제어, 프로덕션 배포"]
+    end
+    Layer1 -.->|"진화"| Layer2
+    Layer2 -.->|"코드화"| Layer3
+    style Layer1 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Layer2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Layer3 fill:#e8f5e9,stroke:#4CAF50,color:#2d2a26`}
+  title="멀티 에이전트 시스템 진화 단계"
+  caption="서브에이전트(일방향 위임) → Agent Teams(양방향 협업) → Agent SDK(프로그래밍 제어)로 점차 강력해집니다"
+/>
+
+<ComparisonTable
+  title="상황별 최적 접근법"
+  headers={['상황', '권장 접근법', '이유']}
+  rows={[
+    { feature: '단순 코드 탐색/분석', values: ['서브에이전트 (Explore)', '비용 최소, 설정 불필요'] },
+    { feature: '독립적 단일 작업', values: ['커스텀 서브에이전트 (.claude/agents/)', '역할 정의로 일관된 품질'] },
+    { feature: '크로스 영역 병렬 개발', values: ['Agent Teams', '실시간 통신으로 호환성 유지'] },
+    { feature: '경쟁 가설 디버깅', values: ['Agent Teams', '여러 이론 병렬 검증'] },
+    { feature: 'CI/CD 자동화', values: ['Headless Mode (claude -p)', '스크립트 통합 간편'] },
+    { feature: '프로덕션 AI 에이전트', values: ['Agent SDK', '완전한 프로그래밍 제어'] },
+  ]}
+/>
+
+---
+
+## 정리
+
+Agent Teams는 Claude Code의 멀티 에이전트 협업을 한 단계 끌어올린 혁신적 기능입니다. 핵심 포인트를 정리하면:
+
+1. **팀 리드 + 팀원 구조**: 하나의 팀 리드가 여러 팀원을 조율하며, 각 팀원은 독립 인스턴스로 실행됩니다.
+
+2. **직접 메시지 교환**: 서브에이전트와 달리 팀원 간 직접 소통이 가능하여 실시간 조율이 됩니다.
+
+3. **공유 작업 목록**: pending/in_progress/completed 상태와 의존성을 지원하는 중앙 작업 관리 시스템입니다.
+
+4. **Delegate Mode와 Plan Approval**: 팀 리드의 역할을 조율 전용으로 제한하거나, 팀원의 계획을 사전 승인하는 관리 메커니즘입니다.
+
+5. **비용 관리 필수**: 서브에이전트 대비 높은 비용이 발생하므로, 모델 차등 배치와 팀 규모 최적화가 중요합니다.
+
+6. **적절한 사용 시기**: 팀원 간 소통이 필요한 복합 작업에 사용하고, 독립적 단일 작업에는 서브에이전트를 사용하세요.
+
+<Callout type="tip" title="Agent Teams 시작하기">
+  Agent Teams를 처음 사용한다면, 2명의 팀원으로 간단한 작업부터 시작하세요. 예를 들어, "프론트엔드 + 백엔드" 또는 "구현 + 테스트" 조합으로 경험을 쌓은 후 팀 규모를 확장하는 것이 좋습니다.
+</Callout>
+
+<ChapterNav
+  prev={{ title: 'Hooks', path: '/docs/part-3--ai-agent-워크플로우-hooks' }}
+  next={{ title: 'MCP 개요', path: '/docs/part-4--mcp와-통합-mcp-개요' }}
+/>
