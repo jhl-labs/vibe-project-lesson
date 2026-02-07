@@ -35,6 +35,59 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ---
 
+## 전체 개발 라이프사이클 개요
+
+실무에서의 개발 라이프사이클은 단순히 코드를 작성하는 것 이상입니다. Claude Code는 **각 단계에 최적화된 프롬프트 전략**을 통해 전체 사이클을 가속합니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Planning["계획 단계"]
+      A1["요구사항 수집"] --> A2["기술 스펙 작성"]
+      A2 --> A3["아키텍처 설계"]
+      A3 --> A4["작업 분할"]
+    end
+    subgraph Development["개발 단계"]
+      B1["환경 설정"] --> B2["핵심 로직 구현"]
+      B2 --> B3["통합 테스트"]
+      B3 --> B4["코드 리뷰"]
+    end
+    subgraph Delivery["배포 단계"]
+      C1["CI/CD 파이프라인"] --> C2["스테이징 배포"]
+      C2 --> C3["프로덕션 배포"]
+      C3 --> C4["모니터링"]
+    end
+    subgraph Maintenance["유지보수 단계"]
+      D1["장애 감지"] --> D2["근본 원인 분석"]
+      D2 --> D3["핫픽스 배포"]
+      D3 --> D4["회고 & 개선"]
+    end
+    Planning --> Development
+    Development --> Delivery
+    Delivery --> Maintenance
+    Maintenance -->|"피드백 루프"| Planning
+    style Planning fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Development fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Delivery fill:#f0fff0,stroke:#4CAF50,color:#2d2a26
+    style Maintenance fill:#fff8f0,stroke:#FF9800,color:#2d2a26`}
+  title="전체 개발 라이프사이클"
+  caption="계획 → 개발 → 배포 → 유지보수의 순환 구조에서 Claude Code 활용"
+/>
+
+<ComparisonTable
+  title="라이프사이클 단계별 Claude Code 활용 전략"
+  headers={['단계', '주요 활동', 'Claude Code 활용법']}
+  rows={[
+    { feature: '요구사항 분석', values: ['스펙 정의, 엣지 케이스 발견', '인터뷰 패턴으로 빠진 요구사항 발굴'] },
+    { feature: '설계', values: ['아키텍처 결정, API 스펙', 'Plan Mode에서 수정 없이 설계 검토'] },
+    { feature: '구현', values: ['코드 작성, 리팩토링', '단계별 분할 구현 + 자동 검증'] },
+    { feature: '테스트', values: ['단위/통합/E2E 테스트', '테스트 케이스 나열 방식으로 커버리지 극대화'] },
+    { feature: '배포', values: ['CI/CD, 인프라 설정', 'Headless Mode로 파이프라인 자동화'] },
+    { feature: '모니터링', values: ['로그 분석, 알림 설정', '장애 로그 분석 및 핫픽스 생성'] },
+  ]}
+/>
+
+---
+
 ## 1단계: 요구사항 분석 (Explore)
 
 먼저 기존 코드베이스를 탐색하여 현재 구조를 파악합니다.
@@ -68,6 +121,30 @@ import { ChapterNav } from '../../components/ChapterNav';
   탐색을 서브에이전트에 위임하면 메인 세션의 컨텍스트가 깨끗하게 유지됩니다.
   탐색 결과만 요약되어 돌아오므로 이후 구현 단계에서 컨텍스트가 부족해지는 문제를 방지합니다.
 </Callout>
+
+### 요구사항 분석 심화: 비기능 요구사항 발굴
+
+기능 요구사항만으로는 부족합니다. Claude Code에게 **비기능 요구사항**도 함께 발굴하게 합니다.
+
+<CodeBlock
+  code={`# 비기능 요구사항 발굴 프롬프트
+> 이 기능의 비기능 요구사항도 정리해줘.
+> 다음 관점에서 검토해:
+> - 성능: 동시 업로드 처리량, 응답 시간 목표
+> - 보안: 파일 검증, 접근 제어, 악성 파일 차단
+> - 확장성: 사용자 증가 시 스토리지 전략
+> - 가용성: S3 장애 시 폴백 전략
+> - 운영: 로깅, 모니터링 메트릭, 알람 기준
+
+# Claude 출력 예시:
+# 성능: 10MB 이하 이미지 3초 이내 업로드 완료
+# 보안: magic bytes 검증, 바이러스 스캔 연동 고려
+# 확장성: CDN 배포로 정적 자산 분리
+# 가용성: 업로드 실패 시 3회 재시도 + 사용자 알림
+# 운영: 업로드 성공/실패 비율 대시보드`}
+  language="text"
+  filename="비기능 요구사항 발굴"
+/>
 
 ---
 
@@ -247,6 +324,566 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
 
 ---
 
+## 실전 시나리오 1: 스타트업 MVP 개발 전 과정
+
+스타트업에서 3주 안에 SaaS MVP를 Claude Code로 개발하는 전체 과정입니다. 실제 스타트업들이 Claude Code를 도입하여 개발 속도를 극적으로 높이고 있는 사례를 기반으로 합니다.
+
+<Timeline
+  items={[
+    { title: 'Week 1: 기획 & 설계', description: '요구사항 정의, DB 스키마, API 스펙, 와이어프레임' },
+    { title: 'Week 2: 핵심 기능 구현', description: '인증, 핵심 도메인 로직, API 엔드포인트, 프론트엔드 기본 UI' },
+    { title: 'Week 3: 품질 & 배포', description: '테스트, 보안 리뷰, CI/CD 설정, 스테이징/프로덕션 배포' },
+  ]}
+/>
+
+### Week 1: 기획 & 설계
+
+<CodeBlock
+  code={`# === Day 1-2: 요구사항 정의 ===
+
+# 제품 요구사항 문서(PRD) 초안 생성
+> 다음 SaaS 제품의 PRD를 작성해줘:
+> - 제품명: TaskFlow (프로젝트 관리 도구)
+> - 핵심 기능: 칸반보드, 태스크 관리, 팀원 초대, 실시간 알림
+> - 타겟 사용자: 10-50명 규모의 스타트업 팀
+> - 기술 스택: Next.js, Prisma, PostgreSQL, Redis
+> - MVP 범위: 회원가입/로그인, 프로젝트 생성, 칸반보드, 태스크 CRUD
+>
+> PRD에 각 기능의 우선순위(P0/P1/P2)와 수락 기준(Acceptance Criteria)을 포함해줘.
+
+# === Day 3-4: DB 스키마 설계 ===
+
+# Plan Mode에서 DB 스키마 설계
+> 다음 요구사항으로 Prisma 스키마를 설계해줘 (수정하지 말고 계획만):
+> - User: 이메일 인증, OAuth (Google), 프로필
+> - Workspace: 팀 단위 격리, 멤버 역할 (owner, admin, member)
+> - Project: 워크스페이스 내 프로젝트, 칸반 컬럼 설정
+> - Task: 제목, 설명, 담당자, 상태, 우선순위, 마감일
+> - 인덱싱 전략과 관계 설정도 포함해줘
+
+# === Day 5: API 스펙 ===
+
+> 설계된 스키마를 기반으로 RESTful API 스펙을 작성해줘.
+> OpenAPI 3.0 형식으로, 인증/인가 정책을 포함해.
+> MVP 범위의 엔드포인트만 포함해 (P0 기능만).`}
+  language="text"
+  filename="MVP Week 1: 기획 & 설계 프롬프트"
+/>
+
+### Week 2: 핵심 기능 구현
+
+<CodeBlock
+  code={`# === Day 6-7: 프로젝트 초기화 & 인증 ===
+
+> Next.js 프로젝트를 초기화하고 다음을 설정해줘:
+> - Prisma + PostgreSQL 연동
+> - NextAuth.js로 이메일/Google OAuth 인증
+> - 미들웨어로 보호 라우트 설정
+> - 환경 변수 템플릿 (.env.example)
+> 설정 후 개발 서버가 정상 실행되는지 확인해줘.
+
+# === Day 8-10: 핵심 도메인 로직 ===
+
+# Agent Teams로 병렬 구현
+> Agent Teams를 사용해서 다음 기능을 병렬로 구현해줘:
+> Teammate 1: Workspace CRUD + 멤버 초대/역할 관리 API
+> Teammate 2: Project CRUD + 칸반 컬럼 관리 API
+> Teammate 3: Task CRUD + 상태 변경/담당자 할당 API
+> Teammate 4: 프론트엔드 레이아웃 + 라우팅 + 공통 컴포넌트
+>
+> 모든 API는 인증 미들웨어를 거쳐야 하고,
+> 워크스페이스 격리(tenant isolation)를 지켜야 해.
+> 각 팀원은 구현 후 테스트를 실행해줘.
+
+# === Day 11-12: 칸반보드 UI ===
+
+> @app/(dashboard)/projects/[id]/board/page.tsx 에 칸반보드 UI를 구현해줘.
+> - react-beautiful-dnd로 드래그 앤 드롭
+> - 컬럼: To Do, In Progress, Done (커스터마이징 가능)
+> - 태스크 카드: 제목, 담당자 아바타, 우선순위 배지, 마감일
+> - 낙관적 업데이트(optimistic update)로 즉각 반응
+> - 모바일에서는 스크롤로 컬럼 이동`}
+  language="text"
+  filename="MVP Week 2: 핵심 기능 구현 프롬프트"
+/>
+
+### Week 3: 품질 & 배포
+
+<CodeBlock
+  code={`# === Day 13-14: 테스트 ===
+
+> 다음 테스트를 작성하고 실행해줘:
+> 1. API 단위 테스트: 모든 유스케이스 (인증, 워크스페이스, 프로젝트, 태스크)
+> 2. API 통합 테스트: 실제 DB를 사용한 전체 플로우
+> 3. 프론트엔드 컴포넌트 테스트: 칸반보드 드래그 앤 드롭
+> 4. E2E 테스트: 회원가입 → 워크스페이스 생성 → 태스크 생성 → 상태 변경
+>
+> 테스트 커버리지 80% 이상을 목표로 해.
+
+# === Day 15: 보안 리뷰 (새 세션에서) ===
+
+> git diff main 의 전체 변경사항을 보안 관점에서 리뷰해줘:
+> 1. SQL 인젝션 / XSS / CSRF 취약점
+> 2. 인증/인가 우회 가능성
+> 3. 환경 변수에 시크릿 하드코딩 여부
+> 4. 워크스페이스 격리 위반 (다른 팀 데이터 접근)
+> 5. Rate limiting 부재 여부`}
+  language="text"
+  filename="MVP Week 3: 품질 & 배포 프롬프트"
+/>
+
+---
+
+## 실전 시나리오 2: 레거시 시스템 마이그레이션
+
+Express.js + MongoDB 기반 레거시 모놀리스를 NestJS + PostgreSQL 기반 클린 아키텍처로 마이그레이션하는 워크플로우입니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph Legacy["레거시 시스템"]
+      L1["Express.js"]
+      L2["MongoDB"]
+      L3["모놀리식 구조"]
+    end
+    subgraph Migration["마이그레이션 단계"]
+      M1["1. 현행 분석"]
+      M2["2. 신규 설계"]
+      M3["3. 점진적 이전"]
+      M4["4. 데이터 마이그레이션"]
+      M5["5. 검증 & 전환"]
+    end
+    subgraph New["신규 시스템"]
+      N1["NestJS"]
+      N2["PostgreSQL"]
+      N3["클린 아키텍처"]
+    end
+    Legacy --> M1
+    M1 --> M2
+    M2 --> M3
+    M3 --> M4
+    M4 --> M5
+    M5 --> New
+    style Legacy fill:#fff0f0,stroke:#e74c3c,color:#2d2a26
+    style Migration fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style New fill:#f0fff0,stroke:#4CAF50,color:#2d2a26`}
+  title="레거시 마이그레이션 워크플로우"
+  caption="레거시 분석부터 점진적 이전, 데이터 마이그레이션까지"
+/>
+
+<CodeBlock
+  code={`# === 1단계: 레거시 코드 분석 ===
+
+> 서브에이전트를 사용해서 이 프로젝트를 분석해줘:
+> - 전체 파일 구조와 모듈 의존성 맵
+> - MongoDB 컬렉션별 스키마 (실제 문서 구조 추론)
+> - API 엔드포인트 목록과 각각의 비즈니스 로직
+> - 인증/인가 방식
+> - 외부 서비스 의존성 (이메일, 결제 등)
+> - 기술 부채: 중복 코드, 사용되지 않는 코드, 하드코딩된 값
+
+# === 2단계: 마이그레이션 계획 (Plan Mode) ===
+
+> 분석 결과를 바탕으로 마이그레이션 계획을 세워줘:
+> - MongoDB → PostgreSQL 스키마 매핑 (관계형으로 정규화)
+> - 모놀리스 → 클린 아키텍처 레이어 분리 계획
+> - API 호환성 유지 전략 (기존 클라이언트 깨지지 않게)
+> - 데이터 마이그레이션 스크립트 계획
+> - 점진적 전환 전략 (Strangler Fig Pattern)
+> - 롤백 계획
+
+# === 3단계: Strangler Fig 패턴으로 점진적 이전 ===
+
+> 첫 번째 마이그레이션 대상으로 User 모듈을 이전해줘.
+> 1. NestJS에 User 모듈 구현 (PostgreSQL)
+> 2. API 프록시 설정: /api/users → 신규 서비스로 라우팅
+> 3. 나머지 엔드포인트는 레거시로 유지
+> 4. 통합 테스트로 기존 API 동작과 동일함을 검증
+> 5. MongoDB → PostgreSQL 데이터 동기화 스크립트
+
+# === 4단계: 데이터 마이그레이션 ===
+
+> MongoDB에서 PostgreSQL로 데이터를 마이그레이션하는 스크립트를 작성해줘:
+> - 배치 처리 (1000건씩)
+> - 트랜잭션으로 원자성 보장
+> - 실패 시 재시도 로직 (최대 3회)
+> - 마이그레이션 진행 상황 로깅
+> - dry-run 모드 지원
+> - 검증 스크립트: 원본/대상 데이터 건수 및 무결성 비교`}
+  language="text"
+  filename="레거시 마이그레이션 프롬프트"
+/>
+
+<Callout type="warning" title="마이그레이션의 황금률">
+  레거시 마이그레이션에서 가장 중요한 것은 **기존 동작을 절대 깨뜨리지 않는 것**입니다.
+  Claude Code에게 반드시 기존 API 테스트를 먼저 작성하게 한 후, 그 테스트를 통과하는 새 구현을 만들어야 합니다.
+  Strangler Fig 패턴을 사용하면 모듈 단위로 점진적으로 전환할 수 있습니다.
+</Callout>
+
+---
+
+## CI/CD 파이프라인 통합
+
+Claude Code의 Headless Mode(`claude -p`)를 활용하면 CI/CD 파이프라인에서 자동으로 코드 리뷰, 테스트 생성, 문서 업데이트를 수행할 수 있습니다.
+
+### GitHub Actions 통합
+
+<CodeBlock
+  code={`# .github/workflows/claude-review.yml
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run Claude Review
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          DIFF=$(git diff origin/main...HEAD)
+          REVIEW=$(claude -p "다음 코드 변경사항을 리뷰해줘. 보안 취약점, 에러 처리 누락, 성능 이슈를 중점적으로 확인해. 개선 사항은 구체적인 코드 예시와 함께 제안해: $DIFF")
+          gh pr comment \${{ github.event.pull_request.number }} --body "$REVIEW"
+
+  claude-test-coverage:
+    runs-on: ubuntu-latest
+    needs: claude-review
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Test Coverage
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # 변경된 파일에 대한 테스트 커버리지 확인
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep -E '\\.(ts|tsx)$' | grep -v '\\.test\\.')
+          claude -p "다음 파일들의 테스트 커버리지를 확인하고, 테스트가 부족한 부분에 대해 테스트 코드를 생성해줘: $CHANGED_FILES"`}
+  language="yaml"
+  filename=".github/workflows/claude-review.yml"
+/>
+
+### Docker 통합
+
+<CodeBlock
+  code={`# Dockerfile.claude - Claude Code가 포함된 개발 컨테이너
+FROM node:20-slim
+
+# 시스템 의존성 설치
+RUN apt-get update && apt-get install -y git curl && \\
+    rm -rf /var/lib/apt/lists/*
+
+# Claude Code 설치
+RUN npm install -g @anthropic-ai/claude-code
+
+# 프로젝트 설정
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+
+# Claude Code 설정 (CLAUDE.md 활용)
+# API 키는 런타임에 환경 변수로 주입
+ENV ANTHROPIC_API_KEY=""
+
+# Headless Mode로 실행하는 엔트리포인트
+ENTRYPOINT ["claude", "-p"]`}
+  language="dockerfile"
+  filename="Dockerfile.claude"
+/>
+
+<CodeBlock
+  code={`# docker-compose.claude.yml - Claude 자동화 파이프라인
+version: '3.8'
+
+services:
+  claude-review:
+    build:
+      context: .
+      dockerfile: Dockerfile.claude
+    environment:
+      - ANTHROPIC_API_KEY
+    volumes:
+      - .:/app
+    command: >
+      "이 프로젝트의 최근 변경사항을 리뷰하고,
+       발견된 이슈를 REVIEW.md 파일로 생성해줘."
+
+  claude-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.claude
+    environment:
+      - ANTHROPIC_API_KEY
+    volumes:
+      - .:/app
+    command: >
+      "테스트 커버리지가 낮은 파일을 찾아서
+       추가 테스트를 생성하고 실행해줘."
+
+  claude-docs:
+    build:
+      context: .
+      dockerfile: Dockerfile.claude
+    environment:
+      - ANTHROPIC_API_KEY
+    volumes:
+      - .:/app
+    command: >
+      "변경된 API 엔드포인트의 문서를 업데이트해줘.
+       OpenAPI 스펙과 README를 최신 상태로 맞춰줘."`}
+  language="yaml"
+  filename="docker-compose.claude.yml"
+/>
+
+<ComparisonTable
+  title="CI/CD 파이프라인 자동화 대상"
+  headers={['자동화 항목', '트리거', 'Claude 프롬프트 패턴']}
+  rows={[
+    { feature: 'PR 코드 리뷰', values: ['PR 생성/업데이트', 'git diff를 리뷰해줘 + 보안/성능 중점'] },
+    { feature: '테스트 생성', values: ['새 파일 추가 시', '변경 파일의 테스트 커버리지 확인 & 생성'] },
+    { feature: 'API 문서 업데이트', values: ['API 라우터 변경 시', 'OpenAPI 스펙을 변경사항에 맞게 업데이트'] },
+    { feature: '보안 스캔', values: ['매 커밋 시', '보안 취약점 점검 + 수정 방안 제시'] },
+    { feature: '의존성 업데이트', values: ['주간 스케줄', '취약한 의존성 확인 + 호환성 테스트'] },
+  ]}
+/>
+
+---
+
+## 모니터링과 피드백 루프
+
+프로덕션 배포 후에도 Claude Code는 모니터링 데이터를 분석하고 개선 포인트를 찾는 데 활용됩니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    A["프로덕션 서비스"] -->|"로그, 메트릭"| B["모니터링 시스템"]
+    B -->|"이상 감지"| C["알림 발생"]
+    C --> D["Claude Code로 분석"]
+    D -->|"근본 원인 파악"| E["핫픽스 생성"]
+    E -->|"자동 테스트"| F["CI/CD 파이프라인"]
+    F -->|"배포"| A
+    D -->|"패턴 분석"| G["CLAUDE.md 규칙 추가"]
+    G -->|"예방"| H["다음 개발 사이클"]
+    style A fill:#f0fff0,stroke:#4CAF50,color:#2d2a26
+    style B fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style C fill:#fff0f0,stroke:#e74c3c,color:#2d2a26
+    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style F fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style G fill:#fff8f0,stroke:#FF9800,color:#2d2a26
+    style H fill:#f0fff0,stroke:#4CAF50,color:#2d2a26`}
+  title="모니터링 피드백 루프"
+  caption="프로덕션 이상 감지 → Claude 분석 → 핫픽스 → CLAUDE.md 규칙화"
+/>
+
+<CodeBlock
+  code={`# === 프로덕션 로그 분석 ===
+
+# 에러 로그를 Claude Code로 분석 (민감 정보 제거 필수!)
+> 다음 에러 로그를 분석해줘 (PII는 마스킹됨):
+>
+> [ERROR] 2026-02-06T14:23:45Z UploadAvatarUseCase:
+> TimeoutError: S3 PutObject timed out after 30000ms
+> Stack: at S3Client.send (s3-client.ts:45)
+>        at UploadAvatarUseCase.execute (upload-avatar.use-case.ts:32)
+>
+> 최근 1시간 동안 동일 에러 47건 발생.
+> 원인을 분석하고 수정 방안을 제시해줘.
+
+# Claude 분석 예시:
+# 원인: S3 리전 설정 불일치 (ap-northeast-2 → us-east-1 폴백 발생)
+# 수정: 환경 변수 AWS_REGION 확인, 리전 일치 확인
+# 예방: 타임아웃을 60초로 증가 + 재시도 로직 추가
+# 모니터링: S3 레이턴시 메트릭 알람 설정
+
+# === 성능 메트릭 분석 ===
+
+> 다음 API 성능 데이터를 분석해줘:
+> - POST /api/users/avatar: p50=1.2s, p95=4.8s, p99=12.3s
+> - GET /api/users/profile: p50=45ms, p95=120ms, p99=350ms
+> - GET /api/tasks: p50=89ms, p95=890ms, p99=2.1s
+>
+> 병목 지점을 식별하고, 각각에 대한 최적화 방안을 제시해줘.
+> 코드 변경이 필요하면 구체적인 수정 사항을 알려줘.`}
+  language="text"
+  filename="프로덕션 모니터링 & 분석 프롬프트"
+/>
+
+<Callout type="warning" title="프로덕션 로그 주의사항">
+  프로덕션 로그를 Claude Code에 전달할 때 반드시 **PII(개인식별정보)를 마스킹**해야 합니다.
+  이메일, IP 주소, 사용자 이름, 토큰 등은 사전에 제거하거나 익명화하세요.
+  이는 개인정보보호법 준수를 위해 필수적입니다.
+</Callout>
+
+---
+
+## 장애 대응 워크플로우
+
+프로덕션 장애가 발생했을 때 Claude Code를 활용한 체계적인 대응 워크플로우입니다.
+
+<Timeline
+  items={[
+    { title: '1. 장애 감지 (0-5분)', description: '모니터링 알람 수신, 영향 범위 파악' },
+    { title: '2. 근본 원인 분석 (5-15분)', description: 'Claude Code로 로그 분석, 최근 배포 변경사항 검토' },
+    { title: '3. 핫픽스 개발 (15-30분)', description: '최소한의 변경으로 문제 해결, 테스트 포함' },
+    { title: '4. 긴급 배포 (30-45분)', description: 'CI/CD 파이프라인으로 핫픽스 배포' },
+    { title: '5. 사후 분석 (48시간 이내)', description: '포스트모템 작성, 재발 방지 대책, CLAUDE.md 규칙 추가' },
+  ]}
+/>
+
+<CodeBlock
+  code={`# === 장애 대응 시나리오: API 응답 시간 급증 ===
+
+# 1단계: 빠른 상황 파악
+> 프로덕션에서 API 응답 시간이 급증하고 있어.
+> 다음 정보를 분석해줘:
+> - 최근 배포 시점: 30분 전 (커밋 abc123)
+> - 영향받는 엔드포인트: GET /api/tasks (p95: 890ms → 8.9s)
+> - 영향받지 않는 엔드포인트: 나머지 모두 정상
+> - DB CPU: 15% → 92%
+>
+> 최근 배포의 git diff를 확인하고 원인을 추정해줘.
+
+# Claude 분석:
+# 커밋 abc123에서 Task 쿼리에 N+1 문제 도입
+# Task.findAll()에서 관련 User를 개별 조회 → JOIN으로 수정 필요
+
+# 2단계: 핫픽스 생성
+> 원인이 파악됐어. 핫픽스를 만들어줘:
+> - Task 쿼리에 User 정보를 JOIN으로 가져오도록 수정
+> - 기존 테스트가 통과하는지 확인
+> - 새 테스트 추가: Task 목록 조회 시 쿼리 수가 N+1이 아닌 것을 검증
+> - 커밋 메시지에 "hotfix:" 프리픽스 사용
+
+# 3단계: 긴급 배포
+> 핫픽스를 커밋하고, hotfix/fix-task-query-n-plus-one 브랜치로 PR을 생성해줘.
+> PR 설명에 장애 내용, 원인, 수정 사항을 포함해.
+
+# 4단계: 사후 분석 (포스트모템)
+> 이 장애에 대한 포스트모템을 작성해줘:
+> - 타임라인 (감지 → 원인 파악 → 수정 → 배포)
+> - 근본 원인 (Root Cause)
+> - 영향 범위
+> - 수정 내용
+> - 재발 방지 대책 3가지
+> - CLAUDE.md에 추가할 규칙 제안`}
+  language="text"
+  filename="장애 대응 워크플로우 프롬프트"
+/>
+
+<Callout type="tip" title="CLAUDE.md에 장애 교훈 반영하기">
+  장애 사후 분석의 핵심은 **같은 문제가 반복되지 않도록** 하는 것입니다.
+  CLAUDE.md에 규칙을 추가하면 Claude Code가 향후 유사한 코드를 생성할 때 자동으로 주의합니다.
+  예를 들어 `"ORM 쿼리 작성 시 반드시 N+1 문제를 점검할 것"` 같은 규칙을 추가하세요.
+</Callout>
+
+---
+
+## 팀 협업에서의 E2E 워크플로우
+
+여러 개발자가 Claude Code를 함께 사용할 때의 협업 패턴과 주의사항입니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph SharedConfig["공유 설정"]
+      SC1["CLAUDE.md\n(프로젝트 규칙)"]
+      SC2[".claude/rules/\n(코딩 컨벤션)"]
+      SC3[".claude/commands/\n(팀 공용 슬래시 명령)"]
+    end
+    subgraph DevA["개발자 A"]
+      A1["Feature 브랜치"]
+      A2["Claude 세션 A"]
+      A3["CLAUDE.local.md\n(개인 설정)"]
+    end
+    subgraph DevB["개발자 B"]
+      B1["Feature 브랜치"]
+      B2["Claude 세션 B"]
+      B3["CLAUDE.local.md\n(개인 설정)"]
+    end
+    subgraph DevC["개발자 C"]
+      C1["Feature 브랜치"]
+      C2["Claude 세션 C"]
+      C3["CLAUDE.local.md\n(개인 설정)"]
+    end
+    SharedConfig --> DevA
+    SharedConfig --> DevB
+    SharedConfig --> DevC
+    A1 -->|"PR"| D["main 브랜치"]
+    B1 -->|"PR"| D
+    C1 -->|"PR"| D
+    style SharedConfig fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style DevA fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style DevB fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style DevC fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="팀 협업 구조"
+  caption="공유 설정(CLAUDE.md)은 Git으로 관리, 개인 설정(CLAUDE.local.md)은 .gitignore"
+/>
+
+### 팀 공용 슬래시 명령 만들기
+
+<CodeBlock
+  code={`# .claude/commands/review-pr.md
+# 팀 공용 PR 리뷰 명령
+
+다음 관점에서 현재 브랜치의 변경사항을 리뷰해주세요:
+
+## 필수 확인 항목
+1. **보안**: SQL 인젝션, XSS, 인증/인가 우회
+2. **에러 처리**: 모든 외부 호출에 try-catch, 사용자 친화적 에러 메시지
+3. **테스트**: 변경된 로직에 대한 테스트 존재 여부
+4. **컨벤션**: .claude/rules/conventions.md 준수 여부
+5. **성능**: N+1 쿼리, 불필요한 반복, 메모리 누수
+
+## 출력 형식
+각 항목별로 PASS/WARN/FAIL로 평가하고,
+WARN 또는 FAIL인 항목은 구체적인 수정 제안을 포함해주세요.`}
+  language="markdown"
+  filename=".claude/commands/review-pr.md"
+/>
+
+<CodeBlock
+  code={`# .claude/commands/create-feature.md
+# 팀 공용 기능 개발 시작 명령
+
+다음 절차로 새 기능 개발을 시작해주세요:
+
+1. main 브랜치에서 feature/$ARGUMENTS 브랜치 생성
+2. 요구사항에 대해 질문 (인터뷰 패턴)
+3. Plan Mode에서 구현 계획 수립
+4. 계획을 docs/plans/$ARGUMENTS.md로 저장
+5. 구현 모드로 전환하여 단계별 구현 시작`}
+  language="markdown"
+  filename=".claude/commands/create-feature.md"
+/>
+
+### 팀 협업 모범 사례
+
+<ComparisonTable
+  title="팀 협업에서의 Claude Code 활용 가이드"
+  headers={['상황', '권장 방법', '피해야 할 것']}
+  rows={[
+    { feature: 'CLAUDE.md 변경', values: ['PR로 팀 리뷰 후 머지', '개인이 임의로 규칙 변경'] },
+    { feature: '개인 작업 스타일', values: ['CLAUDE.local.md 사용 (.gitignore)', 'CLAUDE.md에 개인 선호 추가'] },
+    { feature: 'PR 리뷰 도구', values: ['팀 공용 /review-pr 명령 사용', '각자 다른 리뷰 프롬프트 사용'] },
+    { feature: '컨텍스트 공유', values: ['docs/plans/ 에 설계 문서 저장', '구두/채팅으로만 컨텍스트 전달'] },
+    { feature: 'AI 사용 표기', values: ['PR에 AI 사용 내역 명시', 'AI 사용 여부 숨기기'] },
+    { feature: '장애 교훈', values: ['CLAUDE.md에 규칙으로 반영', '구두 전달 후 잊어버림'] },
+  ]}
+/>
+
+---
+
 ## 실패 시 대처
 
 <CodeBlock
@@ -398,6 +1035,147 @@ Anthropic과 기업들이 공개한 Agent Teams / 병렬 Claude Code 활용 사�
 
 ---
 
+## 각 단계별 상세 프롬프트 전략
+
+개발 라이프사이클의 각 단계에서 Claude Code의 성능을 극대화하기 위한 상세 프롬프트 전략입니다.
+
+### 요구사항 분석 단계 프롬프트
+
+<CodeBlock
+  code={`# 1. 사용자 스토리 생성
+> 다음 기능에 대한 사용자 스토리를 작성해줘:
+> 기능: 팀원 초대 및 권한 관리
+> 형식: "As a [역할], I want to [행동], so that [이유]"
+> 각 스토리에 수락 기준(Acceptance Criteria)을 포함해.
+> 엣지 케이스도 별도 스토리로 작성해줘.
+
+# 2. 기술적 제약사항 분석
+> 현재 프로젝트의 기술적 제약사항을 분석해줘:
+> - Node.js 버전 호환성
+> - 기존 ORM과의 호환성
+> - 현재 인증 시스템과의 통합 가능성
+> - 성능 병목이 될 수 있는 지점
+
+# 3. 의존성 영향 분석
+> 이 기능을 추가할 때 영향받는 기존 코드를 모두 찾아줘.
+> 파일 경로, 함수명, 변경 이유를 포함해서 목록으로 정리해줘.`}
+  language="text"
+  filename="요구사항 분석 상세 프롬프트"
+/>
+
+### 설계 단계 프롬프트
+
+<CodeBlock
+  code={`# 1. 아키텍처 결정 기록 (ADR) 생성
+> 다음 결정에 대한 ADR을 작성해줘:
+> 제목: 이미지 저장소로 S3 선택
+> 배경: 프로필 이미지 업로드 기능 추가 필요
+> 고려한 옵션: 로컬 파일 시스템, S3, CloudFlare R2
+> 결정: S3
+> 근거: 확장성, CDN 통합 용이성, 팀 내 경험
+> 결과: aws-sdk v3 의존성 추가, IAM 설정 필요
+
+# 2. API 인터페이스 설계
+> RESTful API 인터페이스를 설계해줘:
+> - 엔드포인트 URL, HTTP 메서드
+> - 요청/응답 바디 (TypeScript 타입)
+> - 에러 응답 형식 (상태 코드별)
+> - 인증/인가 요구사항
+> - Rate limiting 정책
+
+# 3. 시퀀스 다이어그램
+> 이미지 업로드 플로우의 시퀀스 다이어그램을 Mermaid로 그려줘.
+> 클라이언트 → API → 유스케이스 → S3 → DB 순서로.`}
+  language="text"
+  filename="설계 단계 상세 프롬프트"
+/>
+
+### 구현 단계 프롬프트
+
+<CodeBlock
+  code={`# 1. 점진적 구현 (레이어별)
+> 도메인 레이어부터 구현을 시작해줘.
+> 각 레이어 완료 후:
+> - 타입 체크를 실행해줘 (tsc --noEmit)
+> - 해당 레이어의 단위 테스트를 실행해줘
+> - 다음 레이어로 넘어가기 전에 결과를 보여줘
+
+# 2. 기존 패턴 참조
+> @src/application/user/update-profile.use-case.ts 패턴을 참조해서
+> 동일한 구조로 upload-avatar.use-case.ts를 구현해줘.
+> 다른 점은 파일 처리 로직이 추가된다는 것뿐이야.
+
+# 3. 에러 처리 전략
+> 에러 처리를 다음 전략으로 구현해줘:
+> - 도메인 에러: 비즈니스 규칙 위반 (InvalidFileTypeError 등)
+> - 인프라 에러: S3 연결 실패 등 (재시도 포함)
+> - 프레젠테이션 에러: HTTP 상태 코드로 매핑
+> 각 에러 클래스를 src/shared/errors/ 에 구현해줘.`}
+  language="text"
+  filename="구현 단계 상세 프롬프트"
+/>
+
+### 테스트 단계 프롬프트
+
+<CodeBlock
+  code={`# 1. 테스트 피라미드 전략
+> 다음 테스트 피라미드 전략으로 테스트를 작성해줘:
+>
+> 단위 테스트 (70%):
+> - UploadAvatarUseCase: 5개 케이스 (정상, 크기 초과, 타입 오류, S3 실패, 썸네일)
+> - User 엔터티: 3개 케이스 (profileImageUrl 업데이트, 유효성 검증)
+> - S3Client: 3개 케이스 (업로드, 삭제, 존재 확인)
+>
+> 통합 테스트 (20%):
+> - API 엔드포인트: 4개 케이스 (정상, 미인증, 잘못된 요청, 서버 에러)
+>
+> E2E 테스트 (10%):
+> - 전체 플로우: 로그인 → 이미지 선택 → 업로드 → 프로필 확인
+
+# 2. 테스트 데이터 관리
+> 테스트용 이미지 파일을 생성하는 헬퍼 함수를 만들어줘:
+> - createTestImage(format, sizeKB): Buffer 생성
+> - createOversizedImage(): 6MB 이미지
+> - createInvalidFile(): 실행 파일로 위장한 파일
+
+# 3. 테스트 실행 & 커버리지 확인
+> 모든 테스트를 실행하고, 커버리지 리포트를 보여줘.
+> 커버리지가 80% 미만인 파일이 있으면 추가 테스트를 작성해줘.`}
+  language="text"
+  filename="테스트 단계 상세 프롬프트"
+/>
+
+### 배포 단계 프롬프트
+
+<CodeBlock
+  code={`# 1. 환경별 설정 확인
+> 다음 환경별 설정이 올바른지 확인해줘:
+> - development: 로컬 MinIO (S3 호환)
+> - staging: S3 스테이징 버킷
+> - production: S3 프로덕션 버킷 + CloudFront CDN
+>
+> .env.example에 필요한 환경 변수가 모두 있는지 확인하고,
+> 누락된 것이 있으면 추가해줘.
+
+# 2. 마이그레이션 스크립트 확인
+> DB 마이그레이션이 안전한지 확인해줘:
+> - 롤백 가능한가?
+> - 다운타임 없이 적용 가능한가?
+> - 기존 데이터에 영향이 없는가?
+
+# 3. 배포 체크리스트 생성
+> 이번 배포의 체크리스트를 생성해줘:
+> - 환경 변수 설정 여부
+> - DB 마이그레이션 실행 순서
+> - S3 버킷/IAM 설정 완료 여부
+> - 롤백 계획
+> - 모니터링 대시보드 확인 항목`}
+  language="text"
+  filename="배포 단계 상세 프롬프트"
+/>
+
+---
+
 ## 실습: 전체 워크플로우 직접 해보기
 
 아래 프롬프트를 순서대로 Claude Code에 입력하여 전체 워크플로우를 체험합니다.
@@ -499,6 +1277,33 @@ Anthropic과 기업들이 공개한 Agent Teams / 병렬 Claude Code 활용 사�
   - **기존 패턴 참조**: `@` 기호로 기존 컴포넌트를 참조하여 일관성 유지
   - **접근성 필수**: 키보드 내비게이션, aria 속성, 스크린 리더 지원을 테스트에 포함
   - **cleanup 검증**: 이벤트 리스너, 타이머, 구독 등의 정리를 리뷰에서 확인
+</Callout>
+
+---
+
+## E2E 워크플로우 종합 체크리스트
+
+프로젝트에서 E2E 워크플로우를 적용할 때 참조할 수 있는 종합 체크리스트입니다.
+
+<ComparisonTable
+  title="E2E 워크플로우 종합 체크리스트"
+  headers={['단계', '체크 항목', '자동화 가능 여부']}
+  rows={[
+    { feature: '요구사항', values: ['인터뷰 패턴 사용, 비기능 요구사항 포함, 엣지 케이스 식별', '부분 자동화 (인터뷰 템플릿)'] },
+    { feature: '설계', values: ['Plan Mode 사용, ADR 작성, API 스펙 정의, 시퀀스 다이어그램', '부분 자동화 (계획 템플릿)'] },
+    { feature: '구현', values: ['레이어별 분할, 기존 패턴 참조, 검증 포함, 에러 처리', '높은 자동화 (Agent Teams)'] },
+    { feature: '테스트', values: ['테스트 피라미드, 구체적 케이스 나열, 커버리지 80%+', '높은 자동화 (CI/CD)'] },
+    { feature: '리뷰', values: ['Writer/Reviewer 패턴, 보안/성능/품질 체크', '높은 자동화 (팀 명령어)'] },
+    { feature: '배포', values: ['환경별 설정, 마이그레이션 안전성, 롤백 계획, 모니터링', '완전 자동화 (CI/CD)'] },
+    { feature: '유지보수', values: ['로그 분석, 성능 메트릭, 장애 대응, 포스트모템', '부분 자동화 (알람 연동)'] },
+  ]}
+/>
+
+<Callout type="tip" title="워크플로우 개선의 핵심">
+  E2E 워크플로우는 한 번 만들고 끝나는 것이 아닙니다.
+  매 프로젝트 사이클마다 **회고(retrospective)**를 통해 워크플로우를 개선하세요.
+  장애에서 배운 교훈, 반복되는 실수 패턴, 효과적이었던 프롬프트를
+  CLAUDE.md와 팀 공용 명령어에 반영하면 팀 전체의 생산성이 지속적으로 향상됩니다.
 </Callout>
 
 <ChapterNav
