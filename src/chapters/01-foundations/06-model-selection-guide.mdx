@@ -16,32 +16,53 @@ Claude Code는 여러 모델을 지원하며, 모델에 따라 **추론 능력, 
 
 <Callout type="info" title="핵심 원칙">
   "가장 비싼 모델이 항상 최선은 아닙니다."
-  간단한 리팩토링에 Opus 4.5를 사용하는 것은 비효율적이고,
+  간단한 리팩토링에 Opus 4.6을 사용하는 것은 비효율적이고,
   복잡한 아키텍처 설계에 Haiku 4.5를 사용하면 품질이 부족합니다.
 </Callout>
 
-## Claude 4.5 모델 패밀리
+## Claude 모델 패밀리 (2026년 2월 기준)
 
-2025년 5월 Claude 4가 출시된 이후, 2025년 9월 Sonnet 4.5, 10월 Haiku 4.5, 11월 Opus 4.5가 순차적으로 공개되었습니다.
+2025년 5월 Claude 4 출시 이후, Sonnet 4.5(9월), Haiku 4.5(10월), Opus 4.5(11월)가 순차 공개되었고, 2026년 2월 **Opus 4.6**이 Agent Teams와 함께 출시되었습니다.
 
 <ComparisonTable
-  title="Claude 4.5 모델 비교"
-  headers={['항목', 'Opus 4.5', 'Sonnet 4.5', 'Haiku 4.5']}
+  title="Claude 최신 모델 비교"
+  headers={['항목', 'Opus 4.6', 'Opus 4.5', 'Sonnet 4.5', 'Haiku 4.5']}
   rows={[
-    { feature: '모델 ID', values: ['claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5'] },
-    { feature: '출시일', values: ['2025년 11월', '2025년 9월', '2025년 10월'] },
-    { feature: '컨텍스트 윈도우', values: ['200K (1M 베타)', '200K (1M 베타)', '200K'] },
-    { feature: '최대 출력', values: ['64,000 토큰', '64,000 토큰', '64,000 토큰'] },
-    { feature: '입력 가격 (/1M 토큰)', values: ['$5', '$3', '$1'] },
-    { feature: '출력 가격 (/1M 토큰)', values: ['$25', '$15', '$5'] },
-    { feature: '강점', values: ['깊은 추론, 아키텍처', '균형 잡힌 성능', '빠른 속도, 저비용'] },
+    { feature: '모델 ID', values: ['claude-opus-4-6', 'claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5'] },
+    { feature: '출시일', values: ['2026년 2월', '2025년 11월', '2025년 9월', '2025년 10월'] },
+    { feature: '컨텍스트 윈도우', values: ['1,000K (1M)', '200K (1M 베타)', '200K (1M 베타)', '200K'] },
+    { feature: '최대 출력', values: ['128,000 토큰', '64,000 토큰', '64,000 토큰', '64,000 토큰'] },
+    { feature: '입력 가격 (/1M 토큰)', values: ['$5', '$5', '$3', '$1'] },
+    { feature: '출력 가격 (/1M 토큰)', values: ['$25', '$25', '$15', '$5'] },
+    { feature: '강점', values: ['Agent Teams, 1M 컨텍스트', '깊은 추론, 아키텍처', '균형 잡힌 성능', '빠른 속도, 저비용'] },
   ]}
 />
 
 <Callout type="tip" title="가격 출처">
-  모든 가격은 [Anthropic 공식 가격 페이지](https://docs.anthropic.com/en/docs/about-claude/pricing) 기준입니다 (200K 컨텍스트 이하).
-  Sonnet 4.5는 200K 토큰 초과 시 입력 $6, 출력 $22.50으로 할증됩니다.
+  모든 가격은 [Anthropic 공식 가격 페이지](https://docs.anthropic.com/en/docs/about-claude/pricing) 기준입니다.
+  Opus 4.6은 이전 세대(Claude 3 Opus $15/$75) 대비 **67% 가격 인하**된 가격입니다.
 </Callout>
+
+## Opus 4.6의 핵심 차별점
+
+### 적응형 사고 (Adaptive Thinking)
+
+Opus 4.6은 Extended Thinking을 넘어 **Adaptive Thinking**을 도입했습니다. 컨텍스트 단서를 분석하여 프롬프트에 투자할 사고의 깊이를 자동으로 결정합니다.
+
+| 기능 | Extended Thinking (4.5) | Adaptive Thinking (4.6) |
+|------|------------------------|------------------------|
+| 사고 깊이 조절 | 수동 (budget_tokens) | 자동 (작업 복잡도 기반) |
+| 컨텍스트 윈도우 | 200K (1M 베타) | 1M (기본) |
+| 최대 출력 | 64K 토큰 | 128K 토큰 |
+| Agent Teams | 미지원 | 네이티브 지원 |
+
+### Agent Teams 네이티브 지원
+
+Opus 4.6은 멀티 에이전트 오케스트레이션을 네이티브로 지원합니다. 대규모 작업을 여러 세그먼트로 분할하고, 여러 에이전트가 직접 조율하며 협력합니다. (자세한 내용은 Part 3: 서브에이전트 참조)
+
+### 보안 연구 성과
+
+기본 기능만으로 오픈소스 코드에서 **500개 이상의 제로데이 취약점**을 발견한 사례가 [Anthropic에 의해 공개](https://www.anthropic.com/news/claude-opus-4-6)되었습니다.
 
 ## 벤치마크 성능
 
@@ -49,14 +70,15 @@ Claude Code는 여러 모델을 지원하며, 모델에 따라 **추론 능력, 
   title="SWE-bench Verified 점수 (코딩 벤치마크)"
   headers={['모델', '점수', '설명']}
   rows={[
-    { feature: 'Opus 4.5', values: ['80.9%', '최고 수준의 코딩 성능'] },
+    { feature: 'Opus 4.6 (Thinking)', values: ['79.2%', 'Agent Teams 지원, 128K 출력'] },
+    { feature: 'Opus 4.5', values: ['80.9%', '단일 세션 최고 수준의 코딩 성능'] },
     { feature: 'Sonnet 4.5', values: ['77.2%', '비용 대비 우수한 코딩 성능'] },
     { feature: 'Haiku 4.5', values: ['73.3%', '경량 모델 대비 높은 코딩 성능'] },
   ]}
 />
 
-<Callout type="info" title="벤치마크 출처">
-  SWE-bench Verified 점수는 [Anthropic 공식 발표](https://www.anthropic.com/news/claude-opus-4-5) 및 [Caylent 분석](https://caylent.com/blog/claude-sonnet-4-5-highest-scoring-claude-model-yet-on-swe-bench)을 기반으로 합니다.
+<Callout type="info" title="벤치마크 참고">
+  SWE-bench Verified 점수는 **단일 세션** 성능입니다. Opus 4.6의 진정한 강점은 **Agent Teams를 통한 병렬 협업**에서 나타나며, 이는 단일 벤치마크로 측정되지 않습니다. Opus 4.5는 SWE-bench에서 **80% 임계값을 넘은 최초의 AI 모델**입니다.
 </Callout>
 
 ## 작업별 모델 추천
@@ -65,8 +87,10 @@ Claude Code는 여러 모델을 지원하며, 모델에 따라 **추론 능력, 
   title="작업 유형별 권장 모델"
   headers={['작업 유형', '권장 모델', '이유']}
   rows={[
-    { feature: '아키텍처 설계/리팩토링', values: ['Opus 4.5', '깊은 추론 능력, 복잡한 의존성 분석'] },
-    { feature: '디버깅 (복잡한 버그)', values: ['Opus 4.5', '다단계 추론, 근본 원인 분석'] },
+    { feature: 'Agent Teams (멀티 에이전트)', values: ['Opus 4.6', '네이티브 팀 협업, 1M 컨텍스트'] },
+    { feature: '대규모 코드베이스 분석', values: ['Opus 4.6', '1M 컨텍스트, 적응형 사고'] },
+    { feature: '아키텍처 설계/리팩토링', values: ['Opus 4.6 / 4.5', '깊은 추론 능력, 복잡한 의존성 분석'] },
+    { feature: '디버깅 (복잡한 버그)', values: ['Opus 4.6 / 4.5', '다단계 추론, 근본 원인 분석'] },
     { feature: '새 기능 구현', values: ['Sonnet 4.5', '성능과 비용의 균형'] },
     { feature: '코드 리뷰', values: ['Sonnet 4.5', '충분한 추론 + 합리적 비용'] },
     { feature: '테스트 작성', values: ['Sonnet 4.5', '패턴 인식 + 빠른 응답'] },
@@ -86,10 +110,10 @@ claude --model opus
 /model sonnet
 
 # 3. 환경 변수로 기본 모델 설정
-export ANTHROPIC_MODEL=claude-opus-4-5-20251101
+export ANTHROPIC_MODEL=claude-opus-4-6
 
 # 4. 모델 별칭 사용 (간단한 이름)
-claude --model opus     # claude-opus-4-5 최신 버전
+claude --model opus     # claude-opus-4-6 (최신)
 claude --model sonnet   # claude-sonnet-4-5 최신 버전
 claude --model haiku    # claude-haiku-4-5 최신 버전`}
   language="bash"
@@ -175,13 +199,15 @@ Claude 4.x 모델은 **Extended Thinking** 기능을 지원합니다. 복잡한 
 
 일반적인 의사결정 기준:
 
-1. **"이 작업이 복잡한 추론을 필요로 하는가?"** → Yes: Opus 4.5
-2. **"코드 품질과 비용 균형이 중요한가?"** → Yes: Sonnet 4.5
-3. **"빠른 속도와 낮은 비용이 우선인가?"** → Yes: Haiku 4.5
-4. **"잘 모르겠다"** → Sonnet 4.5 (Claude Code 기본값)
+1. **"여러 에이전트의 병렬 협업이 필요한가?"** → Yes: Opus 4.6 (Agent Teams)
+2. **"대규모 코드베이스(100K줄+) 분석이 필요한가?"** → Yes: Opus 4.6 (1M 컨텍스트)
+3. **"이 작업이 복잡한 추론을 필요로 하는가?"** → Yes: Opus 4.6 / 4.5
+4. **"코드 품질과 비용 균형이 중요한가?"** → Yes: Sonnet 4.5
+5. **"빠른 속도와 낮은 비용이 우선인가?"** → Yes: Haiku 4.5
+6. **"잘 모르겠다"** → Sonnet 4.5 (Claude Code 기본값)
 
-<Callout type="warning" title="Opus 4.5 과잉 설계 주의">
-  Opus 4.5는 불필요한 추상화나 추가 파일을 생성하는 경향이 있습니다.
+<Callout type="warning" title="Opus 모델 과잉 설계 주의">
+  Opus 4.5/4.6은 불필요한 추상화나 추가 파일을 생성하는 경향이 있습니다.
   CLAUDE.md에 "과도한 엔지니어링을 피하세요. 직접 요청되었거나 명확히 필요한 변경만 하세요."를
   추가하면 이 문제를 완화할 수 있습니다.
 </Callout>

@@ -55,8 +55,8 @@ Claude Code는 Claude Pro/Max 구독 또는 Anthropic API 키로 사용할 수 �
 | 플랜 | 가격 | Claude Code 사용량 | 주요 모델 |
 |------|------|-------------------|-----------|
 | **Pro** | $20/월 | 기본 (45 메시지/5시간) | Sonnet 4.5 |
-| **Max 5x** | $100/월 | Pro의 5배 | Sonnet 4.5 + Opus 4.5 |
-| **Max 20x** | $200/월 | Pro의 20배 | Sonnet 4.5 + Opus 4.5 |
+| **Max 5x** | $100/월 | Pro의 5배 | Sonnet 4.5 + Opus 4.6 |
+| **Max 20x** | $200/월 | Pro의 20배 | Sonnet 4.5 + Opus 4.6 |
 | **Teams Standard** | $20/월/석 (연간) | 팀 관리 + Claude Code 포함 | Sonnet 4.5 |
 | **Teams Premium** | $100/월/석 (연간) | 팀 관리 + 대량 사용 | 전체 모델 |
 | **API** | 종량제 | 무제한 (비용 비례) | 전체 모델 |
@@ -115,7 +115,30 @@ Claude Code v2.1부터 슬래시 커맨드와 스킬이 **통합**되었습니�
 ### 7. Claude Code 웹 버전 & Agent SDK
 
 - **웹 버전** (claude.ai/code): 2025년 10월 베타 출시. 브라우저에서 GitHub 연동, 코드 편집, PR 생성 가능
-- **Agent SDK**: Claude Code의 에이전트 기능을 외부 애플리케이션에서 사용할 수 있는 SDK. TypeScript와 Python 지원
+- **Claude Agent SDK** (구 Claude Code SDK): Claude Code의 에이전트 인프라를 외부 애플리케이션에서 사용할 수 있는 SDK. TypeScript/Python 지원. 코딩 외에도 금융 분석, 고객 지원, 데이터 처리 등 다양한 작업에 활용 가능
+
+### 8. Agent Teams (2026년 2월~)
+
+2026년 2월 Opus 4.6과 함께 출시된 **네이티브 멀티 에이전트 협업** 기능입니다. 여러 Claude Code 인스턴스가 팀으로 협력하여 복잡한 작업을 병렬 수행합니다.
+
+- **팀 리더**: 하나의 세션이 작업을 조율하고 할당
+- **독립 작업**: 각 팀원은 자체 컨텍스트 윈도우에서 독립적으로 작업
+- **직접 통신**: 팀원들끼리 직접 메시지를 주고받으며 협업
+- **실증 사례**: 16개 Opus 4.6 인스턴스가 **Rust 기반 C 컴파일러**를 자율 개발 — 100,000줄 코드로 Linux 6.9 컴파일 성공 ([Anthropic 엔지니어링 블로그](https://www.anthropic.com/engineering/building-c-compiler))
+
+<Callout type="info" title="Agent Teams 활성화">
+  현재 Research Preview 단계입니다. `settings.json`에서 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`를 활성화하거나 환경 변수로 설정할 수 있습니다.
+</Callout>
+
+### 9. Cowork (2026년 1월~)
+
+**Claude Cowork**는 Claude Code의 비개발자용 버전입니다. Claude Desktop 앱에서 코딩 없이 파일 읽기/편집/생성이 가능하며, Claude Code와 동일한 에이전트 아키텍처를 사용합니다.
+
+- **파일 관리**: 다운로드 폴더 파일 자동 분류, 이름 변경
+- **문서 작성**: 흩어진 메모에서 보고서 초안 작성
+- **데이터 처리**: 스크린샷에서 지출 내역 추출하여 스프레드시트 생성
+- **플러그인 시스템**: 법률 계약서 검토, CRM 데이터 입력, 재무 감사 등 전문 워크플로우 지원
+- 현재 macOS에서 Pro, Max, Team, Enterprise 플랜으로 사용 가능
 
 ## 다른 도구와의 비교
 

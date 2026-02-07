@@ -285,6 +285,119 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
 
 ---
 
+## Agent Teams로 병렬 개발하기 (2026년 2월~)
+
+위의 6단계 워크플로우를 **Agent Teams**로 수행하면, 독립적인 단계를 병렬로 실행하여 전체 소요 시간을 대폭 줄일 수 있습니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    A["1. 요구사항 분석\n(Team Lead)"] --> B["2. 설계\n(Team Lead - Plan Mode)"]
+    B --> C1["3a. 프론트엔드 구현\n(Teammate 1)"]
+    B --> C2["3b. 백엔드 구현\n(Teammate 2)"]
+    B --> C3["3c. 테스트 작성\n(Teammate 3)"]
+    B --> C4["3d. API 문서 작성\n(Teammate 4)"]
+    C1 --> D["4. 통합 & 리뷰\n(Team Lead)"]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    D --> E["5. PR 생성"]
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style C1 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style C2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style C3 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style C4 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="Agent Teams 병렬 워크플로우"
+  caption="설계 완료 후 4개 팀원이 병렬로 작업하고, Team Lead가 결과를 통합합니다"
+/>
+
+### Agent Teams 워크플로우 프롬프트
+
+<CodeBlock
+  code={`# === Agent Teams로 "사용자 프로필 이미지 업로드" 병렬 개발 ===
+
+# Team Lead에게 전체 작업 위임
+> Agent Teams를 사용해서 프로필 이미지 업로드 기능을 구현해줘.
+> 다음과 같이 팀을 구성해:
+>
+> Teammate 1 (프론트엔드): React 컴포넌트 - 이미지 선택, 미리보기, 크롭, 업로드 UI
+> Teammate 2 (백엔드): Express.js API - multer, S3 업로드, Sharp 썸네일, User 모델 수정
+> Teammate 3 (테스트): 단위/통합 테스트 - 프론트엔드 컴포넌트 + 백엔드 유스케이스
+> Teammate 4 (문서): API 문서 + 컴포넌트 Storybook 스토리
+>
+> 요구사항:
+> - S3에 이미지 저장 (aws-sdk v3)
+> - 최대 5MB, JPEG/PNG/WebP만 허용
+> - Sharp로 200x200 썸네일 생성
+> - 인증된 사용자만 업로드 가능
+> - 기존 프로젝트 패턴과 컨벤션을 따를 것
+
+# Team Lead가 자동으로:
+# 1. 설계 계획을 수립하고 팀원들에게 작업 할당
+# 2. 각 팀원이 독립 컨텍스트에서 병렬 작업 시작
+# 3. 팀원 간 인터페이스 조율 (API 스펙, 타입 정의 공유)
+# 4. 결과 통합 및 충돌 해결
+# 5. 최종 테스트 실행 및 리뷰`}
+  language="text"
+  filename="Agent Teams 병렬 개발 프롬프트"
+/>
+
+### Headless Mode 대안
+
+Agent Teams를 사용하지 않고도 `claude -p`로 유사한 병렬 워크플로우를 구성할 수 있습니다.
+
+<CodeBlock
+  code={`#!/bin/bash
+# headless-parallel-dev.sh — 병렬 개발 스크립트
+
+echo "=== 병렬 개발 시작 ==="
+
+# 백엔드와 프론트엔드를 병렬로 구현
+claude -p "src/infrastructure/storage/ 에 S3 클라이언트를 구현해줘. aws-sdk v3 사용." &
+PID1=$!
+
+claude -p "src/components/avatar/ 에 이미지 업로드 React 컴포넌트를 구현해줘." &
+PID2=$!
+
+claude -p "src/application/user/ 에 UploadAvatar 유스케이스를 구현해줘." &
+PID3=$!
+
+# 모든 작업 완료 대기
+wait $PID1 $PID2 $PID3
+
+echo "=== 병렬 구현 완료, 통합 테스트 시작 ==="
+
+# 통합 후 테스트 실행
+claude -p "방금 추가된 이미지 업로드 기능의 통합 테스트를 작성하고 실행해줘."`}
+  language="bash"
+  filename="Headless Mode 병렬 개발 스크립트"
+/>
+
+<Callout type="info" title="Agent Teams vs Headless Mode">
+  **Agent Teams**: 에이전트들이 자율적으로 협력하고 통신. 복잡한 상호 의존 작업에 적합.
+  **Headless Mode** (`claude -p`): 독립적인 작업을 단순 병렬 실행. CI/CD, 스크립트 자동화에 적합.
+  두 방식은 상호 보완적이며, 프로젝트 상황에 맞게 선택합니다.
+</Callout>
+
+### 실제 성과 사례
+
+Anthropic과 기업들이 공개한 Agent Teams / 병렬 Claude Code 활용 사례:
+
+<ComparisonTable
+  title="Agent Teams 실증 사례"
+  headers={['사례', '규모', '성과']}
+  rows={[
+    { feature: 'C 컴파일러 구축 (Anthropic)', values: ['16 에이전트, 2,000 세션', '100K줄 코드, Linux 6.9 컴파일, GCC 99% 통과'] },
+    { feature: 'Ramp (핀테크 유니콘)', values: ['30일간 전사 적용', '100만줄+ AI 코드, 인시던트 조사 시간 80% 감소'] },
+    { feature: 'Anthropic 보안팀 내부', values: ['일상 업무 적용', '프로덕션 이슈 해결 10-15분 → 5분'] },
+    { feature: 'Anthropic 마케팅팀', values: ['광고 자동화', '수백 개 광고 처리 수시간 → 수분'] },
+  ]}
+/>
+
+---
+
 ## 실습: 전체 워크플로우 직접 해보기
 
 아래 프롬프트를 순서대로 Claude Code에 입력하여 전체 워크플로우를 체험합니다.
