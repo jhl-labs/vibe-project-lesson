@@ -1,0 +1,907 @@
+---
+title: "Claude Code 고급 패턴 심층 리서치"
+description: "CLAUDE.md, Hooks, Skills, Headless Mode 등 실전 활용 패턴 완전 분석"
+---
+
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 2: 프로젝트 템플릿 구조/Claude Code 고급 패턴" />
+
+# Claude Code 고급 패턴 심층 리서치
+
+> 공식 Anthropic 문서 및 커뮤니티 베스트 프랙티스 기반 2026년 최신 정보
+
+이 문서는 Claude Code의 실전 활용 패턴과 커뮤니티 베스트 프랙티스를 심층 조사한 결과입니다.
+
+---
+
+## 1. CLAUDE.md 고급 패턴
+
+### 메모리 계층 구조
+
+Claude Code는 계층적 메모리 시스템을 제공합니다:
+
+<ComparisonTable
+  title="메모리 타입별 특성"
+  headers={['메모리 타입', '위치', '용도', '공유 범위']}
+  rows={[
+    { feature: 'Managed policy', values: ['/Library/Application Support/ClaudeCode/CLAUDE.md (macOS)', '조직 전체 정책', '조직 내 모든 사용자'] },
+    { feature: 'Project memory', values: ['./CLAUDE.md 또는 ./.claude/CLAUDE.md', '팀 공유 지침', '팀 (Git 관리)'] },
+    { feature: 'Project rules', values: ['./.claude/rules/*.md', '모듈식 규칙', '팀 (Git 관리)'] },
+    { feature: 'User memory', values: ['~/.claude/CLAUDE.md', '개인 전역 설정', '개인 (모든 프로젝트)'] },
+    { feature: 'Project memory (local)', values: ['./CLAUDE.local.md', '개인 프로젝트 설정', '개인 (현재 프로젝트)'] },
+    { feature: 'Auto memory', values: ['~/.claude/projects/<project>/memory/', 'Claude 자동 학습', '개인 (프로젝트별)'] }
+  ]}
+/>
+
+### 동적 Import 구문
+
+<CodeBlock
+  code={`# External Imports
+See @README for project overview and @package.json for available npm commands.
+
+# Additional Instructions
+- git workflow @docs/git-instructions.md
+
+# Home directory imports (for git worktrees)
+- @~/.claude/my-project-instructions.md`}
+  language="markdown"
+  filename="CLAUDE.md Import 예시"
+/>
+
+**특징:**
+- 상대 경로와 절대 경로 모두 지원
+- 상대 경로는 import를 포함한 파일 기준
+- 첫 실행 시 승인 다이얼로그 표시 (프로젝트당 1회)
+- 최대 5단계 깊이까지 재귀 import 가능
+
+### 조건부 컨텍스트 로딩 (Path-Specific Rules)
+
+<CodeBlock
+  code={`---
+paths:
+  - "src/api/**/*.ts"
+  - "lib/**/*.ts"
+---
+
+# API Development Rules
+- All API endpoints must include input validation
+- Use standard error response format`}
+  language="yaml"
+  filename=".claude/rules/api-conventions.md"
+/>
+
+**Glob 패턴 지원:**
+
+| 패턴 | 매칭 대상 |
+|------|---------|
+| `**/*.ts` | 모든 디렉토리의 TypeScript 파일 |
+| `src/**/*` | src/ 하위 모든 파일 |
+| `*.md` | 프로젝트 루트의 Markdown 파일 |
+| `src/**/*.{ts,tsx}` | Brace expansion 지원 |
+
+### Rules 디렉토리 구조
+
+```
+.claude/rules/
+├── frontend/
+│   ├── react.md
+│   └── styles.md
+├── backend/
+│   ├── api.md
+│   └── database.md
+└── general.md
+```
+
+**특징:**
+- 서브디렉토리 재귀 탐색
+- Symlink 지원 (조직 공통 규칙 공유)
+- User-level rules: `~/.claude/rules/` (개인 전역)
+
+---
+
+## 2. Hooks 고급 패턴
+
+### 12개 이벤트 전체 목록
+
+<ComparisonTable
+  title="Hook 이벤트별 특성"
+  headers={['이벤트', '트리거 시점', '차단 가능 여부']}
+  rows={[
+    { feature: 'SessionStart', values: ['세션 시작/재개', 'No'] },
+    { feature: 'UserPromptSubmit', values: ['사용자 프롬프트 제출 전', 'Yes'] },
+    { feature: 'PreToolUse', values: ['도구 실행 전', 'Yes'] },
+    { feature: 'PermissionRequest', values: ['권한 다이얼로그 표시 전', 'Yes'] },
+    { feature: 'PostToolUse', values: ['도구 실행 성공 후', 'No'] },
+    { feature: 'PostToolUseFailure', values: ['도구 실행 실패 후', 'No'] },
+    { feature: 'Notification', values: ['알림 발송 시', 'No'] },
+    { feature: 'SubagentStart', values: ['서브에이전트 시작 시', 'No'] },
+    { feature: 'SubagentStop', values: ['서브에이전트 종료 시', 'Yes'] },
+    { feature: 'Stop', values: ['Claude 응답 완료 시', 'Yes'] },
+    { feature: 'TeammateIdle', values: ['팀 멤버 idle 전환 전', 'Yes'] },
+    { feature: 'TaskCompleted', values: ['작업 완료 마킹 전', 'Yes'] },
+    { feature: 'PreCompact', values: ['컨텍스트 압축 전', 'No'] },
+    { feature: 'SessionEnd', values: ['세션 종료 시', 'No'] }
+  ]}
+/>
+
+### Hook Handler 타입
+
+**1. Command Hook (`type: "command"`)**
+
+<CodeBlock
+  code={`{
+  "type": "command",
+  "command": ".claude/hooks/block-rm.sh",
+  "async": true,
+  "timeout": 600
+}`}
+  language="json"
+  filename="Command Hook 설정"
+/>
+
+**2. Prompt Hook (`type: "prompt"`)**
+
+<CodeBlock
+  code={`{
+  "type": "prompt",
+  "prompt": "Evaluate if Claude should stop: $ARGUMENTS",
+  "model": "haiku",
+  "timeout": 30
+}`}
+  language="json"
+  filename="Prompt Hook 설정"
+/>
+
+**3. Agent Hook (`type: "agent")`**
+
+<CodeBlock
+  code={`{
+  "type": "agent",
+  "prompt": "Verify all unit tests pass. $ARGUMENTS",
+  "timeout": 120
+}`}
+  language="json"
+  filename="Agent Hook 설정"
+/>
+
+### 복합 Hook 구성 예시
+
+<CodeBlock
+  code={`{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\${CLAUDE_PROJECT_DIR}/.claude/hooks/security-check.sh"
+          },
+          {
+            "type": "agent",
+            "prompt": "Verify this command is safe to execute: $ARGUMENTS"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run lint",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename=".claude/settings.json"
+/>
+
+### CI/CD 통합
+
+<CodeBlock
+  code={`# .github/workflows/claude-review.yml
+name: Claude Code Review
+
+on: [pull_request]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Review PR
+        run: |
+          claude -p "Review this PR for security vulnerabilities" \\
+            --output-format json > review.json`}
+  language="yaml"
+  filename="GitHub Actions 통합 예시"
+/>
+
+### JSON Input/Output 스키마
+
+**공통 입력 필드:**
+
+<CodeBlock
+  code={`{
+  "session_id": "abc123",
+  "transcript_path": "~/.claude/projects/.../transcript.jsonl",
+  "cwd": "/home/user/project",
+  "permission_mode": "default",
+  "hook_event_name": "PreToolUse"
+}`}
+  language="json"
+  filename="Hook 공통 입력"
+/>
+
+**Decision Control 출력:**
+
+<CodeBlock
+  code={`{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "allow|deny|ask",
+    "permissionDecisionReason": "설명",
+    "updatedInput": { "field": "new_value" },
+    "additionalContext": "추가 컨텍스트"
+  }
+}`}
+  language="json"
+  filename="Hook 출력 스키마"
+/>
+
+---
+
+## 3. Skills 고급 패턴
+
+### SKILL.md 프론트매터 전체 옵션
+
+<CodeBlock
+  code={`---
+name: deploy
+description: Deploy application to production
+argument-hint: [environment] [branch]
+disable-model-invocation: true
+user-invocable: false
+allowed-tools: Read, Grep, Bash(deploy *)
+model: opus
+context: fork
+agent: Explore
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "./scripts/security-check.sh"
+---`}
+  language="yaml"
+  filename="SKILL.md 프론트매터 전체 옵션"
+/>
+
+### Lifecycle Hooks in Skills
+
+<CodeBlock
+  code={`---
+name: secure-operations
+description: Perform operations with security checks
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "./scripts/security-check.sh"
+          once: true
+  Stop:
+    - hooks:
+        - type: prompt
+          prompt: "Verify all security checks passed"
+---`}
+  language="yaml"
+  filename="Skill 내 Lifecycle Hooks"
+/>
+
+### Context Fork 패턴
+
+<CodeBlock
+  code={`---
+name: deep-research
+description: Research a topic thoroughly
+context: fork
+agent: Explore
+---
+
+Research $ARGUMENTS thoroughly:
+1. Find relevant files using Glob and Grep
+2. Read and analyze the code
+3. Summarize findings`}
+  language="yaml"
+  filename="Context Fork Skill 예시"
+/>
+
+**동작 방식:**
+1. 새로운 격리된 컨텍스트 생성
+2. Skill 내용이 서브에이전트 프롬프트가 됨
+3. `agent` 필드가 실행 환경 결정 (model, tools, permissions)
+4. 결과가 메인 대화로 요약되어 반환
+
+### 자동 매칭 vs 수동 호출
+
+<ComparisonTable
+  title="Skill 호출 방식별 동작"
+  headers={['프론트매터', '사용자 호출', 'Claude 호출', '컨텍스트 로딩']}
+  rows={[
+    { feature: '(기본값)', values: ['Yes', 'Yes', 'Description 항상 로드, 호출 시 전체 로드'] },
+    { feature: 'disable-model-invocation: true', values: ['Yes', 'No', 'Description 미로드, 수동 호출 시만 전체 로드'] },
+    { feature: 'user-invocable: false', values: ['No', 'Yes', 'Description 항상 로드, 호출 시 전체 로드'] }
+  ]}
+/>
+
+### 동적 컨텍스트 Injection
+
+<CodeBlock
+  code={`---
+name: pr-summary
+description: Summarize changes in a pull request
+context: fork
+agent: Explore
+allowed-tools: Bash(gh *)
+---
+
+## Pull request context
+- PR diff: !\`gh pr diff\`
+- PR comments: !\`gh pr view --comments\`
+- Changed files: !\`gh pr diff --name-only\`
+
+## Your task
+Summarize this pull request...`}
+  language="yaml"
+  filename="동적 컨텍스트 Injection 예시"
+/>
+
+**특징:**
+- `!command` 구문은 skill 내용이 Claude에게 전달되기 전에 실행됨
+- 명령 출력이 placeholder를 대체
+- Claude는 최종 렌더링된 프롬프트만 수신
+
+---
+
+## 4. Headless Mode 고급 패턴
+
+### CLI 기본 사용법
+
+<CodeBlock
+  code={`# 기본 프롬프트
+claude -p "Find and fix the bug in auth.py"
+
+# 도구 자동 승인
+claude -p "Run tests and fix failures" --allowedTools "Bash,Read,Edit"
+
+# JSON 출력
+claude -p "Summarize this project" --output-format json
+
+# 세션 계속
+claude -p "Continue the review" --continue`}
+  language="bash"
+  filename="Headless Mode 기본 사용"
+/>
+
+### CI/CD 파이프라인 통합
+
+**GitHub Actions:**
+
+<CodeBlock
+  code={`- name: Claude Code Review
+  run: |
+    claude -p "Review this PR for security issues" \\
+      --output-format json \\
+      --allowedTools "Read,Grep,Glob" > review.json
+
+    if jq -e '.result | contains("CRITICAL")' review.json; then
+      echo "Critical security issues found!"
+      exit 1
+    fi`}
+  language="yaml"
+  filename="GitHub Actions 통합"
+/>
+
+**GitLab CI:**
+
+<CodeBlock
+  code={`claude_review:
+  script:
+    - |
+      claude -p "Analyze code quality" \\
+        --output-format stream-json \\
+        --allowedTools "Read,Grep" | tee analysis.log`}
+  language="yaml"
+  filename="GitLab CI 통합"
+/>
+
+### Pre-commit Hooks 통합
+
+<CodeBlock
+  code={`#!/bin/bash
+# .git/hooks/pre-commit
+
+changed_files=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -n "$changed_files" ]; then
+  claude -p "Review these changed files: $changed_files" \\
+    --output-format stream-json \\
+    --allowedTools "Read,Grep"
+fi`}
+  language="bash"
+  filename="Pre-commit Hook 예시"
+/>
+
+### --output-format 옵션
+
+**1. Text (기본값):**
+
+```bash
+claude -p "What does auth.py do?" --output-format text
+```
+
+**2. JSON:**
+
+<CodeBlock
+  code={`claude -p "Summarize project" --output-format json
+
+# 출력:
+{
+  "result": "This project is...",
+  "session_id": "abc123",
+  "usage": {
+    "input_tokens": 1234,
+    "output_tokens": 567
+  }
+}`}
+  language="bash"
+  filename="JSON 출력 예시"
+/>
+
+**3. Stream JSON:**
+
+```bash
+claude -p "Analyze codebase" \
+  --output-format stream-json \
+  --verbose \
+  --include-partial-messages
+```
+
+**4. JSON Schema 출력:**
+
+<CodeBlock
+  code={`claude -p "Extract function names from auth.py" \\
+  --output-format json \\
+  --json-schema '{
+    "type": "object",
+    "properties": {
+      "functions": {
+        "type": "array",
+        "items": {"type": "string"}
+      }
+    },
+    "required": ["functions"]
+  }'`}
+  language="bash"
+  filename="JSON Schema 출력"
+/>
+
+---
+
+## 5. Writer/Reviewer 패턴
+
+### 왜 다른 세션에서 리뷰해야 하는가?
+
+**기술적 이유:**
+
+1. **컨텍스트 편향 제거**: Writer 세션의 생성 과정이 Reviewer의 판단에 영향을 주지 않음
+2. **독립적인 평가**: 새로운 컨텍스트에서 코드를 평가하므로 편견 없는 리뷰 가능
+3. **병렬 작업**: Writer와 Reviewer가 동시에 작동 가능
+
+### 실전 워크플로우
+
+<CodeBlock
+  code={`# 1. 공유 Task List 설정
+export CLAUDE_CODE_TASK_LIST_ID=shared-tasks
+
+# 2. Session A (Writer) 시작
+cd /path/to/project
+CLAUDE_CODE_TASK_LIST_ID=shared-tasks claude
+> Implement rate limiter
+
+# 3. Session B (Reviewer) 시작
+cd /path/to/project
+CLAUDE_CODE_TASK_LIST_ID=shared-tasks claude
+# Shared task list 자동 로드
+# "implement-rate-limiter" 완료 확인
+# 관련 리뷰 작업 시작`}
+  language="bash"
+  filename="Writer/Reviewer 워크플로우"
+/>
+
+**Task 구조 (DAG 지원):**
+
+<CodeBlock
+  code={`{
+  "task_id": "review-rate-limiter",
+  "subject": "Review rate limiter implementation",
+  "blockedBy": ["implement-rate-limiter"],
+  "status": "pending"
+}`}
+  language="json"
+  filename="Task DAG 예시"
+/>
+
+---
+
+## 6. 인터뷰 패턴
+
+### Claude에게 먼저 질문 받기
+
+**기본 워크플로우:**
+
+```
+Session 1 (Interview):
+> 사용자 인증 시스템 구현해줘
+
+Claude: 다음 사항을 명확히 해주세요:
+1. JWT vs Session-based authentication?
+2. OAuth 통합 필요 여부?
+3. 비밀번호 복잡도 요구사항?
+
+Session 2 (Implementation):
+> [생성된 Spec 기반 구현]
+```
+
+### 요구사항 정제 기법
+
+**Spec-Based Development:**
+
+<CodeBlock
+  code={`---
+name: spec-interview
+description: Interview user and generate detailed specification
+---
+
+1. Use AskUserQuestion to gather requirements
+2. Ask follow-up questions for unclear points
+3. Generate comprehensive specification document
+4. Include:
+   - Architecture decisions
+   - API contracts
+   - Data models
+   - Test requirements`}
+  language="yaml"
+  filename="Spec Interview Skill"
+/>
+
+---
+
+## 7. Plan Mode 활용법
+
+### Shift+Tab 토글
+
+**Permission Mode 순환:**
+
+```
+Normal → Auto-Accept → Plan → (Delegate if team active) → Normal
+```
+
+**각 모드 지시자:**
+
+- Normal: (지시자 없음)
+- Auto-Accept: `⏵⏵ accept edits on`
+- Plan: `⏸ plan mode on`
+
+### 설계-구현-검증 사이클
+
+<CodeBlock
+  code={`# 1. 설계 단계 (Plan Mode)
+claude --permission-mode plan
+> Refactor authentication system to OAuth2
+
+# 2. 계획 검토
+# Ctrl+G: 기본 편집기에서 계획 열기
+
+# 3. 구현 단계
+# 계획 승인 후 자동으로 Auto-Accept 모드로 전환
+
+# 4. 검증 단계
+> Run tests and verify implementation`}
+  language="bash"
+  filename="Plan Mode 워크플로우"
+/>
+
+### 기본값 설정
+
+<CodeBlock
+  code={`// .claude/settings.json
+{
+  "permissions": {
+    "defaultMode": "plan"
+  }
+}`}
+  language="json"
+  filename="Plan Mode 기본값 설정"
+/>
+
+---
+
+## 8. 컨텍스트 관리 전략
+
+### /clear 명령어
+
+```
+> /clear
+```
+
+**효과:**
+- 현재 대화 기록 삭제
+- 새로운 프롬프트부터 클린 슬레이트
+- REPL 세션은 계속 유지
+
+### /compact 명령어
+
+**자동 Compaction (Beta):**
+
+<CodeBlock
+  code={`# Beta 헤더 활성화
+export COMPACT_2026_01_12=true`}
+  language="bash"
+  filename="Compaction 활성화"
+/>
+
+**동작 방식:**
+1. 토큰 임계값 초과 감지
+2. 대화 요약 생성
+3. Compaction block 생성
+4. 압축된 컨텍스트로 계속
+
+<Callout type="warning" title="Compaction 주의사항">
+  - Auto-compact buffer가 컨텍스트 윈도우의 22.5% 소비 (45k 토큰)
+  - 프로젝트 컨텍스트 손실 가능
+</Callout>
+
+### 서브에이전트 위임
+
+<CodeBlock
+  code={`{
+  "agent_type": "Explore",
+  "tools": ["Read", "Grep", "Glob"],
+  "task": "특정 조사 작업"
+}`}
+  language="json"
+  filename="서브에이전트 설정"
+/>
+
+**효과:**
+- 메인 세션 컨텍스트 보존
+- 서브에이전트가 독립적 컨텍스트에서 작업
+- 요약된 결과만 메인으로 반환
+
+---
+
+## 9. 에러 복구 패턴
+
+### 같은 에러 반복 시 대처
+
+**Error Recovery Patterns:**
+
+<CodeBlock
+  code={`{
+  "max_retries": 3,
+  "exponential_backoff": true,
+  "circuit_breaker": true,
+  "jitter": 0.25,
+  "timeout": "3-10s"
+}`}
+  language="json"
+  filename="에러 복구 설정"
+/>
+
+**실전 예시:**
+
+<CodeBlock
+  code={`#!/bin/bash
+# error-retry.sh
+
+MAX_RETRIES=3
+RETRY_COUNT=0
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+  if claude -p "$1" --output-format json > result.json; then
+    exit 0
+  fi
+
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  BACKOFF=$((2 ** RETRY_COUNT))
+  sleep $BACKOFF
+done
+
+exit 1`}
+  language="bash"
+  filename="에러 재시도 스크립트"
+/>
+
+### 컨텍스트 소진 대응
+
+**1. 새 대화 시작:**
+
+```
+> /clear
+> 이전 컨텍스트 요약 제공 후 계속
+```
+
+**2. 코드에 컨텍스트 기록:**
+
+<CodeBlock
+  code={`# AI-DECISION: Use JWT for authentication
+# IDEMPOTENCY-KEY: auth-impl-2024-01-15
+def authenticate(token):
+    ...`}
+  language="python"
+  filename="코드 내 컨텍스트 기록"
+/>
+
+---
+
+## 10. 보안 패턴
+
+### Managed Settings
+
+**계층 구조:**
+
+```
+Enterprise Managed (최우선)
+    ↓
+Project Settings
+    ↓
+User Settings
+```
+
+<CodeBlock
+  code={`// /Library/Application Support/ClaudeCode/managed-settings.json
+{
+  "disableBypassPermissionsMode": "disable",
+  "permissions": {
+    "deny": [
+      "Bash(rm *)",
+      "Bash(sudo *)",
+      "Write(*.env)"
+    ]
+  }
+}`}
+  language="json"
+  filename="Managed Settings 예시"
+/>
+
+### 권한 규칙 (Allow/Deny)
+
+**우선순위:**
+
+1. **Deny 규칙** (최우선)
+2. **Allow 규칙**
+3. **Ask 규칙** (기본값)
+
+<CodeBlock
+  code={`{
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf *)",
+      "Write(.env)",
+      "Skill(deploy *)"
+    ],
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm test)",
+      "Read",
+      "Grep"
+    ]
+  }
+}`}
+  language="json"
+  filename="Permission Rules"
+/>
+
+### 감사 로그
+
+**Enterprise 기능:**
+
+<CodeBlock
+  code={`{
+  "audit": {
+    "retention_days": 30,
+    "export_format": ["json", "csv"],
+    "siem_integration": ["Splunk", "Datadog", "Elastic"]
+  }
+}`}
+  language="json"
+  filename="감사 로그 설정"
+/>
+
+### 데이터 흐름 제어
+
+<CodeBlock
+  code={`{
+  "permissions": {
+    "deny": [
+      "WebFetch(*secrets*)",
+      "Bash(*production*)",
+      "Write(.git/*)"
+    ],
+    "allowManagedHooksOnly": true
+  }
+}`}
+  language="json"
+  filename="데이터 흐름 제어"
+/>
+
+**Hook-Based Control:**
+
+<CodeBlock
+  code={`{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/validate-write.sh"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="Hook 기반 제어"
+/>
+
+---
+
+## 참고 자료
+
+### 공식 문서
+
+- [Claude Code Memory System](https://code.claude.com/docs/en/memory)
+- [Hooks Reference](https://code.claude.com/docs/en/hooks)
+- [Skills Documentation](https://code.claude.com/docs/en/skills)
+- [Headless Mode Guide](https://code.claude.com/docs/en/headless)
+- [Common Workflows](https://code.claude.com/docs/en/common-workflows)
+
+### 커뮤니티 리소스
+
+- [Claude Code Memory — Teaching Claude Your Project's DNA](https://medium.com/@luongnv89/claude-code-memory-teaching-claude-your-projects-dna-45c4beca6121)
+- [Learning Claude Code — Multi-Agent Workflows](https://medium.com/@aayushmnit/learning-claude-code-from-context-engineering-to-multi-agent-workflows-4825e216403f)
+- [Claude Code Hooks: Complete Guide](https://claudefa.st/blog/tools/hooks/hooks-guide)
+- [GitHub: claude-code-hooks-mastery](https://github.com/disler/claude-code-hooks-mastery)
+- [GitHub: everything-claude-code](https://github.com/affaan-m/everything-claude-code)
+
+### 보안 및 엔터프라이즈
+
+- [Claude Code Security Best Practices](https://www.backslash.security/blog/claude-code-security-best-practices)
+- [Claude Code in Enterprise Environments](https://claude-ai.chat/blog/claude-code-in-enterprise-environments/)
+- [A practical guide to admin controls](https://www.eesel.ai/blog/admin-controls-claude-code)
+
+<ChapterNav
+  prev={{ title: '문서 템플릿', path: '/docs/part-2--프로젝트-템플릿-구조-문서-템플릿' }}
+  next={{ title: '슬래시 커맨드', path: '/docs/part-3--ai-agent-워크플로우-슬래시-커맨드' }}
+/>
+
+---
+
+*마지막 업데이트: 2026-02-07*
+*기반 버전: Claude Code 2.1+*
