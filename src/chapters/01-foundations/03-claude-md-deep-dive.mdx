@@ -246,6 +246,55 @@ JavaScript의 상위 집합으로... (이하 생략)`}
   CLAUDE.md 초안을 자동 생성합니다. 이를 기반으로 프로젝트에 맞게 다듬어 나가세요.
 </Callout>
 
+## 자동 메모리 (Auto Memory)
+
+Claude Code는 `~/.claude/projects/<project-hash>/memory/` 디렉토리에 **영구적인 자동 메모리**를 관리합니다. 대화 간에 유지되는 학습 내용을 기록합니다.
+
+<CodeBlock
+  code={`# ~/.claude/projects/<project-hash>/memory/MEMORY.md
+# 이 파일은 Claude Code의 시스템 프롬프트에 자동 로드됩니다 (200줄까지)
+
+# Project Memory
+
+## 자주 발생하는 실수
+- TypeORM에서 @Column() 데코레이터 누락 시 마이그레이션 실패
+- Next.js 13+ app router에서 'use client' 누락 주의
+
+## 유용한 패턴
+- 테스트 실행: npm test -- --coverage --watchAll=false
+- DB 마이그레이션: npx typeorm migration:run -d src/data-source.ts`}
+  language="markdown"
+  filename="MEMORY.md"
+/>
+
+<Callout type="tip" title="메모리 관리 팁">
+  MEMORY.md는 200줄까지 시스템 프롬프트에 포함됩니다. 상세한 내용은 별도 파일(debugging.md, patterns.md 등)로 분리하고 MEMORY.md에서 링크하세요.
+</Callout>
+
+## Compaction API — 무한 대화
+
+Claude Code는 컨텍스트 윈도우가 채워지면 자동으로 대화를 요약하여 **사실상 무한한 대화**를 지원합니다.
+
+| 방식 | 트리거 | 보존 내용 | 명령어 |
+|------|--------|-----------|--------|
+| Auto Compact | 컨텍스트 임계값 도달 시 자동 | 핵심 컨텍스트 + 최근 대화 | (자동) |
+| Manual Compact | 사용자 수동 실행 | 사용자 지정 보존 지시사항 | /compact [지시사항] |
+| Clear | 전체 초기화 | 없음 (새 세션) | /clear |
+
+<CodeBlock
+  code={`# 수동 압축 — 특정 내용 보존 지시
+/compact 현재 작업 중인 인증 모듈의 설계 결정과 미완료 TODO를 보존해줘
+
+# 자동 압축 설정 (Claude Code v2.0.64+)
+# 대기 시간 없이 즉시 압축 실행`}
+  language="text"
+  filename="Compaction 명령어"
+/>
+
+<Callout type="info" title="Compaction 활용 팁">
+  Anthropic은 긴 세션에서 /compact를 적극 활용할 것을 권장합니다. 특히 작업 전환 시 이전 작업의 핵심 결정사항만 보존하면 새 작업의 품질이 향상됩니다.
+</Callout>
+
 ## CLAUDE.md vs Hook vs Rules
 
 각 설정 방법의 적합한 용도가 다릅니다:

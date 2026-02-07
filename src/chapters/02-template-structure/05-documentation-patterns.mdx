@@ -1,0 +1,205 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 2: 프로젝트 템플릿 구조/문서 템플릿" />
+
+# 문서 템플릿 (FRD, TRD, ADR 등)
+
+> Claude Code와 함께 자주 작성하는 핵심 산출물을 표준화합니다.
+
+아래 템플릿을 사용하면 AI에게도 일관된 요구사항을 전달할 수 있고, 팀 간 문서 품질을 맞출 수 있습니다.
+
+## 문서 유형별 가이드
+
+<ComparisonTable
+  title="주요 산출물 요약"
+  headers={['문서', '목적', '작성 시점', '필수 섹션', 'Claude 프롬프트 팁']}
+  rows={[
+    { feature: 'FRD (Functional Requirements Doc)', values: ['사용자·비즈니스 요구 정의', '기획 확정 직후', '배경, 목표, 사용자 스토리, 비기능 제약, 수용 기준', '“각 요구사항에 ID(FR-001)와 수용 기준(Given-When-Then) 넣어줘”'] },
+    { feature: 'TRD (Technical Requirements Doc)', values: ['시스템·품질 요구 정의', 'FRD 승인 후 설계 전', '아키텍처 개요, 품질 속성(성능·보안·확장성), 제약, 인터페이스, 데이터 모델', '“성능/보안 목표를 정량 수치로 채워줘 (예: p95 300ms)”'] },
+    { feature: 'ADR (Architecture Decision Record)', values: ['중요 설계 의사결정 기록', '의사결정 시점마다', '상황, 문제, 대안, 결정, 근거, 트레이드오프, 상태', '“ADR 마크다운 포맷으로 대안 3개를 장단점 비교해줘”'] },
+    { feature: 'ICD (Interface Control Doc)', values: ['서비스 간 계약 정의', 'API 설계/변경 시', '엔드포인트/메시지 스키마, 버전, 에러 계약, 타임아웃/재시도, 보안', '“Request/Response를 표로, 에러는 RFC7807 포맷으로 정리해줘”'] },
+    { feature: 'Test Plan / RTM', values: ['테스트 범위·책임·일정 정의', '개발 착수 시', '범위/아웃오브스코프, 테스트 유형별 책임, 환경, 일정, RTM(요구↔테스트 매핑)', '“FRD ID와 테스트 케이스를 RTM 표로 매핑해줘”'] },
+  ]}
+/>
+
+## FRD — Functional Requirements Doc
+
+**목적**: 사용자 시나리오와 비즈니스 기대치를 기능 단위로 정의. 개발·QA·Biz가 동일한 언어로 합의하는 문서.
+
+**추천 아웃라인**
+
+- Overview: 배경, 목표, 스코프/아웃오브스코프
+- Personas & User Stories: 역할별 스토리(US-001 등)
+- Functional Requirements: FR-###, 우선순위(MoSCoW), 수용 기준(Given-When-Then)
+- Non-Functional Constraints: 보안, 성능, 가용성, 규제
+- Dependencies & Assumptions
+- Open Questions
+
+<CodeBlock
+  code={`### FR-003: 알림 설정 변경
+Priority: Must | Owner: FE/BE
+Description: 사용자가 이메일/푸시 알림 on/off를 설정한다.
+Acceptance Criteria:
+- Given 로그인 사용자가 설정 페이지에 있고
+- When 이메일 알림 토글을 OFF로 전환하면
+- Then 서버에 PATCH /api/v1/notifications/settings 로 저장되고
+- And 재접속 후에도 OFF 상태가 유지된다`}
+  language="markdown"
+  filename="FRD 요구사항 예시"
+/>
+
+## TRD — Technical Requirements Doc
+
+**목적**: 품질 속성(성능/보안/확장성)과 기술 제약을 정량화해 설계 기준으로 삼음.
+
+**추천 아웃라인**
+
+- System Context & Diagrams (텍스트/ASCII)
+- Quality Attributes: 성능(p95 300ms), 가용성(99.9%), 보안(OWASP Top10 대응), 관찰성(SLO)
+- Constraints: 기술 스택, 표준, 네트워크/규제 제약
+- Interfaces: 내부/외부 API, 스키마, 타임아웃·재시도
+- Data Model: 핵심 테이블/인덱스, 저장소 선택 근거
+- Risks & Mitigations
+
+<CodeBlock
+  code={`성능 목표
+- p95 응답시간: 300ms 이하 (API Gateway 로그 기준)
+- 스파이크: 분당 3K RPS까지 오토스케일 60초 내 대응
+보안 목표
+- 인증: OAuth2 + PKCE, mTLS(서버간)
+- 데이터: PII at-rest AES-256, in-transit TLS1.2+`}
+  language="markdown"
+  filename="TRD 품질 목표 예시"
+/>
+
+## ADR — Architecture Decision Record
+
+**목적**: 중요한 설계 결정을 간결히 기록해 히스토리와 근거를 남김.
+
+**추천 포맷** (1–2 페이지, 단일 주제)
+
+- Title / Status(Draft|Accepted|Rejected)
+- Context
+- Decision
+- Alternatives & Trade-offs
+- Consequences (Positive/Negative)
+- Date / Owner / Links
+
+<CodeBlock
+  code={`# ADR-012: 메시징 브로커 선택
+Status: Accepted | Date: 2026-02-02
+Context: 주문 이벤트 5K RPS, 정확히 한 번 처리 필요
+Decision: Kafka + exactly-once semantics 사용
+Alternatives: RabbitMQ, SQS
+Trade-offs:
+- (+) 대량 처리, EO 지원
+- (-) 운영 복잡도, 클러스터 관리 필요
+Consequences: DevOps에 Kafka 운영 플레이북 추가, DLQ 모니터링 대시보드 생성`}
+  language="markdown"
+  filename="ADR 예시"
+/>
+
+## ICD — Interface Control Doc
+
+**목적**: 서비스 간 계약(API·이벤트·파일)의 스키마와 오류 규칙을 명시해 통합 리스크를 줄임.
+
+**필수 요소**
+- Endpoint/Event 목록(버전 포함)
+- Request/Response 스키마, 예제 페이로드
+- 에러 모델(RFC 7807), 타임아웃/재시도, Idempotency 규칙
+- 보안/권한, 레이트리밋, 호환성 정책(버전 업그레이드 규칙)
+
+<CodeBlock
+  code={`POST /v1/payments
+Headers: Authorization: Bearer <JWT>
+Request:
+{
+  "orderId": "ord_123",
+  "amount": 19900,
+  "currency": "KRW"
+}
+Errors (RFC7807):
+- 401 unauthorized
+- 409 conflict (이미 결제됨)
+Timeout: 3s | Retry: 2회 exponential backoff`}
+  language="json"
+  filename="ICD 조각 예시"
+/>
+
+## Test Plan & RTM
+
+**목적**: 테스트 범위·책임·일정을 명확히 하고 요구사항과 테스트 케이스를 매핑.
+
+**구성**
+- Scope / Out of Scope
+- Test Types & Owners (Unit/Integration/E2E/Performance/Security)
+- Environments & Data
+- Schedule & Entry/Exit Criteria
+- RTM (Requirement ↔ Test Case 매핑)
+
+<CodeBlock
+  code={`RTM 예시
+| Req ID | Test ID | 유형 | 상태 |
+| FR-003 | TC-012  | E2E  | Ready |
+| NFR-005 (p95 300ms) | PT-004 | Perf | Ready |`}
+  language="markdown"
+  filename="RTM 스니펫"
+/>
+
+## Claude 프롬프트 예시
+
+<CodeBlock
+  code={`@docs/context.md @docs/architecture.md
+FRD 템플릿을 채워줘. 규칙:
+- 요구사항 ID는 FR-### 형식
+- 수용 기준은 Gherkin (Given-When-Then)
+- 비기능 요구는 보안/성능/가용성/확장성/관찰성으로 구분
+- 마지막에 요약 표로 전체 요구사항 목록 정리`}
+  language="text"
+  filename="FRD 생성 프롬프트"
+/>
+
+<CodeBlock
+  code={`@docs/context.md
+TRD를 작성해줘. 포함:
+- 시스템 다이어그램(텍스트)
+- 품질 속성 목표: 성능 p95 300ms, 가용성 99.9%, 보안 OWASP Top 10 대응
+- 기술 제약: DB는 PostgreSQL 15, 메시징은 Kafka
+- 인터페이스: 내부 API/외부 API, 페이로드 스키마, 타임아웃/재시도 정책
+- 데이터 모델: 핵심 테이블/컬럼/인덱스 요약
+- 리스크 & 완화책: 3개 이상`}
+  language="text"
+  filename="TRD 생성 프롬프트"
+/>
+
+<CodeBlock
+  code={`ADR 포맷으로 작성:
+- Title: API 인증 방식 선택
+- Status: Proposed
+- Context: B2B 멀티테넌트, 모바일 클라이언트 존재
+- Alternatives: OAuth2, JWT + RTA, mTLS
+- Criteria: 보안, 구현 난이도, 운영비, 개발자 경험
+- Decision: TBD
+- Consequences: 장단점 서술`}
+  language="text"
+  filename="ADR 작성 프롬프트"
+/>
+
+## 활용 팁
+
+<Callout type="tip" title="문서 품질을 높이는 요청 패턴">
+  - **컨텍스트 먼저 제공**: `@docs/context.md`, `@docs/architecture.md` 등 배경 파일을 함께 건넵니다.  
+  - **포맷 고정**: “마크다운 표”, “ADR 템플릿”, “RST 헤더”처럼 원하는 출력 형식을 명시합니다.  
+  - **식별자/상태 필수**: FR-001, TR-002처럼 ID와 상태(Draft/Accepted/Rejected)를 요구하면 추적성이 높아집니다.  
+  - **수치로 요구**: 성능·보안 목표는 정량 수치(p95, TPS, MTTR, CVSS)를 넣어달라고 요청합니다.  
+  - **검증 섹션 추가**: “리스크 & 완화책”이나 “수용 기준”을 반드시 포함시키면 리뷰가 빨라집니다.
+</Callout>
+
+<ChapterNav
+  prev={{ title: '가이드라인', path: '/docs/part-2--프로젝트-템플릿-구조-가이드라인' }}
+  next={{ title: '슬래시 커맨드', path: '/docs/part-3--ai-agent-워크플로우-슬래시-커맨드' }}
+/>
