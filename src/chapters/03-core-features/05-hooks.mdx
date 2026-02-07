@@ -1,0 +1,1290 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { DataTable } from '../../components/DataTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 3: 핵심 기능/Hooks" />
+
+# Hooks
+
+> Claude Code의 도구 실행 전후에 자동으로 실행되는 셸 스크립트
+
+## 개요
+
+Hooks는 Claude Code의 **이벤트 기반 자동화 시스템**입니다. 도구 실행 전후, 세션 시작/종료, 알림 발생 등 다양한 시점에 셸 커맨드, 프롬프트, 서브에이전트를 자동 실행할 수 있습니다. 린트, 보안 스캔, 포맷팅 등을 자동화하여 일관된 코드 품질을 유지하는 핵심 기능입니다.
+
+<Callout type="info" title="슬래시 커맨드 vs Hooks">
+  슬래시 커맨드는 개발자가 **직접 호출**하는 반면,
+  Hooks는 특정 이벤트 발생 시 **자동으로 실행**됩니다.
+  둘을 조합하면 강력한 워크플로우 자동화가 가능합니다.
+</Callout>
+
+## 설정 위치
+
+| 위치 | 범위 | 공유 |
+|------|------|------|
+| `~/.claude/settings.json` | 모든 프로젝트 | 아니오 (개인) |
+| `.claude/settings.json` | 단일 프로젝트 | 예 (저장소 커밋) |
+| `.claude/settings.local.json` | 단일 프로젝트 | 아니오 (gitignore) |
+| Managed Settings | 조직 전체 | 예 (관리자 제어) |
+
+---
+
+## Hook 이벤트 타입 상세
+
+Claude Code는 14가지 이벤트 타입을 지원합니다 (Agent Teams의 TeammateIdle, TaskCompleted 포함). 각 이벤트는 발생 시점, 차단 가능 여부, 매처 대상이 다릅니다.
+
+<DataTable
+  title="Hook 이벤트 전체 목록"
+  searchable={true}
+  columns={[
+    { key: 'event', header: '이벤트' },
+    { key: 'timing', header: '발생 시점' },
+    { key: 'blockable', header: '차단 가능' },
+    { key: 'matcher', header: 'Matcher 대상' },
+  ]}
+  data={[
+    { event: 'PreToolUse', timing: '도구 실행 전', blockable: '예', matcher: '도구 이름 (Bash, Edit 등)' },
+    { event: 'PostToolUse', timing: '도구 실행 성공 후', blockable: '아니오', matcher: '도구 이름' },
+    { event: 'PostToolUseFailure', timing: '도구 실행 실패 후', blockable: '아니오', matcher: '도구 이름' },
+    { event: 'PermissionRequest', timing: '권한 다이얼로그 표시 시', blockable: '예', matcher: '도구 이름' },
+    { event: 'UserPromptSubmit', timing: '프롬프트 제출 후, 처리 전', blockable: '예', matcher: '(없음)' },
+    { event: 'Stop', timing: 'Claude 응답 완료 시', blockable: '예', matcher: '(없음)' },
+    { event: 'SessionStart', timing: '세션 시작/재개', blockable: '아니오', matcher: 'startup, resume, clear, compact' },
+    { event: 'SessionEnd', timing: '세션 종료', blockable: '아니오', matcher: 'clear, logout, prompt_input_exit 등' },
+    { event: 'SubagentStart', timing: '서브에이전트 생성 시', blockable: '아니오', matcher: '에이전트 타입' },
+    { event: 'SubagentStop', timing: '서브에이전트 완료 시', blockable: '예', matcher: '에이전트 타입' },
+    { event: 'Notification', timing: '알림 발생 시', blockable: '아니오', matcher: '알림 유형' },
+    { event: 'PreCompact', timing: '컨텍스트 압축 전', blockable: '아니오', matcher: 'manual, auto' },
+    { event: 'TeammateIdle', timing: '팀원 에이전트 대기 시', blockable: '아니오', matcher: '(없음)' },
+    { event: 'TaskCompleted', timing: '할당된 작업 완료 시', blockable: '아니오', matcher: '(없음)' },
+  ]}
+/>
+
+### PreToolUse — 도구 실행 전 가로채기
+
+가장 많이 사용되는 이벤트입니다. 도구가 실행되기 **직전**에 호출되어, 실행을 차단(`exit 2`)하거나 입력을 수정(`updatedInput`)할 수 있습니다.
+
+**주요 활용 사례:**
+- 위험한 명령어 차단 (rm -rf, DROP TABLE 등)
+- 보호 파일 수정 방지 (.env, lock 파일 등)
+- 도구 입력 자동 변환 (경로 정규화, 플래그 추가 등)
+- 특정 MCP 도구 호출 제한
+
+### PostToolUse — 도구 실행 후 후처리
+
+도구가 **성공적으로 실행된 후** 호출됩니다. 차단은 불가능하지만, 실행 결과를 기반으로 후속 작업을 수행할 수 있습니다.
+
+**주요 활용 사례:**
+- 파일 저장 후 자동 포맷팅 (Prettier, Black 등)
+- 파일 수정 후 린트 실행
+- 테스트 자동 실행
+- 변경 로그 기록
+
+### Stop — 응답 완료 시 검증
+
+Claude가 응답을 **완전히 마친 후** 호출됩니다. `exit 2`로 차단하면 Claude에게 피드백이 전달되어 작업을 이어가게 할 수 있습니다.
+
+**주요 활용 사례:**
+- 전체 테스트 스위트 실행 후 실패 시 재시도 요청
+- 코드 품질 게이트 검증
+- 변경 사항 요약 생성
+
+### SubagentStop — 서브에이전트 완료 시 검증
+
+서브에이전트가 작업을 완료한 후 호출됩니다. Stop과 유사하게 `exit 2`로 차단하여 서브에이전트에게 추가 작업을 요청할 수 있습니다.
+
+### Notification — 알림 발생 시 커스텀 동작
+
+Claude Code가 알림을 보낼 때 호출됩니다. 기본 알림 외에 Slack 메시지, 이메일 발송, 커스텀 사운드 재생 등을 연결할 수 있습니다.
+
+<CodeBlock
+  code={`// Slack으로 알림 전달
+{
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.notification_message' | curl -X POST -H 'Content-Type: application/json' -d @- $SLACK_WEBHOOK_URL",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="Notification Hook — Slack 알림 전달"
+/>
+
+---
+
+## 설정 구조
+
+<CodeBlock
+  code={`// .claude/settings.json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-dangerous-commands.sh",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename=".claude/settings.json"
+/>
+
+### 핵심 필드
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `matcher` | 정규식 | 이벤트 매칭 패턴 (도구 이름, 세션 타입 등) |
+| `type` | `"command"` \| `"prompt"` \| `"agent"` | 핸들러 유형 |
+| `command` | string | 실행할 셸 명령 (`type: "command"`) |
+| `prompt` | string | LLM에 전달할 프롬프트 (`type: "prompt"` / `"agent"`) |
+| `timeout` | number | 타임아웃 초 (command: 600, prompt: 30, agent: 60) |
+| `async` | boolean | 비동기 실행 여부 (기본 false) |
+
+### 핸들러 타입 3가지
+
+<ComparisonTable
+  title="Hook 핸들러 비교"
+  headers={['타입', '실행 방식', '용도', '기본 timeout']}
+  rows={[
+    { feature: 'command', values: ['셸 명령 실행', '린트, 포맷팅, 스크립트', '600초'] },
+    { feature: 'prompt', values: ['LLM 단일 턴 평가', '코드 리뷰, 검증', '30초'] },
+    { feature: 'agent', values: ['도구 접근 가능한 서브에이전트', '테스트 실행, 복잡한 검증', '60초'] },
+  ]}
+/>
+
+<Callout type="tip" title="핸들러 선택 기준">
+  단순 스크립트 실행은 `command`, 코드 내용을 이해하고 판단해야 하면 `prompt`, 도구를 사용한 복잡한 작업이 필요하면 `agent`를 선택하세요.
+</Callout>
+
+---
+
+## 매처(Matcher) 패턴 심화
+
+Matcher는 **정규식(Regular Expression)** 으로 작성합니다. 이벤트마다 매칭 대상이 다르므로 정확히 이해하는 것이 중요합니다.
+
+### 내장 도구 이름
+
+<CodeBlock
+  code={`# 내장 도구 (도구 기반 이벤트에서 사용)
+Bash, Edit, Write, Read, Glob, Grep, Task, WebFetch, WebSearch
+
+# MCP 도구 (mcp__서버명__도구명 형식)
+mcp__memory__create_entities
+mcp__filesystem__read_file
+mcp__github__search_repositories`}
+  language="text"
+  filename="매칭 가능한 도구 이름"
+/>
+
+### 매처 패턴 종류
+
+<ComparisonTable
+  title="매처 패턴 종류 비교"
+  headers={['패턴', '정규식', '매칭 대상', '사용 예']}
+  rows={[
+    { feature: '단일 도구', values: ['"Bash"', 'Bash 도구만', '위험 명령 차단'] },
+    { feature: '복수 도구 (OR)', values: ['"Edit|Write"', 'Edit 또는 Write', '파일 변경 후 포맷팅'] },
+    { feature: '와일드카드', values: ['".*"', '모든 도구', '전체 로깅'] },
+    { feature: 'MCP 전체', values: ['"mcp__.*"', '모든 MCP 도구', 'MCP 도구 감사'] },
+    { feature: 'MCP 특정 서버', values: ['"mcp__github__.*"', 'GitHub MCP 도구만', 'GitHub 작업 추적'] },
+    { feature: '접두사 매칭', values: ['"^(Edit|Write|Bash)"', '지정 도구만', '쓰기 작업 제한'] },
+    { feature: '부정 매칭', values: ['"^(?!Read|Glob).*$"', 'Read, Glob 제외 나머지', '읽기 외 작업 감사'] },
+  ]}
+/>
+
+### 세션 이벤트 매처
+
+도구 기반이 아닌 이벤트에서의 매처 값입니다.
+
+| 이벤트 | 매처 값 | 설명 |
+|--------|---------|------|
+| SessionStart | `startup` | 새 세션 시작 |
+| SessionStart | `resume` | 기존 세션 재개 |
+| SessionStart | `clear` | `/clear` 후 세션 재시작 |
+| SessionStart | `compact` | `/compact` 후 세션 재시작 |
+| SessionEnd | `clear` | `/clear`로 세션 종료 |
+| SessionEnd | `logout` | 로그아웃으로 종료 |
+| SessionEnd | `prompt_input_exit` | 사용자 입력 종료 |
+| PreCompact | `manual` | 수동 `/compact` 실행 |
+| PreCompact | `auto` | 자동 컨텍스트 압축 |
+
+---
+
+## Hook 실행 환경과 변수
+
+Hook은 실행 시 stdin을 통해 JSON 데이터를 받고, 환경 변수를 통해 프로젝트 정보에 접근합니다.
+
+### 환경 변수
+
+| 변수 | 설명 | 사용 가능 이벤트 |
+|------|------|-----------------|
+| `$CLAUDE_PROJECT_DIR` | 프로젝트 루트 경로 | 모든 이벤트 |
+| `$CLAUDE_ENV_FILE` | 환경 변수 영속화 파일 경로 | SessionStart만 |
+
+### 입력 스키마 (stdin JSON)
+
+<CodeBlock
+  code={`// PreToolUse / PostToolUse 입력
+{
+  "session_id": "abc123",
+  "transcript_path": "/path/to/transcript.jsonl",
+  "cwd": "/path/to/project",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "npm test"
+  }
+}
+
+// PostToolUse 입력 (tool_output 포함)
+{
+  "session_id": "abc123",
+  "transcript_path": "/path/to/transcript.jsonl",
+  "cwd": "/path/to/project",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "npm test"
+  },
+  "tool_output": {
+    "stdout": "Tests: 42 passed, 42 total",
+    "stderr": "",
+    "exit_code": 0
+  }
+}
+
+// Stop 이벤트 입력
+{
+  "session_id": "abc123",
+  "transcript_path": "/path/to/transcript.jsonl",
+  "cwd": "/path/to/project",
+  "hook_event_name": "Stop",
+  "stop_reason": "end_turn"
+}
+
+// SessionStart 입력
+{
+  "session_id": "abc123",
+  "transcript_path": "/path/to/transcript.jsonl",
+  "cwd": "/path/to/project",
+  "hook_event_name": "SessionStart",
+  "session_type": "startup"
+}`}
+  language="json"
+  filename="이벤트별 입력 스키마"
+/>
+
+### 출력 스키마 (stdout JSON)
+
+<CodeBlock
+  code={`// PreToolUse — 차단
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Destructive command blocked"
+  }
+}
+
+// PreToolUse — 허용 + 입력 수정
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "allow",
+    "updatedInput": {
+      "command": "npm test -- --coverage"
+    }
+  }
+}
+
+// Stop — 차단 (Claude에게 추가 작업 요청)
+{
+  "hookSpecificOutput": {
+    "hookEventName": "Stop",
+    "decision": "block",
+    "reason": "테스트가 실패했습니다. 실패한 테스트를 수정해주세요."
+  }
+}
+
+// PostToolUse — 정보 피드백
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PostToolUse",
+    "message": "lint 경고 3건 발견: unused-vars(2), no-console(1)"
+  }
+}`}
+  language="json"
+  filename="이벤트별 출력 스키마"
+/>
+
+### jq를 활용한 stdin 파싱
+
+Hook 스크립트에서 stdin JSON을 파싱할 때는 `jq`를 사용합니다.
+
+<CodeBlock
+  code={`#!/bin/bash
+# stdin에서 JSON 읽기
+INPUT=$(cat)
+
+# 도구 이름 추출
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name')
+
+# 도구 입력에서 특정 필드 추출
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+
+# 도구 출력 (PostToolUse에서만 사용 가능)
+EXIT_CODE=$(echo "$INPUT" | jq -r '.tool_output.exit_code // empty')
+STDOUT=$(echo "$INPUT" | jq -r '.tool_output.stdout // empty')
+
+# 프로젝트 경로
+PROJECT_DIR=$(echo "$INPUT" | jq -r '.cwd')`}
+  language="bash"
+  filename="jq를 활용한 stdin 파싱 패턴"
+/>
+
+---
+
+## Exit Code 규칙
+
+Hook의 exit code에 따라 Claude Code의 동작이 달라집니다.
+
+| Exit Code | 의미 | 동작 |
+|-----------|------|------|
+| **0** | 성공 | stdout의 JSON 출력 처리 |
+| **2** | 차단 오류 | 해당 동작을 차단하고 stderr를 Claude에게 피드백 |
+| **기타** | 비차단 오류 | stderr는 verbose 모드에서만 표시 |
+
+<Callout type="warning" title="exit 2의 제한">
+  `exit 2`는 **차단 가능한 이벤트**에서만 의미가 있습니다. PostToolUse, Notification, SessionStart 등 차단 불가능한 이벤트에서는 exit 2를 사용해도 차단되지 않습니다.
+</Callout>
+
+---
+
+## Hook 실행 흐름
+
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant U as 사용자/Claude
+    participant CC as Claude Code
+    participant PT as PreToolUse Hook
+    participant T as 도구 (Bash/Edit 등)
+    participant PO as PostToolUse Hook
+    participant S as Stop Hook
+
+    U->>CC: 작업 요청
+    CC->>CC: 도구 호출 결정
+
+    rect rgb(253, 242, 238)
+        Note over CC,PT: PreToolUse 단계
+        CC->>PT: stdin (JSON: tool_name, tool_input)
+        alt exit 0
+            PT->>CC: 허용 (또는 updatedInput)
+        else exit 2
+            PT->>CC: 차단 + 사유
+            CC->>U: 차단 피드백
+        end
+    end
+
+    rect rgb(240, 248, 255)
+        Note over CC,T: 도구 실행 단계
+        CC->>T: 도구 실행
+        T->>CC: 실행 결과
+    end
+
+    rect rgb(240, 255, 240)
+        Note over CC,PO: PostToolUse 단계
+        CC->>PO: stdin (JSON: tool_name, tool_input, tool_output)
+        PO->>CC: 후처리 결과 / 메시지
+    end
+
+    CC->>CC: 추가 도구 호출 또는 응답 완료
+
+    rect rgb(255, 248, 240)
+        Note over CC,S: Stop 단계
+        CC->>S: stdin (JSON: stop_reason)
+        alt exit 0
+            S->>CC: 작업 완료
+        else exit 2
+            S->>CC: 차단 + 추가 작업 요청
+            CC->>CC: 작업 계속
+        end
+    end`}
+  title="Hook 실행 흐름도"
+  caption="PreToolUse → 도구 실행 → PostToolUse → Stop 순서로 Hook이 실행됩니다. 각 단계에서 exit code에 따라 흐름이 분기됩니다."
+/>
+
+---
+
+## 실전 Hook 레시피 모음
+
+### 1. 위험한 명령 차단 (PreToolUse)
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/block-dangerous-commands.sh
+COMMAND=$(jq -r '.tool_input.command')
+
+if echo "$COMMAND" | grep -qE 'rm -rf|DROP TABLE|format |mkfs'; then
+  echo "Destructive command blocked: $COMMAND" >&2
+  exit 2
+fi
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/block-dangerous-commands.sh"
+/>
+
+<CodeBlock
+  code={`// .claude/settings.json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-dangerous-commands.sh"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="위험 명령 차단 설정"
+/>
+
+### 2. 파일 저장 후 자동 포맷팅 (PostToolUse)
+
+<CodeBlock
+  code={`// .claude/settings.json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="자동 포맷팅 설정"
+/>
+
+### 3. 보호 파일 수정 차단 (PreToolUse)
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/protect-files.sh
+FILE_PATH=$(jq -r '.tool_input.file_path // .tool_input.file')
+
+PROTECTED_FILES=("package-lock.json" "yarn.lock" ".env" ".env.production")
+
+for protected in "\${PROTECTED_FILES[@]}"; do
+  if [[ "$FILE_PATH" == *"$protected" ]]; then
+    echo "Protected file cannot be modified: $FILE_PATH" >&2
+    exit 2
+  fi
+done
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/protect-files.sh"
+/>
+
+### 4. 파일 확장자별 린터 자동 실행 (PostToolUse)
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/auto-lint.sh
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+if [ -z "$FILE_PATH" ]; then
+  exit 0
+fi
+
+EXTENSION="\${FILE_PATH##*.}"
+
+case "$EXTENSION" in
+  ts|tsx)
+    npx eslint --fix "$FILE_PATH" 2>/dev/null
+    ;;
+  py)
+    ruff check --fix "$FILE_PATH" 2>/dev/null
+    ;;
+  go)
+    gofmt -w "$FILE_PATH" 2>/dev/null
+    ;;
+  rs)
+    rustfmt "$FILE_PATH" 2>/dev/null
+    ;;
+  css|scss)
+    npx stylelint --fix "$FILE_PATH" 2>/dev/null
+    ;;
+esac
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/auto-lint.sh"
+/>
+
+### 5. 보안 스캔 — 하드코딩된 시크릿 탐지 (PreToolUse)
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/secret-scan.sh
+INPUT=$(cat)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name')
+
+# Edit/Write 도구에서 파일 내용 검사
+if [[ "$TOOL_NAME" == "Edit" ]]; then
+  CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // empty')
+elif [[ "$TOOL_NAME" == "Write" ]]; then
+  CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // empty')
+else
+  exit 0
+fi
+
+# 시크릿 패턴 검사
+SECRET_PATTERNS=(
+  'AKIA[0-9A-Z]{16}'                    # AWS Access Key
+  'sk-[a-zA-Z0-9]{48}'                  # OpenAI API Key
+  'sk-ant-[a-zA-Z0-9-]{90,}'            # Anthropic API Key
+  'ghp_[a-zA-Z0-9]{36}'                 # GitHub Personal Token
+  'password\s*=\s*["\x27][^"\x27]+'     # 하드코딩된 비밀번호
+  'BEGIN (RSA|DSA|EC) PRIVATE KEY'       # 개인 키
+)
+
+for pattern in "\${SECRET_PATTERNS[@]}"; do
+  if echo "$CONTENT" | grep -qiP "$pattern"; then
+    echo "Potential secret detected in code. Pattern: $pattern" >&2
+    exit 2
+  fi
+done
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/secret-scan.sh"
+/>
+
+### 6. 비동기 테스트 실행 (PostToolUse)
+
+<CodeBlock
+  code={`// 코드 변경 후 백그라운드에서 테스트 실행
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/run-tests-async.sh",
+            "async": true,
+            "timeout": 300
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="비동기 테스트 설정"
+/>
+
+### 7. 응답 완료 시 테스트 검증 (Stop + agent)
+
+<CodeBlock
+  code={`// Claude가 작업을 마칠 때마다 서브에이전트가 테스트 검증
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "모든 유닛 테스트를 실행하고 결과를 확인하세요. 실패한 테스트가 있으면 exit 2로 원인과 수정 방안을 보고하세요.",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="Stop 이벤트 테스트 검증"
+/>
+
+### 8. 컴팩션 후 컨텍스트 재주입 (SessionStart)
+
+<CodeBlock
+  code={`// /compact 실행 후 중요한 컨텍스트를 다시 주입
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Reminder: npm 대신 Bun을 사용하세요. 커밋 전 bun test를 실행하세요.'"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="컴팩션 후 컨텍스트 재주입"
+/>
+
+### 9. PreToolUse로 도구 입력 자동 수정
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/enforce-test-coverage.sh
+# npm test 명령에 자동으로 --coverage 플래그 추가
+INPUT=$(cat)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
+
+if echo "$COMMAND" | grep -qE '^npm test$|^npx jest$'; then
+  # 입력 수정하여 coverage 포함
+  cat <<EOJSON
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "allow",
+    "updatedInput": {
+      "command": "$COMMAND -- --coverage"
+    }
+  }
+}
+EOJSON
+  exit 0
+fi
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/enforce-test-coverage.sh"
+/>
+
+---
+
+## Hook 체이닝과 실행 순서
+
+하나의 이벤트에 여러 Hook을 등록하면 **등록 순서대로 순차 실행**됩니다. 앞선 Hook이 `exit 2`로 차단하면 이후 Hook은 실행되지 않습니다.
+
+<MermaidDiagram
+  chart={`flowchart TD
+    A["이벤트 발생<br/>(예: PreToolUse + Bash)"] --> B{"Matcher 1<br/>매칭?"}
+    B -- 예 --> C["Hook 1 실행<br/>(위험 명령 차단)"]
+    B -- 아니오 --> D{"Matcher 2<br/>매칭?"}
+    C --> E{"exit code?"}
+    E -- "exit 0" --> D
+    E -- "exit 2" --> F["차단 — 이후 Hook 스킵"]
+    D -- 예 --> G["Hook 2 실행<br/>(명령어 로깅)"]
+    D -- 아니오 --> H{"Matcher 3<br/>매칭?"}
+    G --> I{"exit code?"}
+    I -- "exit 0" --> H
+    I -- "exit 2" --> F
+    H -- 예 --> J["Hook 3 실행"]
+    H -- 아니오 --> K["모든 Hook 완료"]
+    J --> K
+    style F fill:#fee2e2,stroke:#dc2626,color:#2d2a26
+    style K fill:#dcfce7,stroke:#16a34a,color:#2d2a26`}
+  title="Hook 체이닝 실행 순서"
+  caption="등록된 순서대로 Matcher를 검사하고, 매칭되면 Hook을 실행합니다. exit 2가 발생하면 체인이 중단됩니다."
+/>
+
+### 같은 이벤트의 여러 Hook 배열
+
+<CodeBlock
+  code={`{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {"type": "command", "command": ".claude/hooks/block-dangerous-commands.sh"},
+          {"type": "command", "command": ".claude/hooks/log-commands.sh", "async": true}
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {"type": "command", "command": ".claude/hooks/protect-files.sh"},
+          {"type": "command", "command": ".claude/hooks/secret-scan.sh"}
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {"type": "command", "command": ".claude/hooks/audit-mcp.sh", "async": true}
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="복수 Hook 체이닝 예시"
+/>
+
+<Callout type="info" title="동일 matcher 내 hooks 배열">
+  하나의 matcher 객체 안에 여러 hook을 등록하면 순차 실행됩니다. `async: true`인 Hook은 실행 후 결과를 기다리지 않고 다음 Hook으로 넘어갑니다.
+</Callout>
+
+---
+
+## Hook 디버깅 방법
+
+### Verbose 모드로 실행
+
+`--verbose` 플래그를 사용하면 Hook의 실행 상태, stdin/stdout, exit code를 확인할 수 있습니다.
+
+<CodeBlock
+  code={`# verbose 모드로 Claude Code 실행
+claude --verbose
+
+# 특정 Hook 디버깅 시 로그 파일 활용
+# Hook 스크립트 내에서 디버그 로그 작성
+#!/bin/bash
+INPUT=$(cat)
+echo "[$(date)] Hook input: $INPUT" >> /tmp/claude-hook-debug.log
+
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name')
+echo "[$(date)] Tool: $TOOL_NAME" >> /tmp/claude-hook-debug.log
+
+# 실제 Hook 로직
+# ...
+
+echo "[$(date)] Hook completed with exit 0" >> /tmp/claude-hook-debug.log
+exit 0`}
+  language="bash"
+  filename="Hook 디버깅 패턴"
+/>
+
+### 독립 실행 테스트
+
+Hook 스크립트를 Claude Code 외부에서 단독 테스트할 수 있습니다.
+
+<CodeBlock
+  code={`# PreToolUse Hook 테스트 (stdin으로 JSON 전달)
+echo '{
+  "session_id": "test-123",
+  "cwd": "/path/to/project",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {"command": "rm -rf /"}
+}' | bash .claude/hooks/block-dangerous-commands.sh
+
+# exit code 확인
+echo "Exit code: $?"
+
+# PostToolUse Hook 테스트
+echo '{
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Edit",
+  "tool_input": {"file_path": "src/index.ts"},
+  "tool_output": {"stdout": "File edited successfully"}
+}' | bash .claude/hooks/auto-lint.sh`}
+  language="bash"
+  filename="Hook 독립 실행 테스트"
+/>
+
+### 타임아웃 디버깅
+
+Hook이 타임아웃되면 자동으로 종료됩니다. 기본 타임아웃은 핸들러 타입별로 다릅니다.
+
+| 핸들러 타입 | 기본 타임아웃 | 최대 타임아웃 | 타임아웃 시 동작 |
+|------------|-------------|-------------|----------------|
+| command | 600초 (10분) | 제한 없음 | 프로세스 강제 종료 |
+| prompt | 30초 | 120초 | 응답 무시 |
+| agent | 60초 | 300초 | 에이전트 종료 |
+
+<Callout type="warning" title="타임아웃 설정 주의">
+  너무 긴 타임아웃은 전체 워크플로우를 지연시킵니다. 특히 동기(sync) Hook에서는 타임아웃 동안 Claude가 대기하므로, 오래 걸리는 작업은 반드시 `async: true`로 설정하세요.
+</Callout>
+
+---
+
+## 보안 관련 Hook
+
+### 민감 파일 접근 차단
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/restrict-sensitive-access.sh
+# Read, Edit, Write 도구의 민감 경로 접근 차단
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '
+  .tool_input.file_path //
+  .tool_input.file //
+  .tool_input.path //
+  empty
+')
+
+if [ -z "$FILE_PATH" ]; then
+  exit 0
+fi
+
+# 민감 디렉토리/파일 패턴
+SENSITIVE_PATTERNS=(
+  '.env'
+  '.env.*'
+  '**/secrets/**'
+  '**/credentials/**'
+  '**/*.pem'
+  '**/*.key'
+  '**/id_rsa*'
+  '.claude/settings.json'
+)
+
+for pattern in "\${SENSITIVE_PATTERNS[@]}"; do
+  case "$FILE_PATH" in
+    $pattern)
+      echo "Access denied: sensitive file $FILE_PATH" >&2
+      exit 2
+      ;;
+  esac
+done
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/restrict-sensitive-access.sh"
+/>
+
+### 명령어 화이트리스트
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/command-whitelist.sh
+# 허용된 명령만 실행 가능하도록 제한
+INPUT=$(cat)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
+
+# 첫 번째 단어(명령어) 추출
+CMD_NAME=$(echo "$COMMAND" | awk '{print $1}')
+
+# 허용된 명령어 목록
+ALLOWED_COMMANDS=(
+  "npm" "npx" "node" "bun"
+  "git" "gh"
+  "cat" "ls" "find" "grep" "wc"
+  "python" "pip" "pytest"
+  "go" "cargo" "rustc"
+  "docker" "docker-compose"
+  "make" "cmake"
+  "curl" "jq"
+)
+
+for allowed in "\${ALLOWED_COMMANDS[@]}"; do
+  if [[ "$CMD_NAME" == "$allowed" ]]; then
+    exit 0
+  fi
+done
+
+echo "Command not in whitelist: $CMD_NAME" >&2
+exit 2`}
+  language="bash"
+  filename=".claude/hooks/command-whitelist.sh"
+/>
+
+### 네트워크 접근 제한
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/restrict-network.sh
+# curl/wget 등의 외부 네트워크 접근을 제한
+INPUT=$(cat)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
+
+# 허용된 도메인
+ALLOWED_DOMAINS=(
+  "registry.npmjs.org"
+  "api.github.com"
+  "pypi.org"
+)
+
+if echo "$COMMAND" | grep -qE 'curl|wget|http'; then
+  DOMAIN_ALLOWED=false
+  for domain in "\${ALLOWED_DOMAINS[@]}"; do
+    if echo "$COMMAND" | grep -q "$domain"; then
+      DOMAIN_ALLOWED=true
+      break
+    fi
+  done
+
+  if [ "$DOMAIN_ALLOWED" = false ]; then
+    echo "Network access restricted. Allowed domains: \${ALLOWED_DOMAINS[*]}" >&2
+    exit 2
+  fi
+fi
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/restrict-network.sh"
+/>
+
+---
+
+## CI/CD 파이프라인과 Hook 연동 상세
+
+Hooks는 CI/CD 파이프라인과 결합하면 더 강력해집니다.
+
+### GitHub Actions에서 Headless Mode + Hooks
+
+<CodeBlock
+  code={`# .github/workflows/claude-review.yml
+name: Claude Code Review
+on: [pull_request]
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Claude Code
+        run: curl -fsSL https://claude.ai/install.sh | bash
+      - name: Run Claude Review
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          git diff origin/main...HEAD | claude -p \\
+            "이 PR의 변경사항을 보안, 성능, 코드 품질 관점에서 리뷰해줘. 결과를 markdown으로 출력해줘." \\
+            --output-format json > review.json`}
+  language="yaml"
+  filename=".github/workflows/claude-review.yml"
+/>
+
+### Pre-commit Hook 통합
+
+<CodeBlock
+  code={`#!/bin/bash
+# .git/hooks/pre-commit
+# Claude Code로 커밋 전 자동 검증
+
+# 변경된 파일 목록 추출
+CHANGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -n "$CHANGED_FILES" ]; then
+  echo "Claude Code: 커밋 전 보안 검사 중..."
+  echo "$CHANGED_FILES" | claude -p \\
+    "다음 파일들의 변경사항에서 하드코딩된 시크릿, SQL 인젝션, XSS 취약점이 있는지 검사해줘. 문제가 있으면 exit code 1로 종료해줘."
+
+  if [ $? -ne 0 ]; then
+    echo "보안 검사 실패. 커밋이 차단되었습니다."
+    exit 1
+  fi
+fi`}
+  language="bash"
+  filename=".git/hooks/pre-commit"
+/>
+
+### GitLab CI 연동
+
+<CodeBlock
+  code={`# .gitlab-ci.yml
+stages:
+  - review
+
+claude-code-review:
+  stage: review
+  image: node:20
+  before_script:
+    - curl -fsSL https://claude.ai/install.sh | bash
+  script:
+    - |
+      git diff origin/main...HEAD | claude -p \\
+        "변경사항을 리뷰하고 보안 취약점, 코드 품질 이슈를 보고해줘." \\
+        --output-format json > review.json
+    - cat review.json
+  artifacts:
+    paths:
+      - review.json
+  only:
+    - merge_requests`}
+  language="yaml"
+  filename=".gitlab-ci.yml"
+/>
+
+---
+
+## Headless 모드에서의 Hook 활용
+
+Headless 모드(`claude -p`)에서도 Hook이 동일하게 작동합니다. CI/CD, 자동화 스크립트, 스케줄러와 결합하면 강력한 자동화 파이프라인을 구축할 수 있습니다.
+
+<CodeBlock
+  code={`# Headless 모드에서 Hook이 적용된 상태로 실행
+claude -p "src/ 디렉토리의 TypeScript 파일을 리팩토링해줘" \\
+  --settings .claude/settings.json
+
+# 파이프라인 예시: 매일 코드 품질 리포트 생성
+# crontab: 0 9 * * * /path/to/daily-review.sh
+#!/bin/bash
+cd /path/to/project
+
+# Hook이 자동으로 적용됨
+# PreToolUse: 위험 명령 차단
+# PostToolUse: 자동 포맷팅
+# Stop: 테스트 검증
+claude -p "전체 코드베이스의 품질 리포트를 생성해줘. 보안, 성능, 코드 스멜을 분석하고 markdown 리포트로 출력해줘." \\
+  --output-format text > reports/daily-quality-$(date +%Y%m%d).md`}
+  language="bash"
+  filename="Headless 모드 Hook 활용"
+/>
+
+<Callout type="tip" title="Headless 모드 + Stop Hook">
+  Headless 모드에서 Stop Hook의 `exit 2`는 Claude에게 추가 작업을 요청합니다. 이를 통해 "테스트 통과할 때까지 반복 수정"과 같은 자동 수정 루프를 구현할 수 있습니다.
+</Callout>
+
+---
+
+## Hook으로 커스텀 워크플로우 구축
+
+### 완전 자동화된 코드 리뷰 워크플로우
+
+<CodeBlock
+  code={`{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {"type": "command", "command": ".claude/hooks/block-dangerous-commands.sh"},
+          {"type": "command", "command": ".claude/hooks/command-whitelist.sh"}
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {"type": "command", "command": ".claude/hooks/protect-files.sh"},
+          {"type": "command", "command": ".claude/hooks/secret-scan.sh"}
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {"type": "command", "command": ".claude/hooks/restrict-sensitive-access.sh"}
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {"type": "command", "command": ".claude/hooks/auto-lint.sh"},
+          {"type": "command", "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write"},
+          {"type": "command", "command": ".claude/hooks/run-tests-async.sh", "async": true}
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "변경된 파일의 테스트를 실행하고, 실패하면 수정 방안을 제시하세요.",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {"type": "command", "command": "echo '프로젝트 규칙: npm 대신 bun 사용. 모든 커밋은 Conventional Commits 형식.'"}
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {"type": "command", "command": "echo 'Reminder: bun 사용, Conventional Commits 준수, 커밋 전 bun test 실행.'"}
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/notify-slack.sh",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="완전 자동화 워크플로우 — 복합 Hook 구성"
+/>
+
+### SessionStart에서 환경 변수 영속화
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/setup-env.sh
+# SessionStart 시 환경 변수를 $CLAUDE_ENV_FILE에 기록하면
+# 세션 동안 유지됩니다
+
+if [ -n "$CLAUDE_ENV_FILE" ]; then
+  # 프로젝트별 환경 변수 설정
+  echo "NODE_ENV=development" >> "$CLAUDE_ENV_FILE"
+  echo "TEST_DB_URL=postgresql://localhost:5432/test_db" >> "$CLAUDE_ENV_FILE"
+  echo "LOG_LEVEL=debug" >> "$CLAUDE_ENV_FILE"
+fi
+
+# 프로젝트 상태 정보를 Claude에게 전달
+echo "Node $(node -v), npm $(npm -v)"
+echo "Git branch: $(git branch --show-current)"
+echo "Uncommitted changes: $(git diff --stat | tail -1)"
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/setup-env.sh"
+/>
+
+---
+
+## 성능 영향과 최적화
+
+Hook은 도구 실행마다 호출되므로 성능에 영향을 줄 수 있습니다. 다음 가이드라인을 따르면 성능 저하를 최소화할 수 있습니다.
+
+### 최적화 가이드라인
+
+<ComparisonTable
+  title="Hook 성능 최적화 전략"
+  headers={['전략', '설명', '효과']}
+  rows={[
+    { feature: 'async 활용', values: ['차단 불필요한 작업은 async: true', '대기 시간 제거'] },
+    { feature: 'Matcher 한정', values: ['".*" 대신 구체적 도구명 매칭', '불필요한 실행 방지'] },
+    { feature: '스크립트 경량화', values: ['무거운 작업은 비동기로 분리', '응답 지연 감소'] },
+    { feature: '타임아웃 최소화', values: ['필요한 최소값으로 설정', '행(hang) 방지'] },
+    { feature: '조건부 실행', values: ['스크립트 내에서 early exit', 'CPU 절약'] },
+    { feature: '캐싱', values: ['린트/테스트 결과를 캐시', '중복 실행 방지'] },
+  ]}
+/>
+
+### 성능 측정 패턴
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/timed-lint.sh
+# Hook 실행 시간 측정 패턴
+START_TIME=$(date +%s%N)
+
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+if [ -z "$FILE_PATH" ]; then
+  exit 0
+fi
+
+# 변경된 파일만 린트 (전체 프로젝트 린트 방지)
+npx eslint --fix "$FILE_PATH" 2>/dev/null
+
+END_TIME=$(date +%s%N)
+ELAPSED=$(( (END_TIME - START_TIME) / 1000000 ))
+
+# 100ms 이상이면 경고 로그
+if [ "$ELAPSED" -gt 100 ]; then
+  echo "[PERF] Hook took \${ELAPSED}ms for $FILE_PATH" >> /tmp/claude-hook-perf.log
+fi
+
+exit 0`}
+  language="bash"
+  filename="Hook 성능 측정 패턴"
+/>
+
+<Callout type="warning" title="동기 Hook의 누적 지연">
+  동기(sync) Hook이 여러 개 체이닝되면 실행 시간이 누적됩니다. 예를 들어, 포맷팅(200ms) + 린트(300ms) + 시크릿 스캔(100ms) = 총 600ms가 매 도구 호출마다 추가됩니다. 차단이 필요하지 않은 작업은 반드시 `async: true`를 고려하세요.
+</Callout>
+
+---
+
+## 이벤트별 활용 패턴 요약
+
+<ComparisonTable
+  title="이벤트별 권장 Hook 패턴"
+  headers={['이벤트', '핸들러 타입', '대표 사용 사례', '차단 여부']}
+  rows={[
+    { feature: 'PreToolUse', values: ['command', '위험 명령 차단, 시크릿 스캔, 파일 보호', '가능 (exit 2)'] },
+    { feature: 'PostToolUse', values: ['command', '포맷팅, 린트, 테스트 실행', '불가능'] },
+    { feature: 'Stop', values: ['agent', '전체 테스트 검증, 코드 품질 게이트', '가능 (exit 2)'] },
+    { feature: 'SessionStart', values: ['command', '환경 설정, 규칙 리마인더, 상태 출력', '불가능'] },
+    { feature: 'SubagentStop', values: ['command', '서브에이전트 결과 검증', '가능 (exit 2)'] },
+    { feature: 'Notification', values: ['command (async)', 'Slack/이메일 알림 전달', '불가능'] },
+    { feature: 'PreCompact', values: ['command', '압축 전 중요 정보 저장', '불가능'] },
+    { feature: 'UserPromptSubmit', values: ['command', '프롬프트 로깅, 필터링', '가능 (exit 2)'] },
+  ]}
+/>
+
+---
+
+## Best Practices
+
+<Callout type="tip" title="Anthropic 권장 Best Practices">
+  이 구성은 Anthropic 엔지니어링 블로그에서 권장하는 Best Practices 패턴입니다: PreToolUse로 위험 차단, PostToolUse로 자동 포맷팅, Stop으로 자동 테스트 검증.
+</Callout>
+
+**Hook 설계 원칙:**
+
+1. **단일 책임**: 하나의 Hook은 하나의 작업만 수행합니다. 여러 작업이 필요하면 별도 Hook으로 분리합니다.
+2. **빠른 실패**: 차단 조건을 먼저 검사하고, 해당하지 않으면 즉시 `exit 0`으로 반환합니다.
+3. **명확한 피드백**: `exit 2`로 차단할 때는 stderr에 구체적인 사유를 출력합니다.
+4. **비동기 우선**: 차단이 필요하지 않은 작업은 `async: true`로 설정합니다.
+5. **테스트 가능**: Hook 스크립트를 독립적으로 테스트할 수 있도록 작성합니다.
+6. **실행 권한**: Hook 스크립트에 `chmod +x` 실행 권한을 부여합니다.
+
+<Callout type="warning" title="주의사항">
+  - Hook 스크립트에 **실행 권한**(`chmod +x`)이 필요합니다
+  - `exit 2`는 차단 가능한 이벤트에서만 의미가 있습니다 (PostToolUse에서는 차단 불가)
+  - `async: true` 훅은 결과를 기다리지 않으므로 차단 용도로 사용할 수 없습니다
+  - MCP 도구의 matcher는 `mcp__서버명__도구명` 형식을 사용합니다
+  - Hook 내에서 Claude Code를 재귀적으로 호출하면 무한 루프가 발생할 수 있으므로 주의하세요
+</Callout>
+
+<ChapterNav
+  prev={{ title: '에이전트', path: '/docs/part-3--핵심-기능-에이전트' }}
+  next={{ title: 'Plugins', path: '/docs/part-3--핵심-기능-plugins' }}
+/>
