@@ -1,0 +1,1547 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 3: AI Agent 워크플로우/Plugins" />
+
+# Plugins
+
+> Skills, Agents, Hooks, MCP 서버를 하나의 패키지로 묶어 공유하는 확장 시스템
+
+## 개요
+
+Plugins는 Claude Code의 **공식 확장 패키징 시스템**입니다. 지금까지 다룬 슬래시 커맨드, 스킬, 서브에이전트, Hooks, MCP 서버 설정을 하나의 독립된 패키지로 묶어 **팀 공유, 커뮤니티 배포, 버전 관리**를 가능하게 합니다.
+
+기존에는 `.claude/` 디렉토리에 모든 설정을 직접 두는 방식(Standalone)이었습니다. 이 방식은 개인 프로젝트에서는 충분하지만, 여러 프로젝트에서 동일한 워크플로우를 재사용하거나 팀 단위로 표준화된 도구 세트를 배포하기에는 한계가 있습니다. Plugins는 이 문제를 해결합니다.
+
+<Callout type="info" title="Plugins의 핵심 가치">
+  하나의 플러그인 = 커맨드 + 에이전트 + 스킬 + Hooks + MCP + LSP 통합 패키지.
+  설치 한 번으로 팀 전체가 동일한 워크플로우를 사용할 수 있습니다.
+</Callout>
+
+### 왜 Plugins가 필요한가?
+
+| 문제 | Standalone (.claude/) | Plugin (.claude-plugin/) |
+|------|----------------------|--------------------------|
+| 여러 프로젝트에 동일 워크플로우 적용 | 프로젝트마다 수동 복사 | 설치 한 번으로 해결 |
+| 팀 표준 도구 배포 | 각자 설정 필요 | 마켓플레이스에서 설치 |
+| 버전 관리 | 프로젝트 코드와 혼재 | 독립적 버전 관리 |
+| 네이밍 충돌 | 다른 도구와 충돌 가능 | 네임스페이스로 격리 |
+| 외부 공유 | 디렉토리 복사 | 패키지로 배포 |
+
+---
+
+## Plugin 아키텍처
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph PLUGIN["Plugin 패키지"]
+      MANIFEST[".claude-plugin/plugin.json<br/>매니페스트"]
+      COMMANDS["commands/<br/>커스텀 커맨드"]
+      AGENTS["agents/<br/>커스텀 에이전트"]
+      SKILLS["skills/<br/>에이전트 스킬"]
+      HOOKS["hooks/<br/>이벤트 핸들러"]
+      MCP[".mcp.json<br/>MCP 서버 설정"]
+      LSP[".lsp.json<br/>LSP 서버 설정"]
+    end
+    subgraph CC["Claude Code"]
+      LOADER["Plugin Loader"]
+      NS["네임스페이스 관리"]
+      REG["도구 레지스트리"]
+    end
+    MANIFEST --> LOADER
+    LOADER --> NS
+    NS --> REG
+    COMMANDS --> REG
+    AGENTS --> REG
+    SKILLS --> REG
+    HOOKS --> REG
+    MCP --> REG
+    LSP --> REG
+    style PLUGIN fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style CC fill:#fdf2ee,stroke:#2563eb,color:#2d2a26`}
+  title="Plugin 아키텍처"
+  caption="Plugin 매니페스트를 기반으로 Claude Code가 커맨드, 에이전트, 스킬, Hooks, MCP, LSP를 통합 로드합니다"
+  maxWidth="650px"
+/>
+
+### Plugin 디렉토리 구조
+
+<CodeBlock
+  code={`my-plugin/
+├── .claude-plugin/
+│   └── plugin.json        # 매니페스트 (필수)
+├── commands/              # 커스텀 슬래시 커맨드
+│   ├── review.md
+│   ├── deploy.md
+│   └── migrate.md
+├── agents/                # 커스텀 에이전트
+│   └── code-reviewer/
+│       └── AGENT.md
+├── skills/                # 에이전트 스킬
+│   └── security-scan/
+│       └── SKILL.md
+├── hooks/                 # 이벤트 핸들러
+│   ├── hooks.json
+│   └── scripts/
+│       ├── pre-commit-check.sh
+│       └── auto-format.sh
+├── .mcp.json              # MCP 서버 설정
+├── .lsp.json              # LSP 서버 설정
+├── README.md              # 플러그인 문서
+├── CHANGELOG.md           # 변경 이력
+└── LICENSE                # 라이선스`}
+  language="text"
+  filename="Plugin 디렉토리 구조"
+/>
+
+각 디렉토리는 선택 사항입니다. 커맨드만 제공하는 플러그인이라면 `commands/` 디렉토리와 매니페스트만 있으면 됩니다.
+
+---
+
+## Plugin 매니페스트 (plugin.json)
+
+매니페스트는 플러그인의 메타데이터를 정의하는 핵심 파일입니다. `.claude-plugin/plugin.json` 경로에 위치합니다.
+
+<CodeBlock
+  code={`{
+  "name": "team-code-quality",
+  "version": "1.2.0",
+  "description": "팀 코드 품질 관리 플러그인 — 리뷰, 테스트, 보안 스캔 통합",
+  "author": "DevOps Team",
+  "license": "MIT",
+  "homepage": "https://github.com/example/team-code-quality",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/team-code-quality.git"
+  },
+  "keywords": ["code-review", "testing", "security", "quality"],
+  "engines": {
+    "claude-code": ">=2.1.0"
+  },
+  "dependencies": {
+    "mcp-servers": {
+      "@anthropic/mcp-server-github": "^1.0.0"
+    }
+  }
+}`}
+  language="json"
+  filename=".claude-plugin/plugin.json"
+/>
+
+### 매니페스트 필드 설명
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|:----:|------|
+| `name` | string | O | 플러그인 고유 이름 (네임스페이스로 사용) |
+| `version` | string | O | 시맨틱 버저닝 (SemVer) |
+| `description` | string | O | 플러그인 설명 |
+| `author` | string | - | 작성자/팀 이름 |
+| `license` | string | - | 라이선스 (MIT, Apache-2.0 등) |
+| `homepage` | string | - | 플러그인 홈페이지 URL |
+| `repository` | object | - | 소스 코드 저장소 정보 |
+| `keywords` | string[] | - | 마켓플레이스 검색 키워드 |
+| `engines` | object | - | 호환 Claude Code 버전 |
+| `dependencies` | object | - | 의존하는 MCP 서버 등 |
+
+---
+
+## Standalone vs Plugin 비교
+
+<ComparisonTable
+  title="Standalone vs Plugin 접근법"
+  headers={['항목', 'Standalone (.claude/)', 'Plugin (.claude-plugin/)']}
+  rows={[
+    { feature: '스킬 호출', values: ['/hello', '/plugin-name:hello'] },
+    { feature: '적합한 경우', values: ['개인 워크플로우, 프로젝트 특화', '팀 공유, 커뮤니티 배포, 버전 관리'] },
+    { feature: '네이밍 충돌', values: ['다른 도구와 충돌 가능', '네임스페이스로 격리'] },
+    { feature: '버전 관리', values: ['프로젝트 git에 포함', '독립적 SemVer'] },
+    { feature: '설치 방법', values: ['수동 파일 배치', '/plugin install 또는 --plugin-dir'] },
+    { feature: '업데이트', values: ['수동 파일 교체', '마켓플레이스에서 업데이트'] },
+    { feature: '재사용성', values: ['낮음 (프로젝트 종속)', '높음 (여러 프로젝트에서 사용)'] },
+    { feature: '공유 범위', values: ['프로젝트 내', '팀/조직/커뮤니티'] },
+  ]}
+/>
+
+<Callout type="tip" title="어떤 것을 선택할까?">
+  개인 프로젝트나 한 프로젝트에만 사용하는 설정이라면 Standalone(.claude/)이 간편합니다.
+  여러 프로젝트에서 재사용하거나 팀에 배포해야 한다면 Plugin으로 패키징하세요.
+</Callout>
+
+---
+
+## Plugin 생성 Quickstart
+
+### Step 1: 디렉토리 구조 생성
+
+<CodeBlock
+  code={`# 플러그인 디렉토리 생성
+mkdir -p my-review-plugin/.claude-plugin
+mkdir -p my-review-plugin/commands
+mkdir -p my-review-plugin/skills/code-review
+mkdir -p my-review-plugin/hooks/scripts`}
+  language="bash"
+  filename="Step 1: 디렉토리 생성"
+/>
+
+### Step 2: 매니페스트 작성
+
+<CodeBlock
+  code={`{
+  "name": "my-review-plugin",
+  "version": "0.1.0",
+  "description": "코드 리뷰 자동화 플러그인",
+  "author": "My Team",
+  "license": "MIT",
+  "engines": {
+    "claude-code": ">=2.1.0"
+  }
+}`}
+  language="json"
+  filename="my-review-plugin/.claude-plugin/plugin.json"
+/>
+
+### Step 3: 커맨드 정의
+
+<CodeBlock
+  code={`---
+description: "변경된 코드에 대해 팀 규칙 기반 리뷰를 수행합니다"
+allowed-tools: Read, Glob, Grep
+context:
+  - type: file
+    path: review-rules.md
+---
+
+$ARGUMENTS 대상으로 코드 리뷰를 수행합니다.
+
+## 리뷰 기준
+1. 팀 코딩 컨벤션 준수 여부
+2. 보안 취약점 (SQL 인젝션, XSS, IDOR)
+3. 성능 이슈 (N+1 쿼리, 불필요한 연산)
+4. 테스트 커버리지
+5. 에러 처리 적절성
+
+## 출력 형식
+- Blocker: 반드시 수정 필요
+- Suggestion: 권장 개선사항
+- Praise: 잘 작성된 부분`}
+  language="markdown"
+  filename="my-review-plugin/commands/review.md"
+/>
+
+### Step 4: 스킬 정의
+
+<CodeBlock
+  code={`---
+name: code-review
+description: 심층 코드 리뷰 — 보안, 성능, 아키텍처 분석
+context: fork
+model: opus
+max-turns: 15
+tools: Read, Glob, Grep, Bash
+---
+
+# Code Review Skill
+
+전체 코드베이스 또는 지정된 파일에 대해 심층 리뷰를 수행합니다.
+
+## 분석 영역
+1. **보안**: OWASP Top 10 기반 취약점 스캔
+2. **성능**: 쿼리 최적화, 메모리 관리, 캐싱 전략
+3. **아키텍처**: 의존성 방향, 레이어 위반, 순환 참조
+4. **코드 품질**: DRY, SRP, 함수 길이, 복잡도
+
+## 출력
+심각도별 분류된 리뷰 리포트를 생성합니다.`}
+  language="markdown"
+  filename="my-review-plugin/skills/code-review/SKILL.md"
+/>
+
+### Step 5: Hooks 설정
+
+<CodeBlock
+  code={`{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/auto-format.sh"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="my-review-plugin/hooks/hooks.json"
+/>
+
+<CodeBlock
+  code={`#!/bin/bash
+# my-review-plugin/hooks/scripts/auto-format.sh
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+if [ -z "$FILE_PATH" ]; then
+  exit 0
+fi
+
+# 파일 확장자에 따라 포맷터 선택
+case "$FILE_PATH" in
+  *.ts|*.tsx|*.js|*.jsx)
+    npx prettier --write "$FILE_PATH" 2>/dev/null
+    ;;
+  *.py)
+    python -m black "$FILE_PATH" 2>/dev/null
+    ;;
+  *.go)
+    gofmt -w "$FILE_PATH" 2>/dev/null
+    ;;
+esac
+
+exit 0`}
+  language="bash"
+  filename="my-review-plugin/hooks/scripts/auto-format.sh"
+/>
+
+### Step 6: 로컬 테스트
+
+<CodeBlock
+  code={`# --plugin-dir 플래그로 로컬 플러그인 테스트
+claude --plugin-dir ./my-review-plugin
+
+# 플러그인의 커맨드가 네임스페이스와 함께 등록됨
+# /my-review-plugin:review 로 호출 가능
+
+# 테스트 실행
+/my-review-plugin:review src/services/user-service.ts`}
+  language="bash"
+  filename="Step 6: 로컬 테스트"
+/>
+
+<Callout type="info" title="네임스페이스 규칙">
+  플러그인의 커맨드는 `/플러그인이름:커맨드이름` 형식으로 호출합니다.
+  이를 통해 여러 플러그인이 동일한 커맨드 이름을 가져도 충돌하지 않습니다.
+</Callout>
+
+### Step 7: 배포
+
+<CodeBlock
+  code={`# Git 저장소에 푸시
+cd my-review-plugin
+git init
+git add .
+git commit -m "feat: initial release of review plugin"
+git remote add origin https://github.com/example/my-review-plugin.git
+git push -u origin main
+
+# 태그로 버전 관리
+git tag v0.1.0
+git push --tags
+
+# 다른 프로젝트에서 설치
+/plugin install https://github.com/example/my-review-plugin.git`}
+  language="bash"
+  filename="Step 7: 배포 및 설치"
+/>
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph CREATE["1. 생성"]
+      A1["디렉토리 구조"] --> A2["매니페스트 작성"]
+      A2 --> A3["커맨드/스킬/Hooks 정의"]
+    end
+    subgraph TEST["2. 테스트"]
+      B1["--plugin-dir 로컬 테스트"] --> B2["기능 검증"]
+      B2 --> B3["디버깅"]
+    end
+    subgraph DEPLOY["3. 배포"]
+      C1["Git 저장소 푸시"] --> C2["버전 태깅"]
+      C2 --> C3["마켓플레이스 등록"]
+    end
+    subgraph USE["4. 사용"]
+      D1["/plugin install"] --> D2["네임스페이스로 호출"]
+      D2 --> D3["업데이트 관리"]
+    end
+    CREATE --> TEST --> DEPLOY --> USE
+    style CREATE fill:#fdf2ee,stroke:#2563eb,color:#2d2a26
+    style TEST fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style DEPLOY fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
+    style USE fill:#fdf2ee,stroke:#16a34a,color:#2d2a26`}
+  title="Plugin 생성부터 배포까지"
+  caption="디렉토리 생성 - 로컬 테스트 - Git 배포 - 마켓플레이스 설치의 전체 라이프사이클"
+  maxWidth="750px"
+/>
+
+---
+
+## 고급 기능
+
+### Agents 통합
+
+플러그인에 커스텀 에이전트를 포함시킬 수 있습니다. 에이전트는 `agents/` 디렉토리에 `AGENT.md` 파일로 정의합니다.
+
+<CodeBlock
+  code={`---
+name: security-auditor
+description: 보안 전문 에이전트 — OWASP 기반 종합 보안 감사
+model: opus
+context: fork
+max-turns: 30
+tools: Read, Glob, Grep, Bash
+---
+
+# Security Auditor Agent
+
+이 에이전트는 코드베이스의 종합 보안 감사를 수행합니다.
+
+## 역할
+보안 전문가로서 OWASP Top 10 기반의 취약점을 체계적으로 탐지합니다.
+
+## 감사 절차
+
+### Phase 1: 정적 분석
+1. 하드코딩된 시크릿 탐지 (API 키, 비밀번호, 토큰)
+2. SQL/NoSQL 인젝션 패턴 검색
+3. XSS 취약점 패턴 검색
+4. 안전하지 않은 암호화 사용 탐지
+
+### Phase 2: 데이터 흐름 분석
+1. 사용자 입력 경로 추적
+2. 입력 검증/이스케이프 누락 확인
+3. 신뢰 경계 식별
+
+### Phase 3: 설정 검토
+1. CORS 정책 확인
+2. 보안 헤더 설정 확인
+3. 인증/세션 설정 확인
+4. 의존성 취약점 스캔
+
+## 출력 형식
+심각도(Critical/High/Medium/Low)별 분류된 보안 리포트`}
+  language="markdown"
+  filename="my-plugin/agents/security-auditor/AGENT.md"
+/>
+
+### MCP 서버 통합
+
+플러그인에 MCP 서버 설정을 포함하면 외부 도구 연동을 자동화할 수 있습니다.
+
+<CodeBlock
+  code={`{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-github"],
+      "env": {
+        "GITHUB_TOKEN": "env:GITHUB_TOKEN"
+      }
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-postgres"],
+      "env": {
+        "DATABASE_URL": "env:DATABASE_URL"
+      }
+    },
+    "custom-api": {
+      "command": "node",
+      "args": ["./mcp-servers/custom-api-server.js"],
+      "env": {
+        "API_BASE_URL": "env:API_BASE_URL",
+        "API_KEY": "env:API_KEY"
+      }
+    }
+  }
+}`}
+  language="json"
+  filename="my-plugin/.mcp.json"
+/>
+
+<Callout type="warning" title="MCP 서버의 환경 변수">
+  MCP 서버 설정에서 시크릿은 반드시 `"env:변수명"` 형식으로 환경 변수를 참조하세요.
+  plugin.json이나 .mcp.json에 실제 API 키나 토큰을 하드코딩하면 안 됩니다.
+</Callout>
+
+### LSP 서버 통합
+
+LSP(Language Server Protocol) 서버를 플러그인에 포함하면 go-to-definition, find references, hover 정보 등 IDE 수준의 코드 내비게이션을 Claude Code에 제공할 수 있습니다.
+
+<CodeBlock
+  code={`{
+  "lspServers": {
+    "typescript": {
+      "command": "npx",
+      "args": ["typescript-language-server", "--stdio"],
+      "languages": ["typescript", "javascript", "typescriptreact", "javascriptreact"],
+      "initializationOptions": {
+        "preferences": {
+          "includeInlayParameterNameHints": "all"
+        }
+      }
+    },
+    "python": {
+      "command": "pylsp",
+      "args": [],
+      "languages": ["python"],
+      "initializationOptions": {
+        "pylsp": {
+          "plugins": {
+            "pyflakes": { "enabled": true },
+            "mypy": { "enabled": true }
+          }
+        }
+      }
+    }
+  }
+}`}
+  language="json"
+  filename="my-plugin/.lsp.json"
+/>
+
+### LSP가 제공하는 기능
+
+| 기능 | 설명 | Claude Code에서의 활용 |
+|------|------|----------------------|
+| Go to Definition | 심볼 정의 위치로 이동 | 함수/클래스의 원본 코드를 정확히 찾아 참조 |
+| Find References | 심볼이 사용된 모든 위치 탐색 | 리팩토링 시 영향 범위 분석 |
+| Hover | 심볼의 타입 정보와 문서 표시 | 코드 분석 시 정확한 타입 정보 활용 |
+| Diagnostics | 실시간 에러/경고 감지 | 코드 작성 중 즉시 문제 식별 |
+| Code Actions | 자동 수정 제안 | 린트 에러 자동 수정 |
+
+<Callout type="info" title="LSP vs MCP">
+  LSP는 **코드 분석과 내비게이션** 전문이고, MCP는 **외부 서비스 연동** 전문입니다.
+  LSP는 타입 정보, 정의 탐색, 참조 찾기 등 정적 분석에 특화되어 있고,
+  MCP는 GitHub, DB, API 등 외부 시스템과의 통합에 특화되어 있습니다.
+</Callout>
+
+### Hooks 고급 패턴
+
+플러그인 내부에서 Hooks를 활용하면 플러그인 설치만으로 팀의 자동화 규칙이 적용됩니다.
+
+<CodeBlock
+  code={`{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/block-dangerous-commands.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/secret-scan.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/auto-format.sh"
+          },
+          {
+            "type": "command",
+            "command": "scripts/run-affected-tests.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "변경된 파일의 테스트를 실행하고, 실패하면 수정 방안을 제시하세요.",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/show-team-rules.sh"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="my-plugin/hooks/hooks.json (고급 구성)"
+/>
+
+---
+
+## 마켓플레이스
+
+### 마켓플레이스 개요
+
+Plugin Marketplace는 팀이나 조직 단위로 구축할 수 있는 **플러그인 중앙 저장소**입니다. 팀원들이 승인된 플러그인을 쉽게 검색하고 설치할 수 있습니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph DEV["플러그인 개발자"]
+      D1["플러그인 개발"] --> D2["테스트"]
+      D2 --> D3["배포 요청"]
+    end
+    subgraph MARKET["마켓플레이스"]
+      M1["리뷰 & 승인"]
+      M2["버전 관리"]
+      M3["검색 & 카탈로그"]
+    end
+    subgraph USERS["사용자"]
+      U1["검색"]
+      U2["설치"]
+      U3["업데이트"]
+    end
+    D3 --> M1
+    M1 --> M2
+    M2 --> M3
+    M3 --> U1
+    U1 --> U2
+    U2 --> U3
+    style DEV fill:#fdf2ee,stroke:#2563eb,color:#2d2a26
+    style MARKET fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
+    style USERS fill:#fdf2ee,stroke:#16a34a,color:#2d2a26`}
+  title="마켓플레이스 워크플로우"
+  caption="개발자가 플러그인을 배포하면 마켓플레이스를 통해 팀원들이 검색, 설치, 업데이트합니다"
+  maxWidth="600px"
+/>
+
+### 마켓플레이스 설정
+
+<CodeBlock
+  code={`# 팀 마켓플레이스 연결
+claude config set marketplace https://plugins.mycompany.com
+
+# 또는 --marketplace 플래그로 지정
+claude --marketplace https://plugins.mycompany.com
+
+# 마켓플레이스에서 플러그인 검색
+/plugin search code-review
+
+# 플러그인 설치
+/plugin install team-code-quality
+
+# 특정 버전 설치
+/plugin install team-code-quality@1.2.0
+
+# 설치된 플러그인 목록
+/plugin list
+
+# 플러그인 업데이트
+/plugin update team-code-quality
+
+# 모든 플러그인 업데이트
+/plugin update --all
+
+# 플러그인 제거
+/plugin remove team-code-quality`}
+  language="bash"
+  filename="마켓플레이스 명령어"
+/>
+
+### 팀/조직 마켓플레이스 구축
+
+<CodeBlock
+  code={`# 마켓플레이스 저장소 구조 예시
+marketplace-repo/
+├── registry.json              # 플러그인 레지스트리
+├── plugins/
+│   ├── team-code-quality/
+│   │   ├── 1.0.0/
+│   │   ├── 1.1.0/
+│   │   └── 1.2.0/
+│   ├── team-deploy-tools/
+│   │   ├── 1.0.0/
+│   │   └── 2.0.0/
+│   └── team-testing-suite/
+│       └── 1.0.0/
+└── README.md
+
+# registry.json 예시
+{
+  "plugins": {
+    "team-code-quality": {
+      "description": "팀 코드 품질 관리 도구",
+      "latest": "1.2.0",
+      "versions": {
+        "1.0.0": { "url": "plugins/team-code-quality/1.0.0" },
+        "1.1.0": { "url": "plugins/team-code-quality/1.1.0" },
+        "1.2.0": { "url": "plugins/team-code-quality/1.2.0" }
+      },
+      "author": "DevOps Team",
+      "keywords": ["review", "quality", "testing"]
+    },
+    "team-deploy-tools": {
+      "description": "배포 자동화 도구",
+      "latest": "2.0.0",
+      "versions": {
+        "1.0.0": { "url": "plugins/team-deploy-tools/1.0.0" },
+        "2.0.0": { "url": "plugins/team-deploy-tools/2.0.0" }
+      },
+      "author": "Platform Team",
+      "keywords": ["deploy", "ci-cd", "automation"]
+    }
+  }
+}`}
+  language="json"
+  filename="마켓플레이스 레지스트리 구조"
+/>
+
+<Callout type="tip" title="마켓플레이스 호스팅">
+  마켓플레이스는 Git 저장소(GitHub, GitLab), 정적 파일 서버, 또는 전용 레지스트리 서비스로 호스팅할 수 있습니다.
+  가장 간단한 방법은 GitHub 조직의 전용 저장소를 사용하는 것입니다.
+</Callout>
+
+---
+
+## 팀 플러그인 관리 전략
+
+### 플러그인 거버넌스
+
+<ComparisonTable
+  title="플러그인 관리 역할"
+  headers={['역할', '책임', '권한']}
+  rows={[
+    { feature: 'Plugin Admin', values: ['마켓플레이스 관리, 승인/거부', '모든 플러그인 관리'] },
+    { feature: 'Plugin Developer', values: ['플러그인 개발 및 배포', '자신의 플러그인 관리'] },
+    { feature: 'Plugin User', values: ['플러그인 설치 및 사용', '승인된 플러그인 설치'] },
+  ]}
+/>
+
+### 팀 표준 플러그인 셋
+
+<CodeBlock
+  code={`# 팀 온보딩 시 필수 플러그인 설치 스크립트
+#!/bin/bash
+
+# 마켓플레이스 연결
+claude config set marketplace https://plugins.mycompany.com
+
+# 필수 플러그인 설치
+REQUIRED_PLUGINS=(
+  "team-code-quality"       # 코드 리뷰, 테스트
+  "team-security-tools"     # 보안 스캔, 시크릿 탐지
+  "team-deploy-tools"       # 배포 워크플로우
+  "team-conventions"        # 코딩 컨벤션 자동 검증
+)
+
+for plugin in "\${REQUIRED_PLUGINS[@]}"; do
+  echo "Installing $plugin..."
+  claude -p "/plugin install $plugin"
+done
+
+echo "All required plugins installed."
+echo "Installed plugins:"
+claude -p "/plugin list"`}
+  language="bash"
+  filename="팀 온보딩 플러그인 설치 스크립트"
+/>
+
+### 플러그인 버전 고정
+
+<CodeBlock
+  code={`# 프로젝트별 플러그인 버전 고정 (.claude/plugins.lock)
+{
+  "plugins": {
+    "team-code-quality": "1.2.0",
+    "team-security-tools": "2.1.3",
+    "team-deploy-tools": "1.5.0"
+  }
+}
+
+# 잠긴 버전으로 설치
+# Claude Code가 .claude/plugins.lock을 자동 감지하여
+# 지정된 버전을 설치합니다`}
+  language="json"
+  filename=".claude/plugins.lock (버전 고정)"
+/>
+
+### 플러그인 승인 프로세스
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph DEV["개발"]
+      A1["플러그인 개발"]
+      A2["로컬 테스트"]
+    end
+    subgraph REVIEW["리뷰"]
+      B1["PR 생성"]
+      B2["보안 검토"]
+      B3["기능 검토"]
+    end
+    subgraph APPROVE["승인"]
+      C1["Admin 승인"]
+      C2["마켓플레이스 등록"]
+    end
+    subgraph ROLLOUT["배포"]
+      D1["베타 배포"]
+      D2["전체 배포"]
+    end
+    A1 --> A2 --> B1 --> B2 --> B3 --> C1 --> C2 --> D1 --> D2
+    style DEV fill:#fdf2ee,stroke:#2563eb,color:#2d2a26
+    style REVIEW fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style APPROVE fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
+    style ROLLOUT fill:#fdf2ee,stroke:#16a34a,color:#2d2a26`}
+  title="플러그인 승인 프로세스"
+  caption="개발 - 로컬 테스트 - PR 리뷰 - Admin 승인 - 마켓플레이스 등록 - 점진적 배포"
+  maxWidth="750px"
+/>
+
+---
+
+## 기존 설정 마이그레이션
+
+이미 `.claude/` 디렉토리에 커맨드, 스킬, Hooks를 설정해두었다면 이를 플러그인으로 변환할 수 있습니다.
+
+### 마이그레이션 단계
+
+<CodeBlock
+  code={`# 마이그레이션 전 — Standalone 구조
+project/
+├── .claude/
+│   ├── commands/
+│   │   ├── review.md
+│   │   ├── test.md
+│   │   └── deploy.md
+│   ├── skills/
+│   │   └── security-scan/
+│   │       └── SKILL.md
+│   ├── agents/
+│   │   └── code-reviewer/
+│   │       └── AGENT.md
+│   └── settings.json        # hooks 포함
+
+# 마이그레이션 후 — Plugin 구조
+my-plugin/
+├── .claude-plugin/
+│   └── plugin.json           # (새로 생성) 매니페스트
+├── commands/                 # (복사) .claude/commands/ 내용
+│   ├── review.md
+│   ├── test.md
+│   └── deploy.md
+├── skills/                   # (복사) .claude/skills/ 내용
+│   └── security-scan/
+│       └── SKILL.md
+├── agents/                   # (복사) .claude/agents/ 내용
+│   └── code-reviewer/
+│       └── AGENT.md
+└── hooks/                    # (마이그레이션) settings.json에서 분리
+    ├── hooks.json
+    └── scripts/
+        ├── auto-format.sh
+        └── secret-scan.sh`}
+  language="text"
+  filename="마이그레이션 전/후 비교"
+/>
+
+### 단계별 마이그레이션 가이드
+
+<CodeBlock
+  code={`# Step 1: 플러그인 디렉토리 생성
+mkdir -p my-plugin/.claude-plugin
+
+# Step 2: 매니페스트 작성
+cat > my-plugin/.claude-plugin/plugin.json << 'MANIFEST'
+{
+  "name": "my-team-tools",
+  "version": "1.0.0",
+  "description": "팀 개발 도구 모음",
+  "author": "My Team"
+}
+MANIFEST
+
+# Step 3: 커맨드, 스킬, 에이전트 복사
+cp -r .claude/commands/ my-plugin/commands/
+cp -r .claude/skills/ my-plugin/skills/
+cp -r .claude/agents/ my-plugin/agents/
+
+# Step 4: Hooks 마이그레이션
+# settings.json의 hooks 섹션을 별도 hooks.json으로 분리
+mkdir -p my-plugin/hooks/scripts
+
+# settings.json에서 hooks 부분을 추출하여 hooks.json 생성
+# Hook 스크립트 파일들도 scripts/ 디렉토리로 이동
+
+# Step 5: 로컬 테스트
+claude --plugin-dir ./my-plugin
+
+# Step 6: 테스트 완료 후 원본 .claude/ 설정은 유지하거나 제거
+# 플러그인이 정상 동작하면 프로젝트의 .claude/에서 중복 설정 제거`}
+  language="bash"
+  filename="마이그레이션 스크립트"
+/>
+
+<Callout type="warning" title="마이그레이션 시 주의사항">
+  Hooks의 스크립트 경로가 변경되므로 hooks.json 내의 command 경로를 플러그인 기준으로 수정해야 합니다.
+  마이그레이션 후 반드시 `--plugin-dir`로 로컬 테스트를 거친 뒤 배포하세요.
+</Callout>
+
+---
+
+## 디버깅과 테스트
+
+### 플러그인 디버깅
+
+<CodeBlock
+  code={`# 1. 로컬 디렉토리에서 플러그인 로드
+claude --plugin-dir ./my-plugin
+
+# 2. 플러그인 로드 상태 확인
+/plugin list
+
+# 3. 특정 커맨드가 등록되었는지 확인
+/help
+# → /my-plugin:review, /my-plugin:test 등 네임스페이스 커맨드 확인
+
+# 4. 매니페스트 유효성 검사
+cat my-plugin/.claude-plugin/plugin.json | python -m json.tool
+
+# 5. MCP 서버 연결 확인 (MCP 포함 플러그인)
+/mcp
+# → 플러그인의 MCP 서버 상태 확인
+
+# 6. Hook 실행 테스트
+# Hook 스크립트에 디버그 로그 추가
+#!/bin/bash
+echo "[DEBUG] Hook triggered at $(date)" >> /tmp/plugin-debug.log
+echo "[DEBUG] Input: $(cat)" >> /tmp/plugin-debug.log`}
+  language="bash"
+  filename="플러그인 디버깅 방법"
+/>
+
+### 트러블슈팅 체크리스트
+
+| 증상 | 원인 | 해결 방법 |
+|------|------|----------|
+| 플러그인 커맨드가 안 보임 | plugin.json 누락 또는 오류 | `.claude-plugin/plugin.json` 존재 및 JSON 유효성 확인 |
+| 네임스페이스가 적용 안 됨 | name 필드 누락 | plugin.json의 `name` 필드 확인 |
+| Hook이 실행 안 됨 | 스크립트 권한 없음 | `chmod +x` 실행 권한 부여 |
+| Hook 경로 에러 | 상대 경로 기준 오류 | 플러그인 루트 기준 상대 경로 사용 |
+| MCP 서버 연결 실패 | 환경 변수 미설정 | `env:변수명` 형식으로 환경 변수 참조 확인 |
+| 설치 후 작동 안 함 | 버전 호환성 | `engines.claude-code` 버전 범위 확인 |
+| 스킬 자동 호출 안 됨 | description 누락 | SKILL.md 프론트매터의 description 필드 확인 |
+
+### 플러그인 테스트 전략
+
+<CodeBlock
+  code={`# 테스트 시나리오 체크리스트
+
+## 1. 구조 검증
+- [ ] plugin.json이 유효한 JSON인가?
+- [ ] 필수 필드(name, version, description)가 있는가?
+- [ ] 모든 커맨드 .md 파일이 올바른 프론트매터를 가지는가?
+
+## 2. 기능 검증
+- [ ] 각 커맨드가 /plugin-name:command 로 호출되는가?
+- [ ] $ARGUMENTS가 정상 전달되는가?
+- [ ] context 파일이 정상 로드되는가?
+- [ ] allowed-tools 제한이 적용되는가?
+
+## 3. Hook 검증
+- [ ] PreToolUse Hook이 위험 명령을 차단하는가?
+- [ ] PostToolUse Hook이 파일 변경 후 실행되는가?
+- [ ] Hook 스크립트의 exit code가 올바른가?
+
+## 4. 통합 검증
+- [ ] MCP 서버가 정상 연결되는가?
+- [ ] LSP 서버가 코드 분석 정보를 제공하는가?
+- [ ] 다른 플러그인과 충돌하지 않는가?
+
+## 5. 호환성 검증
+- [ ] 지정한 Claude Code 최소 버전에서 동작하는가?
+- [ ] macOS, Linux, Windows에서 Hook 스크립트가 동작하는가?`}
+  language="markdown"
+  filename="플러그인 테스트 체크리스트"
+/>
+
+---
+
+## 실전 예시: 팀용 코드 리뷰 플러그인
+
+완전한 팀용 코드 리뷰 플러그인을 처음부터 끝까지 만들어보겠습니다.
+
+### 전체 구조
+
+<CodeBlock
+  code={`team-review-plugin/
+├── .claude-plugin/
+│   └── plugin.json
+├── commands/
+│   ├── review.md              # 코드 리뷰 커맨드
+│   ├── review-pr.md           # PR 전체 리뷰 커맨드
+│   └── review-security.md     # 보안 집중 리뷰 커맨드
+├── agents/
+│   └── deep-reviewer/
+│       └── AGENT.md           # 심층 리뷰 에이전트
+├── skills/
+│   └── quick-review/
+│       └── SKILL.md           # 빠른 리뷰 스킬
+├── hooks/
+│   ├── hooks.json
+│   └── scripts/
+│       ├── check-review-rules.sh
+│       └── post-review-report.sh
+├── review-rules.md            # 팀 리뷰 규칙 문서
+├── .mcp.json                  # GitHub MCP 연동
+└── README.md`}
+  language="text"
+  filename="team-review-plugin 전체 구조"
+/>
+
+### 매니페스트
+
+<CodeBlock
+  code={`{
+  "name": "team-review",
+  "version": "1.0.0",
+  "description": "팀 코드 리뷰 플러그인 — 리뷰 규칙 자동 적용, 보안 스캔, PR 리뷰 통합",
+  "author": "Engineering Team",
+  "license": "MIT",
+  "keywords": ["code-review", "security", "pr-review", "quality"],
+  "engines": {
+    "claude-code": ">=2.1.0"
+  },
+  "dependencies": {
+    "mcp-servers": {
+      "@anthropic/mcp-server-github": "^1.0.0"
+    }
+  }
+}`}
+  language="json"
+  filename="team-review-plugin/.claude-plugin/plugin.json"
+/>
+
+### 커맨드: 코드 리뷰
+
+<CodeBlock
+  code={`---
+description: "팀 리뷰 규칙을 기반으로 코드 리뷰를 수행합니다"
+allowed-tools: Read, Glob, Grep
+context:
+  - type: file
+    path: review-rules.md
+---
+
+$ARGUMENTS 대상으로 팀 코드 리뷰를 수행합니다.
+
+## 리뷰 영역 (6가지)
+
+### 1. 기능 정확성
+- 요구사항이 정확히 구현되었는가?
+- 엣지 케이스가 처리되었는가?
+- 에러 핸들링이 적절한가?
+
+### 2. 코드 품질
+- 네이밍이 명확한가?
+- 함수가 단일 책임을 따르는가?
+- 중복 코드가 없는가?
+- 함수 길이가 30줄 이내인가?
+
+### 3. 보안
+- SQL/NoSQL 인젝션 취약점이 없는가?
+- XSS 취약점이 없는가?
+- 하드코딩된 시크릿이 없는가?
+- 입력 검증이 적절한가?
+
+### 4. 성능
+- N+1 쿼리 문제가 없는가?
+- 불필요한 연산이 없는가?
+- 적절한 캐싱이 적용되었는가?
+
+### 5. 테스트
+- 변경 사항에 대한 테스트가 있는가?
+- 엣지 케이스 테스트가 있는가?
+- 테스트가 독립적인가?
+
+### 6. 문서화
+- 공개 API에 JSDoc/Docstring이 있는가?
+- 복잡한 로직에 주석이 있는가?
+
+## 출력 형식
+### 필수 수정 (Blocker)
+### 권장 사항 (Suggestion)
+### 질문 (Question)
+### 좋은 점 (Praise)
+### 종합 판정: 승인 / 수정 요청 / 보류`}
+  language="markdown"
+  filename="team-review-plugin/commands/review.md"
+/>
+
+### 커맨드: PR 리뷰
+
+<CodeBlock
+  code={`---
+description: "PR 전체 변경사항을 리뷰하고 GitHub에 코멘트를 남깁니다"
+allowed-tools: Read, Glob, Grep, Bash
+context:
+  - type: file
+    path: review-rules.md
+  - type: command
+    command: git diff origin/main...HEAD
+---
+
+현재 브랜치의 PR 변경사항을 전체 리뷰합니다.
+
+## 리뷰 절차
+1. git diff 분석으로 변경 파일 목록 확인
+2. 파일별 변경 내용 분석
+3. 커밋 이력 검토
+4. 리뷰 결과 종합
+
+## 출력 형식
+### PR 요약
+- 변경 파일 수, 추가/삭제 줄 수
+- 주요 변경 사항 요약
+
+### 파일별 리뷰
+각 파일에 대한 상세 리뷰
+
+### 종합 의견
+승인, 수정 요청, 또는 보류 판정`}
+  language="markdown"
+  filename="team-review-plugin/commands/review-pr.md"
+/>
+
+### 커맨드: 보안 리뷰
+
+<CodeBlock
+  code={`---
+description: "보안 관점에 집중한 코드 리뷰를 수행합니다"
+allowed-tools: Read, Glob, Grep
+context:
+  - type: file
+    path: review-rules.md
+---
+
+$ARGUMENTS 대상으로 보안 집중 리뷰를 수행합니다.
+
+## OWASP Top 10 기반 검사
+1. A01: 접근 제어 취약점 — 권한 검증, IDOR
+2. A02: 보안 설정 오류 — 기본 설정, 불필요 기능
+3. A03: 공급망 취약점 — 의존성 버전, 서드파티 검증
+4. A04: 암호화 실패 — 평문 저장, 약한 알고리즘
+5. A05: 인젝션 — SQL, NoSQL, OS, LDAP
+6. A06: 불안전한 설계 — 위협 모델링
+7. A07: 인증 실패 — 세션 관리, 비밀번호 정책
+8. A08: 무결성 실패 — 서명 검증
+9. A09: 로깅 실패 — 감사 로그
+10. A10: 예외 처리 미흡 — fail-open 방지
+
+## 추가 검사
+- 하드코딩된 시크릿 (API 키, 토큰, 비밀번호)
+- 안전하지 않은 정규표현식 (ReDoS)
+- 경로 순회 (Path Traversal)
+- SSRF (Server-Side Request Forgery)
+
+## 출력
+심각도(Critical/High/Medium/Low)별 분류된 보안 리포트`}
+  language="markdown"
+  filename="team-review-plugin/commands/review-security.md"
+/>
+
+### 에이전트: 심층 리뷰어
+
+<CodeBlock
+  code={`---
+name: deep-reviewer
+description: 전체 코드베이스 심층 리뷰 에이전트
+context: fork
+model: opus
+max-turns: 25
+tools: Read, Glob, Grep, Bash
+---
+
+# Deep Reviewer Agent
+
+전체 코드베이스 또는 대규모 PR에 대한 심층 리뷰를 수행합니다.
+context: fork로 독립 실행되어 메인 세션의 컨텍스트를 소비하지 않습니다.
+
+## 분석 범위
+1. 아키텍처 레벨 — 레이어 위반, 순환 의존성, 관심사 분리
+2. 보안 레벨 — OWASP Top 10 전체 검사
+3. 성능 레벨 — 쿼리 최적화, 메모리 관리, 캐싱
+4. 코드 품질 — DRY, SRP, 복잡도, 테스트 커버리지
+
+## 출력
+종합 리뷰 리포트 (보안, 성능, 아키텍처, 품질 각 섹션)`}
+  language="markdown"
+  filename="team-review-plugin/agents/deep-reviewer/AGENT.md"
+/>
+
+### 스킬: 빠른 리뷰
+
+<CodeBlock
+  code={`---
+name: quick-review
+description: 빠른 코드 리뷰 — 변경된 파일만 대상으로 핵심 항목 검사
+model: sonnet
+max-turns: 5
+tools: Read, Glob, Grep
+---
+
+# Quick Review Skill
+
+변경된 파일만을 대상으로 핵심 항목을 빠르게 검사합니다.
+Sonnet 모델을 사용하여 빠른 응답을 제공합니다.
+
+## 검사 항목 (핵심만)
+1. 보안: 하드코딩된 시크릿, SQL 인젝션
+2. 품질: 함수 길이 30줄 초과, 중복 코드
+3. 에러 처리: try-catch 누락, 에러 무시
+
+## 출력
+간결한 1~2줄 피드백 목록`}
+  language="markdown"
+  filename="team-review-plugin/skills/quick-review/SKILL.md"
+/>
+
+### GitHub MCP 연동
+
+<CodeBlock
+  code={`{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-github"],
+      "env": {
+        "GITHUB_TOKEN": "env:GITHUB_TOKEN"
+      }
+    }
+  }
+}`}
+  language="json"
+  filename="team-review-plugin/.mcp.json"
+/>
+
+### Hooks 설정
+
+<CodeBlock
+  code={`{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/check-review-rules.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/post-review-report.sh",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="team-review-plugin/hooks/hooks.json"
+/>
+
+<CodeBlock
+  code={`#!/bin/bash
+# team-review-plugin/hooks/scripts/check-review-rules.sh
+# 파일 수정 전 팀 리뷰 규칙 위반 여부 사전 검사
+
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+if [ -z "$FILE_PATH" ]; then
+  exit 0
+fi
+
+# 보호 파일 목록 체크
+PROTECTED_FILES=(
+  "package-lock.json"
+  "yarn.lock"
+  ".env"
+  ".env.production"
+)
+
+BASENAME=$(basename "$FILE_PATH")
+for protected in "\${PROTECTED_FILES[@]}"; do
+  if [[ "$BASENAME" == "$protected" ]]; then
+    echo "Protected file: $BASENAME — manual review required" >&2
+    exit 2
+  fi
+done
+
+exit 0`}
+  language="bash"
+  filename="team-review-plugin/hooks/scripts/check-review-rules.sh"
+/>
+
+<CodeBlock
+  code={`#!/bin/bash
+# team-review-plugin/hooks/scripts/post-review-report.sh
+# 리뷰 세션 종료 시 리뷰 리포트 요약 출력
+
+echo "=== Review Session Summary ==="
+echo "Date: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Branch: $(git branch --show-current 2>/dev/null || echo 'unknown')"
+echo "Changed files: $(git diff --name-only 2>/dev/null | wc -l | tr -d ' ')"
+echo "=============================="
+
+exit 0`}
+  language="bash"
+  filename="team-review-plugin/hooks/scripts/post-review-report.sh"
+/>
+
+### 사용 예시
+
+<CodeBlock
+  code={`# 플러그인 설치 후 사용
+/plugin install team-review
+
+# 단일 파일 리뷰
+/team-review:review src/services/user-service.ts
+
+# PR 전체 리뷰
+/team-review:review-pr
+
+# 보안 집중 리뷰
+/team-review:review-security src/api/
+
+# 심층 리뷰 에이전트 호출 (독립 서브에이전트)
+/team-review:deep-reviewer
+
+# 빠른 리뷰 (자동 매칭 — description 기반)
+# "변경된 파일 빠르게 리뷰해줘" 입력 시 자동 호출`}
+  language="bash"
+  filename="team-review 플러그인 사용 예시"
+/>
+
+---
+
+## 플러그인 보안 가이드
+
+### 보안 체크리스트
+
+<ComparisonTable
+  title="플러그인 보안 등급"
+  headers={['등급', '허용 범위', '적합한 플러그인 유형', '예시']}
+  rows={[
+    { feature: '읽기 전용', values: ['Read, Glob, Grep', '분석, 리뷰, 보안 스캔', 'code-review, security-scan'] },
+    { feature: '제한된 쓰기', values: ['Read, Write, Glob, Grep', '문서 생성, 테스트 작성', 'doc-gen, test-gen'] },
+    { feature: '전체 접근', values: ['모든 도구 (Bash 포함)', '배포, 마이그레이션', 'deploy-tools, migrate'] },
+  ]}
+/>
+
+### 플러그인 보안 원칙
+
+<CodeBlock
+  code={`## 플러그인 보안 원칙
+
+### 1. 최소 권한 원칙
+# 각 커맨드에 allowed-tools를 명시적으로 지정
+# 리뷰 커맨드에 Bash 접근이 필요한가? → 대부분 불필요
+
+### 2. 시크릿 노출 방지
+# plugin.json, .mcp.json에 시크릿 하드코딩 금지
+# 반드시 env:변수명 형식 사용
+
+### 3. Hook 스크립트 보안
+# Hook 스크립트에서 외부 URL 접근 최소화
+# 사용자 입력을 셸 명령에 직접 전달하지 않음
+# jq 등으로 입력을 안전하게 파싱
+
+### 4. 의존성 관리
+# MCP 서버 버전 고정 (^가 아닌 정확한 버전)
+# 정기적으로 의존성 취약점 스캔
+
+### 5. 코드 리뷰 필수
+# 모든 플러그인 변경은 PR 리뷰를 통과해야 함
+# 특히 Bash 접근, Hook 스크립트 변경 시 주의`}
+  language="markdown"
+  filename="플러그인 보안 원칙"
+/>
+
+<Callout type="warning" title="서드파티 플러그인 설치 시 주의">
+  외부 마켓플레이스나 GitHub에서 플러그인을 설치할 때는 반드시 소스 코드를 검토하세요.
+  특히 Hooks 스크립트와 MCP 서버 설정에서 악의적인 명령이 포함되어 있지 않은지 확인하세요.
+  팀 마켓플레이스를 통해 검증된 플러그인만 사용하는 것을 권장합니다.
+</Callout>
+
+---
+
+## 플러그인 생태계 전략
+
+### 내부 플러그인 카테고리
+
+| 카테고리 | 설명 | 예시 플러그인 |
+|----------|------|-------------|
+| 코드 품질 | 리뷰, 테스트, 리팩토링 | team-review, team-test-gen |
+| 보안 | 취약점 스캔, 시크릿 탐지 | team-security, secret-scanner |
+| 배포 | CI/CD, 배포 워크플로우 | team-deploy, release-manager |
+| 문서화 | API 문서, ADR, README | team-docs, api-doc-gen |
+| 컨벤션 | 코딩 규칙 자동 검증 | team-conventions, lint-rules |
+| 인프라 | DB 마이그레이션, 모니터링 | db-migrate, health-check |
+| 온보딩 | 신규 팀원 지원 | team-onboarding, codebase-guide |
+
+### 플러그인 조합 워크플로우
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph DAILY["일상 개발"]
+      A1["team-review:review<br/>코드 리뷰"]
+      A2["team-test-gen:test<br/>테스트 생성"]
+      A3["team-conventions:check<br/>컨벤션 검사"]
+    end
+    subgraph PR["PR 단계"]
+      B1["team-review:review-pr<br/>PR 리뷰"]
+      B2["team-security:scan<br/>보안 스캔"]
+      B3["team-docs:api-doc<br/>API 문서 생성"]
+    end
+    subgraph RELEASE["릴리스"]
+      C1["release-manager:changelog<br/>변경 이력"]
+      C2["team-deploy:staging<br/>스테이징 배포"]
+      C3["team-deploy:production<br/>프로덕션 배포"]
+    end
+    DAILY --> PR --> RELEASE
+    style DAILY fill:#fdf2ee,stroke:#2563eb,color:#2d2a26
+    style PR fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style RELEASE fill:#fdf2ee,stroke:#16a34a,color:#2d2a26`}
+  title="플러그인 조합 워크플로우"
+  caption="일상 개발 - PR 단계 - 릴리스까지 여러 플러그인을 조합하여 전체 워크플로우를 구성합니다"
+  maxWidth="650px"
+/>
+
+---
+
+## 플러그인 vs 다른 확장 방식 종합 비교
+
+<ComparisonTable
+  title="Claude Code 확장 방식 종합 비교"
+  headers={['항목', '슬래시 커맨드', '스킬', 'Hooks', 'MCP', 'Plugin']}
+  rows={[
+    { feature: '호출 방식', values: ['/커맨드', '/스킬 또는 자동', '이벤트 기반 자동', '도구로 호출', '/플러그인:커맨드'] },
+    { feature: '실행 시점', values: ['수동', '수동 또는 자동', '이벤트 발생 시', '필요 시', '수동'] },
+    { feature: '패키징', values: ['개별 .md 파일', '디렉토리', 'JSON + 스크립트', '서버 프로세스', '통합 패키지'] },
+    { feature: '공유 단위', values: ['파일 단위', '디렉토리 단위', '설정 파일 단위', '서버 단위', '전체 패키지'] },
+    { feature: '네임스페이스', values: ['없음', '없음', '없음', '서버명', '플러그인명'] },
+    { feature: '버전 관리', values: ['프로젝트 git', '프로젝트 git', '프로젝트 git', '패키지 매니저', 'SemVer'] },
+    { feature: '재사용성', values: ['낮음', '보통', '보통', '높음', '매우 높음'] },
+  ]}
+/>
+
+---
+
+## Best Practices
+
+### 플러그인 설계 원칙
+
+1. **단일 목적**: 하나의 플러그인은 하나의 도메인에 집중합니다. 리뷰 플러그인에 배포 기능을 넣지 마세요.
+
+2. **점진적 기능**: 기본 커맨드로 시작하고, 스킬, 에이전트, Hooks를 점진적으로 추가합니다.
+
+3. **최소 의존성**: 외부 MCP 서버나 도구 의존성을 최소화합니다. 의존성이 많을수록 설치와 유지보수가 어려워집니다.
+
+4. **명확한 문서**: README.md에 설치 방법, 사용법, 설정 옵션을 명확히 기술합니다.
+
+5. **시맨틱 버저닝**: Breaking Change는 메이저 버전, 새 기능은 마이너 버전, 버그 수정은 패치 버전으로 관리합니다.
+
+6. **보안 우선**: allowed-tools로 최소 권한을 적용하고, Hook 스크립트에서 시크릿이 노출되지 않도록 합니다.
+
+### 권장 시작 패턴
+
+<CodeBlock
+  code={`# 권장: 작게 시작하여 점진적으로 확장
+
+## Phase 1: 커맨드만
+my-plugin/
+├── .claude-plugin/plugin.json
+└── commands/
+    └── review.md
+
+## Phase 2: 스킬 추가
+my-plugin/
+├── .claude-plugin/plugin.json
+├── commands/
+│   └── review.md
+└── skills/
+    └── deep-review/
+        └── SKILL.md
+
+## Phase 3: Hooks 추가
+my-plugin/
+├── .claude-plugin/plugin.json
+├── commands/
+│   └── review.md
+├── skills/
+│   └── deep-review/
+│       └── SKILL.md
+└── hooks/
+    ├── hooks.json
+    └── scripts/
+        └── auto-format.sh
+
+## Phase 4: MCP/LSP/에이전트 추가
+# 필요에 따라 점진적으로 확장`}
+  language="text"
+  filename="권장 단계적 확장 패턴"
+/>
+
+<Callout type="tip" title="작게 시작하세요">
+  처음부터 모든 기능을 포함하려 하지 마세요. 커맨드 1~2개로 시작하여 팀 피드백을 받으면서 점진적으로 확장하는 것이 가장 효과적입니다.
+</Callout>
+
+### 플러그인 유지보수 체크리스트
+
+| 주기 | 점검 항목 |
+|------|----------|
+| 매 릴리스 | CHANGELOG 업데이트, 버전 태깅, 테스트 통과 확인 |
+| 월간 | 의존성 취약점 스캔, MCP 서버 버전 업데이트 |
+| 분기별 | 팀 피드백 수집, 불필요한 기능 제거, 문서 업데이트 |
+| 연간 | 아키텍처 리뷰, 플러그인 분리/통합 검토 |
+
+---
+
+## 요약
+
+Plugins는 Claude Code의 확장 기능(커맨드, 스킬, 에이전트, Hooks, MCP, LSP)을 하나의 독립된 패키지로 묶어 관리하는 시스템입니다. 네임스페이스로 충돌을 방지하고, 시맨틱 버저닝으로 업데이트를 관리하며, 마켓플레이스를 통해 팀 전체에 표준화된 워크플로우를 배포할 수 있습니다.
+
+**핵심 정리:**
+- **Plugin = 커맨드 + 스킬 + 에이전트 + Hooks + MCP + LSP 통합 패키지**
+- **네임스페이스**: `/plugin-name:command` 형식으로 충돌 방지
+- **마켓플레이스**: 팀/조직 단위 플러그인 저장소 구축 가능
+- **`--plugin-dir`**: 로컬 개발 및 테스트
+- **`/plugin install`**: 마켓플레이스에서 설치
+- **마이그레이션**: 기존 `.claude/` 설정을 플러그인으로 변환 가능
+- **보안**: allowed-tools 최소 권한, 시크릿 환경 변수 참조, 코드 리뷰 필수
+
+<ChapterNav
+  prev={{ title: 'Agent Teams', path: '/docs/part-3--ai-agent-워크플로우-agent-teams' }}
+  next={{ title: 'MCP 개요', path: '/docs/part-4--mcp와-통합-mcp-개요' }}
+/>
