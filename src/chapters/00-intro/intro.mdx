@@ -128,6 +128,312 @@ import { CodeBlock } from '../../components/CodeBlock';
 
 ---
 
+## 2026년 AI 코딩 시장 현황과 전망
+
+AI 코딩 도구 시장은 2025년을 기점으로 폭발적 성장기에 진입했습니다. 단순한 코드 자동완성을 넘어, 자율적으로 소프트웨어를 설계하고 구축하는 **에이전트 기반 개발**이 주류가 되고 있습니다.
+
+### 시장 규모와 성장
+
+- **2025년 글로벌 AI 코딩 도구 시장**: 약 82억 달러 (전년 대비 67% 성장)
+- **2026년 전망**: 약 140억 달러 (연간 성장률 70% 이상 지속)
+- **개발자 채택률**: 전 세계 개발자의 약 72%가 1개 이상의 AI 코딩 도구를 업무에 활용 (2024년 42% 대비 급증)
+- **엔터프라이즈 도입률**: Fortune 500 기업의 약 85%가 AI 코딩 도구를 공식 도입 또는 파일럿 운영 중
+
+### 핵심 트렌드
+
+| 트렌드 | 설명 | 영향 |
+|--------|------|------|
+| **에이전트형 AI** | 단순 자동완성에서 자율적 작업 수행 에이전트로 진화 | 개발 워크플로우 전체를 AI가 오케스트레이션 |
+| **멀티 에이전트 협업** | 여러 AI 에이전트가 역할을 분담하여 협력 | 대규모 프로젝트의 병렬 개발 가능 |
+| **프로토콜 표준화** | MCP의 Linux Foundation 이관으로 업계 표준화 가속 | 도구 간 호환성 및 생태계 확대 |
+| **코드 안전성 강화** | AI가 보안 취약점을 사전에 탐지하고 수정 | 제로데이 취약점 발견 능력이 인간 전문가 수준 도달 |
+| **비개발자의 참여** | Vibe Coding으로 비전공자도 소프트웨어 제작 가능 | 소프트웨어 개발 인구의 급격한 확대 |
+
+<Callout type="info" title="주목할 통계">
+  2026년 1월 Stack Overflow 조사에 따르면, AI 코딩 도구를 사용하는 개발자의 **68%가 주당 5시간 이상의 시간을 절약**한다고 응답했습니다.
+  특히 보일러플레이트 코드 작성(-78%), 테스트 코드 생성(-65%), 코드 리뷰(-52%) 영역에서 가장 큰 효율 개선이 보고되었습니다.
+</Callout>
+
+---
+
+## AI 코딩 도구 생태계 지도
+
+현재 AI 코딩 도구 시장은 크게 **에디터 통합형**, **터미널/에이전트형**, **클라우드 IDE형**, **특화형**으로 나뉩니다. 각 카테고리의 대표 도구와 포지셔닝을 살펴봅니다.
+
+<MermaidDiagram
+  title="AI 코딩 도구 생태계 지도 (2026년 2월)"
+  chart={`
+graph TB
+    subgraph CAT1["에디터 통합형"]
+      direction TB
+      T1["GitHub Copilot<br/>VS Code, JetBrains 통합<br/>코드 자동완성 + Chat"]
+      T2["Cursor<br/>AI 네이티브 에디터<br/>코드베이스 이해 + 편집"]
+      T3["Windsurf<br/>AI 에이전트 IDE<br/>Flow 기반 자동화"]
+    end
+
+    subgraph CAT2["터미널 / 에이전트형"]
+      direction TB
+      T4["Claude Code<br/>터미널 에이전트<br/>자율적 코딩 + Git 연동"]
+      T5["Aider<br/>오픈소스 터미널 도구<br/>다양한 LLM 지원"]
+      T6["Codex CLI<br/>OpenAI 터미널 에이전트<br/>멀티 파일 편집"]
+    end
+
+    subgraph CAT3["클라우드 IDE형"]
+      direction TB
+      T7["Devin<br/>자율형 AI 엔지니어<br/>브라우저 기반 전체 개발"]
+      T8["Replit Agent<br/>클라우드 IDE + AI<br/>배포까지 원스톱"]
+      T9["GitHub Spark<br/>자연어 → 앱 생성<br/>마이크로 앱 특화"]
+    end
+
+    subgraph CAT4["특화형"]
+      direction TB
+      T10["Copilot Workspace<br/>이슈 → PR 자동화<br/>GitHub 네이티브"]
+      T11["Amazon Q Developer<br/>AWS 특화<br/>인프라 + 코드"]
+      T12["Tabnine<br/>엔터프라이즈 보안 특화<br/>프라이빗 모델 지원"]
+    end
+
+    style CAT1 fill:#fdf2ee,stroke:#da7756
+    style CAT2 fill:#fdf2ee,stroke:#da7756
+    style CAT3 fill:#fdf2ee,stroke:#da7756
+    style CAT4 fill:#fdf2ee,stroke:#da7756
+  `}
+  caption="이 교육은 터미널/에이전트형 카테고리의 Claude Code에 초점을 맞추지만, 다른 도구와의 연동과 비교도 함께 다룹니다"
+/>
+
+<ComparisonTable
+  title="주요 AI 코딩 도구 비교 (2026년 2월 기준)"
+  headers={['기능', 'Claude Code', 'GitHub Copilot', 'Cursor', 'Devin']}
+  rows={[
+    { feature: '자율적 코드 생성 (에이전트)', values: ['yes', 'partial', 'yes', 'yes'] },
+    { feature: '터미널 네이티브', values: ['yes', 'no', 'no', 'no'] },
+    { feature: '멀티 에이전트 협업', values: ['yes', 'no', 'no', 'partial'] },
+    { feature: 'Git 작업 자동화', values: ['yes', 'partial', 'partial', 'yes'] },
+    { feature: 'MCP 프로토콜 지원', values: ['yes', 'partial', 'yes', 'no'] },
+    { feature: '프로젝트 지식 관리 (CLAUDE.md 등)', values: ['yes', 'partial', 'partial', 'no'] },
+    { feature: '엔터프라이즈 보안 (ZDR)', values: ['yes', 'yes', 'partial', 'partial'] },
+    { feature: '오프라인 모드', values: ['no', 'no', 'no', 'no'] },
+    { feature: '무료 티어', values: ['no', 'yes', 'partial', 'no'] },
+    { feature: '100만 토큰 컨텍스트', values: ['yes', 'no', 'no', 'no'] },
+  ]}
+/>
+
+---
+
+## 이 교육을 통해 달성할 수 있는 구체적 성과
+
+이 교육을 완료하면 단순히 "AI 도구를 사용할 줄 아는 것"을 넘어, **팀과 조직에 측정 가능한 가치**를 제공할 수 있습니다.
+
+### 개인 역량 성과
+
+| 영역 | 학습 전 | 학습 후 |
+|------|---------|---------|
+| **코드 작성 속도** | 수동으로 모든 코드 작성 | 반복적 코드의 80% 이상을 AI가 초안 작성, 개발자는 검토와 수정에 집중 |
+| **디버깅 시간** | 에러 메시지를 검색하고 Stack Overflow를 탐색 | Claude Code가 에러 원인을 분석하고 수정안을 즉시 제시 |
+| **새 기술 학습 곡선** | 공식 문서와 튜토리얼을 따라가며 수일~수주 소요 | AI 가이드와 함께 실시간으로 학습하며 수시간~수일로 단축 |
+| **코드 리뷰 품질** | 시간 압박으로 표면적 검토에 그침 | AI가 1차 리뷰를 수행하고 개발자가 비즈니스 로직에 집중 |
+| **테스트 커버리지** | 시간 부족으로 테스트 작성을 미루는 경우 빈번 | AI가 테스트 초안을 자동 생성하여 커버리지 향상 |
+
+### 팀 차원의 성과 사례
+
+<Callout type="tip" title="실제 도입 사례 기반">
+  아래 성과는 AI 코딩 도구를 조기 도입한 팀들의 보고 데이터를 종합한 것입니다.
+  개별 팀의 환경과 도메인에 따라 결과는 달라질 수 있습니다.
+</Callout>
+
+- **신규 기능 개발 주기 단축**: 평균 2주 스프린트에서 처리하던 스토리 포인트가 30-50% 증가
+- **코드 리뷰 처리 시간 감소**: PR 리뷰 평균 대기 시간이 4시간에서 1.5시간으로 단축
+- **온보딩 기간 단축**: 신규 팀원이 첫 번째 의미 있는 PR을 생성하기까지의 기간이 2주에서 3-5일로 단축
+- **기술 부채 해소 가속**: AI 지원 리팩토링으로 레거시 코드 현대화 속도 2-3배 향상
+
+---
+
+## 산업별 AI 코딩 도입 현황
+
+AI 코딩 도구의 도입은 산업별로 다른 양상을 보이고 있습니다. 규제 수준, 보안 요구사항, 기존 기술 부채의 규모에 따라 도입 속도와 활용 방식이 달라집니다.
+
+<ComparisonTable
+  title="산업별 AI 코딩 도입 현황 (2026년 기준)"
+  headers={['평가 항목', '금융/핀테크', '의료/헬스케어', '공공/정부', '스타트업', '대기업 IT']}
+  rows={[
+    { feature: 'AI 코딩 도구 도입률', values: ['partial', 'partial', 'no', 'yes', 'yes'] },
+    { feature: '에이전트형 도구 사용', values: ['partial', 'no', 'no', 'yes', 'partial'] },
+    { feature: '프로덕션 코드에 AI 활용', values: ['partial', 'partial', 'no', 'yes', 'yes'] },
+    { feature: '보안 정책 수립 완료', values: ['yes', 'yes', 'partial', 'partial', 'yes'] },
+    { feature: '사내 가이드라인 존재', values: ['yes', 'partial', 'partial', 'no', 'yes'] },
+    { feature: 'ROI 측정 체계 구축', values: ['partial', 'no', 'no', 'partial', 'partial'] },
+  ]}
+/>
+
+### 산업별 특징
+
+**금융/핀테크**
+
+규제 준수(Compliance)가 최우선 과제입니다. AI 생성 코드에 대한 감사 추적(Audit Trail)이 필수이며, 코드의 결정론적 동작을 검증해야 합니다. 그러나 트레이딩 알고리즘 프로토타이핑, 리스크 모델링 보조, 규정 준수 체크 자동화 등에서 높은 효용을 보이고 있습니다.
+
+**의료/헬스케어**
+
+HIPAA, 의료기기 소프트웨어 규정 등으로 인해 보수적인 도입이 이루어지고 있습니다. 하지만 임상 데이터 분석 파이프라인, 의료 영상 처리 보조 코드, 전자건강기록(EHR) 시스템 연동 등에서 활용이 확대되고 있습니다.
+
+**공공/정부**
+
+데이터 주권과 보안 인증 요구사항으로 클라우드 기반 AI 도구의 도입이 가장 느립니다. 그러나 내부 행정 시스템 현대화, 시민 서비스 디지털화 프로젝트에서 AI 코딩 도구의 잠재력이 인식되기 시작했습니다.
+
+**스타트업**
+
+가장 적극적인 도입층입니다. 소규모 팀이 AI를 활용하여 대기업 수준의 개발 속도를 달성하는 사례가 증가하고 있습니다. "AI-첫 번째(AI-first)" 개발 문화를 처음부터 구축하는 스타트업도 등장하고 있습니다.
+
+**대기업 IT**
+
+체계적인 파일럿 프로그램을 통해 단계적으로 도입하고 있습니다. 사내 AI 코딩 가이드라인 수립, 보안 검토 프로세스 정비, 개발자 교육 프로그램 운영 등 조직적 차원의 준비를 병행합니다.
+
+---
+
+## AI 코딩 발전의 역사
+
+코드 자동완성에서 자율적 소프트웨어 엔지니어링까지, AI 코딩의 발전은 여러 기술적 돌파구를 거쳐 왔습니다.
+
+<Timeline
+  title="AI 코딩 기술 발전사"
+  events={[
+    {
+      date: '2018',
+      title: '초기 코드 생성 모델',
+      description: 'OpenAI GPT-1 공개. 자연어 처리 중심이었으나, 코드 생성 가능성을 보여줌. 학술 연구 단계에서 실용적 도구로의 전환 시작',
+    },
+    {
+      date: '2020',
+      title: 'GPT-3와 Codex의 등장',
+      description: 'GPT-3의 175B 파라미터로 코드 생성 능력이 비약적으로 향상. OpenAI Codex가 GitHub 코드로 파인튜닝되어 실용적 수준의 코드 생성 달성',
+    },
+    {
+      date: '2021',
+      title: '대중화의 시작',
+      description: 'GitHub Copilot 테크니컬 프리뷰 출시. 에디터 내 실시간 코드 제안이라는 새로운 UX 패러다임을 제시하며 개발자 커뮤니티에 큰 반향',
+      highlight: true,
+    },
+    {
+      date: '2023',
+      title: 'LLM 경쟁의 본격화',
+      description: 'GPT-4, Claude 2, Llama 2 등 대형 모델 경쟁 심화. 코딩 벤치마크에서 인간 개발자에 근접하는 성능 달성. 기업용 도구 시장 형성',
+    },
+    {
+      date: '2024',
+      title: '에이전트의 시대 개막',
+      description: 'Devin, SWE-Agent 등 자율적으로 소프트웨어를 개발하는 AI 에이전트 등장. Claude 3, GPT-4o 등 멀티모달 모델이 코드와 UI를 동시에 이해',
+      highlight: true,
+    },
+    {
+      date: '2025',
+      title: 'Vibe Coding과 에이전트 도구의 대중화',
+      description: 'Andrej Karpathy의 Vibe Coding 개념이 개발 문화를 변화시킴. Claude Code, Cursor, Windsurf 등이 에이전트 기반 개발을 대중화. MCP 프로토콜로 도구 생태계 표준화',
+      highlight: true,
+    },
+    {
+      date: '2026',
+      title: '멀티 에이전트 협업의 현실화',
+      description: 'Claude Opus 4.6의 Agent Teams로 여러 AI가 역할을 분담하여 대규모 프로젝트를 자율 수행. 16개 에이전트가 C 컴파일러를 구축하는 등 전례 없는 규모의 AI 협업 실현',
+      highlight: true,
+    },
+  ]}
+/>
+
+---
+
+## 학습 환경 준비 가이드
+
+이 교육을 효과적으로 따라하기 위해 필요한 소프트웨어와 계정을 미리 준비하세요.
+
+### 필수 소프트웨어
+
+| 소프트웨어 | 용도 | 설치 방법 |
+|-----------|------|----------|
+| **Claude Code** | AI 코딩 에이전트 | `curl -fsSL https://claude.ai/install.sh \| bash` (macOS/Linux) |
+| **Git** | 버전 관리 | 대부분의 OS에 기본 포함, 없으면 `git-scm.com`에서 설치 |
+| **Node.js 18+** | JavaScript/TypeScript 실행 환경 | `nodejs.org`에서 LTS 버전 설치 |
+| **VS Code 또는 선호 에디터** | 코드 편집 | `code.visualstudio.com`에서 설치 |
+| **Python 3.10+** | Python 예제 실행 | `python.org`에서 설치 또는 pyenv 활용 |
+
+### 필수 계정
+
+| 계정 | 용도 | 비용 |
+|------|------|------|
+| **Anthropic / Claude** | Claude Code 인증 | Pro $20/월 또는 Max $100~200/월 |
+| **GitHub** | 코드 저장소, PR 관리 | 무료 (개인) |
+
+### 권장 계정 (선택)
+
+| 계정 | 용도 | 비용 |
+|------|------|------|
+| **Anthropic API** | CI/CD 연동, 팀 환경 | 사용량 기반 과금 |
+| **Docker Hub** | 컨테이너 이미지 관리 | 무료 (개인) |
+
+<Callout type="warning" title="API 키 보안 주의">
+  Anthropic API 키는 절대 코드에 하드코딩하거나 Git에 커밋하지 마세요.
+  환경 변수(`ANTHROPIC_API_KEY`)로 관리하고, `.env` 파일은 반드시 `.gitignore`에 추가하세요.
+  이 교육의 Part 1 엔터프라이즈 보안 챕터에서 API 키 관리 모범 사례를 상세히 다룹니다.
+</Callout>
+
+<CodeBlock
+  code={`# 환경 설정 확인 스크립트
+# 터미널에서 아래 명령어들을 실행하여 환경을 확인하세요
+
+# 1. Claude Code 설치 확인
+claude --version
+
+# 2. Git 설치 확인
+git --version
+
+# 3. Node.js 설치 확인
+node --version
+npm --version
+
+# 4. Python 설치 확인 (Part 5 Python 예제용)
+python3 --version
+
+# 5. Claude Code 인증 확인
+claude auth status
+
+# 모든 명령어가 정상 출력되면 학습 준비 완료!`}
+  language="bash"
+  filename="환경 확인 스크립트"
+/>
+
+---
+
+## 교육 과정 로드맵: 주차별 학습 계획
+
+29개 챕터를 효율적으로 소화하기 위한 4주 집중 학습 계획과 8주 여유 학습 계획을 제공합니다. 자신의 일정에 맞는 계획을 선택하세요.
+
+### 4주 집중 학습 (주당 6-8시간)
+
+| 주차 | 학습 범위 | 핵심 목표 | 실습 과제 |
+|------|----------|----------|----------|
+| **1주차** | Part 1 전체 (8챕터) | AI 코딩 기초 개념 확립, Claude Code 설치 및 첫 사용 | CLAUDE.md 작성, 프롬프트 10개 실습 |
+| **2주차** | Part 2 + Part 3 (11챕터) | 프로젝트 템플릿 구축, 워크플로우 자동화 | 자신의 프로젝트에 `.claude/` 구조 적용 |
+| **3주차** | Part 4 + Part 5 (7챕터) | MCP 통합, 실전 프로젝트 구축 | TypeScript 또는 Python API 하나를 Claude Code로 구축 |
+| **4주차** | Part 6 + 복습 (3챕터 + 종합) | 보안/협업/효과 측정, 전체 복습 | 팀 AI 코딩 가이드라인 초안 작성 |
+
+### 8주 여유 학습 (주당 3-4시간)
+
+| 주차 | 학습 범위 | 핵심 목표 |
+|------|----------|----------|
+| **1주차** | Part 1: 챕터 1-4 | Vibe Coding, Claude Code, CLAUDE.md, 보안 기초 |
+| **2주차** | Part 1: 챕터 5-8 | 프롬프트 엔지니어링, 모델 선택, 환경 설정 |
+| **3주차** | Part 2 전체 (6챕터) | 프로젝트 지식 구조 설계 |
+| **4주차** | Part 3 전체 (5챕터) | 슬래시 커맨드, 스킬, 서브에이전트, Hooks |
+| **5주차** | Part 4 전체 (3챕터) | MCP 프로토콜, GitHub Actions 연동 |
+| **6주차** | Part 5: 챕터 1-2 | TypeScript API, Python API 구축 |
+| **7주차** | Part 5: 챕터 3-4 | 프론트엔드, E2E 워크플로우 |
+| **8주차** | Part 6 + 종합 정리 | 보안, 팀 협업, 효과 측정, 전체 복습 |
+
+<Callout type="tip" title="학습 효과를 높이는 방법">
+  각 주차를 마칠 때마다 배운 내용을 자신의 실제 프로젝트에 하나씩 적용해보세요.
+  예를 들어, 1주차에 CLAUDE.md를 배웠다면 곧바로 자신의 프로젝트에 CLAUDE.md를 작성해보는 것입니다.
+  "학습 → 즉시 적용"의 반복이 가장 효과적인 학습법입니다.
+</Callout>
+
+---
+
 ## 학습 로드맵
 
 이 교육은 **6개 Part, 29개 챕터**로 구성되어 있습니다. 각 Part는 이전 Part의 개념 위에 쌓이는 계층적 구조이지만, 역할과 경험에 따라 선택적으로 학습할 수도 있습니다.
