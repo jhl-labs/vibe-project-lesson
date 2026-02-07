@@ -153,6 +153,64 @@ Claude 4.x 모델은 **Extended Thinking** 기능을 지원합니다. 복잡한 
   Extended Thinking에 대한 기술적 세부사항은 [Anthropic 공식 문서](https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking)를 참조하세요.
 </Callout>
 
+## 적응형 사고 (Adaptive Thinking) — Opus 4.6
+
+Opus 4.6은 Extended Thinking을 넘어 **Adaptive Thinking**을 도입했습니다. 작업 복잡도에 따라 사고 깊이를 자동 조절합니다.
+
+### Effort 파라미터 4단계
+
+<ComparisonTable
+  title="Effort 단계별 비교"
+  headers={['단계', '사고 방식', '속도', '비용', '적합한 작업']}
+  rows={[
+    { feature: 'Low', values: ['사고 건너뛰기', '가장 빠름', '최저', '간단한 질문/분류'] },
+    { feature: 'Medium', values: ['선택적 사고', '빠름', '중간', '일반적 코딩 작업'] },
+    { feature: 'High (기본값)', values: ['거의 항상 사고', '보통', '높음', '복잡한 디버깅/설계'] },
+    { feature: 'Max', values: ['최대 능력 발휘', '느림', '최고', '아키텍처 설계/보안 분석'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`# API에서 Effort 파라미터 설정
+response = client.messages.create(
+    model="claude-opus-4-6",
+    thinking={"type": "enabled", "budget_tokens": 50000, "effort": "max"},
+    messages=[{"role": "user", "content": "이 시스템의 보안 취약점을 분석해줘"}]
+)`}
+  language="python"
+  filename="Effort 파라미터 사용 예시"
+/>
+
+<Callout type="tip" title="Claude Code의 자동 Effort 조절">
+  Claude Code에서는 Adaptive Thinking이 자동으로 작동합니다. 간단한 파일 수정에는 Low effort, 복잡한 아키텍처 설계에는 Max effort가 자동 적용됩니다.
+</Callout>
+
+### Prompt Caching & Batch API로 비용 절감
+
+<ComparisonTable
+  title="비용 최적화 기법 비교"
+  headers={['최적화 기법', '절감률', '적용 조건', '사용법']}
+  rows={[
+    { feature: 'Prompt Caching', values: ['최대 90%', '동일 시스템 프롬프트 반복 사용 시', 'cache_control: {"type": "ephemeral"}'] },
+    { feature: 'Batch API', values: ['50%', '즉시 응답 불필요한 대량 처리', 'client.batches.create()'] },
+    { feature: '두 기법 결합', values: ['75%+', '대량 처리 + 동일 컨텍스트', '캐싱 + 배치'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`# Prompt Caching 예시 - 90% 비용 절감
+system_prompt = [{
+    "type": "text",
+    "text": "프로젝트 전체 코드 컨텍스트...(50K 토큰)",
+    "cache_control": {"type": "ephemeral"}  # 이 부분을 캐싱
+}]
+
+# 첫 요청: 정상 비용 + 25% (캐시 쓰기)
+# 후속 요청: 정상 비용의 10%만 (캐시 읽기, 90% 절감)`}
+  language="python"
+  filename="Prompt Caching 활용"
+/>
+
 ## 비용 최적화 전략
 
 ### 1. 작업에 맞는 모델 선택
