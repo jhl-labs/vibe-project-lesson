@@ -751,6 +751,68 @@ if (!API_KEY) {
   pageSize={10}
 />
 
+---
+
+## 사례 연구: Opus 4.6의 500+ 제로데이 발견
+
+2026년 2월, Anthropic은 Claude Opus 4.6이 **오픈소스 코드에서 500개 이상의 미발견 제로데이 취약점을 발견**했다고 발표했습니다.
+
+### 발견 과정의 주목할 점
+
+<ComparisonTable
+  title="Opus 4.6 제로데이 발견"
+  headers={['항목', '내용']}
+  rows={[
+    { feature: '사용 도구', values: ['Opus 4.6 기본 기능만 (커스텀 도구, 스캐폴딩, 전문 프롬프팅 없음)'] },
+    { feature: '대상', values: ['수년간 퍼저(fuzzer)가 실행된 가장 잘 테스트된 오픈소스 코드베이스'] },
+    { feature: '결과', values: ['500+ 미발견 제로데이 취약점 (수십 년간 미탐지된 고심각도 포함)'] },
+    { feature: '검증', values: ['Anthropic 팀 및 외부 보안 연구원이 모든 취약점 확인'] },
+  ]}
+/>
+
+<Callout type="warning" title="AI 보안 연구의 양면성">
+  이 사례는 AI가 보안 연구의 강력한 도구가 될 수 있음을 보여주는 동시에, 악의적 사용에 대한 우려도 제기합니다.
+  Anthropic은 실시간 탐지 도구와 새로운 보안 컨트롤을 함께 도입했습니다.
+</Callout>
+
+### 개발자를 위한 시사점
+
+<ComparisonTable
+  title="AI 보안 연구의 실천 방안"
+  headers={['인사이트', '실천 방안']}
+  rows={[
+    { feature: 'AI는 인간이 놓친 취약점을 찾을 수 있다', values: ['/security 스킬 또는 보안 서브에이전트를 정기적으로 실행'] },
+    { feature: '전통적 보안 도구로는 부족하다', values: ['퍼저 + AI 코드 리뷰를 병행하는 하이브리드 접근'] },
+    { feature: 'AI 보안 분석은 비용 효율적이다', values: ['Batch API로 전체 코드베이스 보안 스캔을 50% 할인된 비용으로 실행'] },
+    { feature: '새로운 위협도 있다', values: ['AI 생성 코드의 취약점을 AI로 검증하는 이중 검증 패턴 도입'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`# 정기 보안 스캔 자동화 (CI/CD)
+# GitHub Actions에서 매주 실행
+name: Weekly Security Scan
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # 매주 월요일 9시
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Claude Security Scan
+        run: |
+          claude -p "전체 코드베이스를 OWASP Top 10 기준으로 보안 스캔해줘.
+          심각도별로 분류하고, 각 취약점의 수정 코드를 제안해줘." \\
+          --output-format json > security-report.json`}
+  language="yaml"
+  filename=".github/workflows/weekly-security-scan.yml"
+/>
+
+**출처:** [Anthropic Red Team Blog](https://red.anthropic.com/2026/zero-days/), [Axios](https://www.axios.com/2026/02/05/anthropic-claude-opus-46-software-hunting)
+
+---
+
 <ChapterNav
   prev={{ title: 'End-to-End 워크플로우', path: '/docs/part-5--실전-예제-end-to-end-워크플로우' }}
   next={{ title: '팀 협업', path: '/docs/part-6--모범-사례-팀-협업' }}
