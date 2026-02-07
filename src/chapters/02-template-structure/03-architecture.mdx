@@ -131,6 +131,1356 @@ import { templateFiles } from '../../data/template-files';
   ]}
 />
 
+---
+
+## 레이어별 상세 코드 예제
+
+각 레이어가 실제 코드에서 어떻게 구현되는지 살펴보겠습니다. AI 에이전트에게 이러한 패턴을 `architecture.md`에 명시해두면, 생성되는 코드가 일관된 구조를 따르게 됩니다.
+
+### Domain Layer: 엔터티와 값 객체
+
+Domain Layer는 비즈니스 규칙의 핵심입니다. 외부 의존성이 전혀 없어야 하며, 순수한 비즈니스 로직만 담습니다.
+
+<CodeBlock
+  code={`// src/domain/user/entity.ts
+import { UserId } from './value-objects/user-id';
+import { Email } from './value-objects/email';
+import { UserName } from './value-objects/user-name';
+
+export enum UserStatus {
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  DORMANT = 'DORMANT',
+}
+
+export class User {
+  private constructor(
+    public readonly id: UserId,
+    private _email: Email,
+    private _name: UserName,
+    private _status: UserStatus,
+    private _lastLoginAt: Date | null,
+    public readonly createdAt: Date,
+  ) {}
+
+  // 팩토리 메서드: 비즈니스 규칙을 강제하며 생성
+  static create(data: {
+    email: string;
+    name: string;
+  }): User {
+    return new User(
+      UserId.generate(),
+      Email.create(data.email),
+      UserName.create(data.name),
+      UserStatus.PENDING,
+      null,
+      new Date(),
+    );
+  }
+
+  // 비즈니스 규칙: 상태 전이
+  activate(): void {
+    if (this._status !== UserStatus.PENDING) {
+      throw new Error(
+        \`Cannot activate user in \${this._status} status\`
+      );
+    }
+    this._status = UserStatus.ACTIVE;
+  }
+
+  // 비즈니스 규칙: 30일 비활성 시 휴면 처리
+  checkDormancy(): boolean {
+    if (!this._lastLoginAt) return false;
+    const daysSinceLogin = Math.floor(
+      (Date.now() - this._lastLoginAt.getTime()) / 86400000
+    );
+    if (daysSinceLogin > 30) {
+      this._status = UserStatus.DORMANT;
+      return true;
+    }
+    return false;
+  }
+
+  get email(): Email { return this._email; }
+  get name(): UserName { return this._name; }
+  get status(): UserStatus { return this._status; }
+}`}
+  language="typescript"
+  filename="src/domain/user/entity.ts"
+  highlightLines={[27, 28, 29, 42, 43, 44, 45, 52, 53, 54, 55]}
+/>
+
+<CodeBlock
+  code={`// src/domain/user/value-objects/email.ts
+export class Email {
+  private constructor(private readonly value: string) {}
+
+  static create(value: string): Email {
+    const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+    if (!emailRegex.test(value)) {
+      throw new Error(\`Invalid email format: \${value}\`);
+    }
+    return new Email(value.toLowerCase().trim());
+  }
+
+  equals(other: Email): boolean {
+    return this.value === other.value;
+  }
+
+  toString(): string {
+    return this.value;
+  }
+}
+
+// src/domain/user/value-objects/user-id.ts
+import { randomUUID } from 'crypto';
+
+export class UserId {
+  private constructor(public readonly value: string) {}
+
+  static generate(): UserId {
+    return new UserId(randomUUID());
+  }
+
+  static from(value: string): UserId {
+    if (!value || value.length === 0) {
+      throw new Error('UserId cannot be empty');
+    }
+    return new UserId(value);
+  }
+
+  equals(other: UserId): boolean {
+    return this.value === other.value;
+  }
+}`}
+  language="typescript"
+  filename="src/domain/user/value-objects/"
+/>
+
+<Callout type="tip" title="값 객체(Value Object)의 힘">
+  값 객체는 단순한 타입 래퍼가 아닙니다. 생성 시점에 유효성을 검증하므로, 시스템 어디에서든 Email 객체가 존재한다면 그것은 이미 유효한 이메일입니다.
+  AI에게 "Email은 Value Object로 구현되어 있다"고 알려주면, AI가 이메일 검증 코드를 중복 생성하는 것을 방지할 수 있습니다.
+</Callout>
+
+### Domain Layer: 리포지토리 인터페이스
+
+<CodeBlock
+  code={`// src/domain/user/repository.ts
+// Domain에는 인터페이스만 존재합니다. 구현은 Infrastructure에서!
+import { User } from './entity';
+import { UserId } from './value-objects/user-id';
+import { Email } from './value-objects/email';
+
+export interface IUserRepository {
+  findById(id: UserId): Promise<User | null>;
+  findByEmail(email: Email): Promise<User | null>;
+  findAll(options?: {
+    page: number;
+    limit: number;
+    status?: string;
+  }): Promise<{ users: User[]; total: number }>;
+  save(user: User): Promise<void>;
+  delete(id: UserId): Promise<void>;
+}`}
+  language="typescript"
+  filename="src/domain/user/repository.ts"
+/>
+
+### Application Layer: 유스케이스
+
+Application Layer는 도메인 객체들을 조합하여 하나의 비즈니스 시나리오를 완성합니다.
+
+<CodeBlock
+  code={`// src/application/use-cases/user/create-user.use-case.ts
+import { User } from '../../../domain/user/entity';
+import { IUserRepository } from '../../../domain/user/repository';
+import { IEmailService } from '../../ports/email-service.port';
+import { IEventBus } from '../../ports/event-bus.port';
+import { UserCreatedEvent } from '../../events/user-created.event';
+
+interface CreateUserInput {
+  email: string;
+  name: string;
+}
+
+interface CreateUserOutput {
+  id: string;
+  email: string;
+  name: string;
+  status: string;
+}
+
+export class CreateUserUseCase {
+  constructor(
+    private readonly userRepository: IUserRepository,
+    private readonly emailService: IEmailService,
+    private readonly eventBus: IEventBus,
+  ) {}
+
+  async execute(input: CreateUserInput): Promise<CreateUserOutput> {
+    // 1. 중복 확인 (비즈니스 규칙)
+    const existing = await this.userRepository.findByEmail(
+      Email.create(input.email)
+    );
+    if (existing) {
+      throw new DuplicateError('User', input.email);
+    }
+
+    // 2. 도메인 객체 생성 (비즈니스 규칙 강제)
+    const user = User.create({
+      email: input.email,
+      name: input.name,
+    });
+
+    // 3. 영속화
+    await this.userRepository.save(user);
+
+    // 4. 부수 효과 (이메일, 이벤트)
+    await this.emailService.sendWelcome(user.email.toString());
+    await this.eventBus.publish(new UserCreatedEvent(user.id.value));
+
+    // 5. 응답 DTO 반환
+    return {
+      id: user.id.value,
+      email: user.email.toString(),
+      name: user.name.toString(),
+      status: user.status,
+    };
+  }
+}`}
+  language="typescript"
+  filename="src/application/use-cases/user/create-user.use-case.ts"
+  highlightLines={[29, 30, 36, 37, 42, 44, 47, 48]}
+/>
+
+<Callout type="info" title="Use Case의 역할">
+  Use Case는 "오케스트레이터"입니다. 비즈니스 로직 자체를 구현하지 않고, Domain의 메서드를 호출하고 Infrastructure의 서비스를 조합합니다.
+  트랜잭션 경계도 이 레이어에서 관리합니다. AI에게 "Use Case는 도메인 로직을 직접 구현하지 말 것"이라고 지시하면 레이어 경계를 유지할 수 있습니다.
+</Callout>
+
+### Presentation Layer: 컨트롤러
+
+<CodeBlock
+  code={`// src/presentation/http/controllers/user.controller.ts
+import { Request, Response, NextFunction } from 'express';
+import { CreateUserUseCase } from '../../../application/use-cases/user/create-user.use-case';
+import { CreateUserRequestDto } from '../dto/create-user.request.dto';
+import { validate } from 'class-validator';
+
+export class UserController {
+  constructor(
+    private readonly createUserUseCase: CreateUserUseCase,
+  ) {}
+
+  async create(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      // 1. 입력 검증 (형식만, 비즈니스 규칙이 아님)
+      const dto = Object.assign(
+        new CreateUserRequestDto(),
+        req.body,
+      );
+      const errors = await validate(dto);
+      if (errors.length > 0) {
+        res.status(400).json({
+          error: 'Validation failed',
+          details: errors.map(e => e.constraints),
+        });
+        return;
+      }
+
+      // 2. Use Case 호출
+      const result = await this.createUserUseCase.execute({
+        email: dto.email,
+        name: dto.name,
+      });
+
+      // 3. 응답 반환
+      res.status(201).json({ data: result });
+    } catch (error) {
+      next(error);  // 에러 핸들링 미들웨어로 위임
+    }
+  }
+}`}
+  language="typescript"
+  filename="src/presentation/http/controllers/user.controller.ts"
+  highlightLines={[18, 32, 39]}
+/>
+
+### Infrastructure Layer: 리포지토리 구현
+
+<CodeBlock
+  code={`// src/infrastructure/persistence/postgres/user.repository.ts
+import { Pool } from 'pg';
+import { User, UserStatus } from '../../../domain/user/entity';
+import { IUserRepository } from '../../../domain/user/repository';
+import { UserId } from '../../../domain/user/value-objects/user-id';
+import { Email } from '../../../domain/user/value-objects/email';
+
+export class PostgresUserRepository implements IUserRepository {
+  constructor(private readonly pool: Pool) {}
+
+  async findById(id: UserId): Promise<User | null> {
+    const result = await this.pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [id.value],
+    );
+    if (result.rows.length === 0) return null;
+    return this.toDomain(result.rows[0]);
+  }
+
+  async findByEmail(email: Email): Promise<User | null> {
+    const result = await this.pool.query(
+      'SELECT * FROM users WHERE email = $1',
+      [email.toString()],
+    );
+    if (result.rows.length === 0) return null;
+    return this.toDomain(result.rows[0]);
+  }
+
+  async save(user: User): Promise<void> {
+    await this.pool.query(
+      \`INSERT INTO users (id, email, name, status, created_at)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (id) DO UPDATE SET
+         email = EXCLUDED.email,
+         name = EXCLUDED.name,
+         status = EXCLUDED.status\`,
+      [
+        user.id.value,
+        user.email.toString(),
+        user.name.toString(),
+        user.status,
+        user.createdAt,
+      ],
+    );
+  }
+
+  async delete(id: UserId): Promise<void> {
+    await this.pool.query(
+      'DELETE FROM users WHERE id = $1',
+      [id.value],
+    );
+  }
+
+  // DB row를 도메인 엔터티로 변환
+  private toDomain(row: Record<string, unknown>): User {
+    // User.reconstitute()는 DB 데이터로부터 엔터티를 복원하는
+    // 별도의 팩토리 메서드입니다 (create와 구분)
+    return User.reconstitute({
+      id: row.id as string,
+      email: row.email as string,
+      name: row.name as string,
+      status: row.status as UserStatus,
+      lastLoginAt: row.last_login_at as Date | null,
+      createdAt: row.created_at as Date,
+    });
+  }
+}`}
+  language="typescript"
+  filename="src/infrastructure/persistence/postgres/user.repository.ts"
+  highlightLines={[8, 30, 31, 32, 33, 34, 35, 36, 56, 57, 58]}
+/>
+
+<Callout type="warning" title="Infrastructure가 Domain 인터페이스를 구현한다">
+  `PostgresUserRepository`는 Domain의 `IUserRepository` 인터페이스를 구현합니다.
+  이것이 의존성 역전(DIP)의 핵심입니다. Domain은 "데이터를 저장/조회하는 방법"을 정의하고, Infrastructure는 "PostgreSQL을 사용해 실제로 구현"합니다.
+  데이터베이스를 교체해도 Domain 코드는 변경되지 않습니다.
+</Callout>
+
+---
+
+## CQRS와 이벤트 소싱 패턴
+
+CQRS(Command Query Responsibility Segregation)는 데이터의 **쓰기(Command)**와 **읽기(Query)**를 분리하는 패턴입니다. 프로젝트 규모가 커질수록 읽기와 쓰기의 요구사항이 달라지기 때문에, 이 분리는 자연스러운 진화 방향입니다.
+
+### CQRS 기본 구조
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph Client["Client"]
+      C1["Write Request"]
+      C2["Read Request"]
+    end
+    subgraph Commands["Command Side"]
+      CH["Command Handler"]
+      D["Domain Model"]
+      WDB[("Write DB")]
+    end
+    subgraph Queries["Query Side"]
+      QH["Query Handler"]
+      RM["Read Model"]
+      RDB[("Read DB")]
+    end
+    subgraph Events["Event Bus"]
+      EB["Domain Events"]
+    end
+    C1 --> CH
+    CH --> D
+    D --> WDB
+    D --> EB
+    EB --> RM
+    RM --> RDB
+    C2 --> QH
+    QH --> RDB
+    style Commands fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Queries fill:#fdf2ee,stroke:#16a34a,color:#2d2a26
+    style Events fill:#fdf2ee,stroke:#9333ea,color:#2d2a26`}
+  title="CQRS 패턴 구조"
+  caption="Command(쓰기)와 Query(읽기)를 분리하여 각각 최적화합니다. Domain Events가 두 모델을 동기화합니다."
+/>
+
+### Command와 Query 분리 구현
+
+<CodeBlock
+  code={`// src/application/commands/create-order.command.ts
+export class CreateOrderCommand {
+  constructor(
+    public readonly userId: string,
+    public readonly items: Array<{
+      productId: string;
+      quantity: number;
+    }>,
+    public readonly shippingAddress: string,
+  ) {}
+}
+
+// src/application/commands/handlers/create-order.handler.ts
+export class CreateOrderHandler {
+  constructor(
+    private readonly orderRepository: IOrderRepository,
+    private readonly productService: IProductService,
+    private readonly eventBus: IEventBus,
+  ) {}
+
+  async handle(command: CreateOrderCommand): Promise<string> {
+    // 재고 확인
+    for (const item of command.items) {
+      const available = await this.productService
+        .checkStock(item.productId, item.quantity);
+      if (!available) {
+        throw new InsufficientStockError(item.productId);
+      }
+    }
+
+    // 주문 생성 (도메인 로직)
+    const order = Order.create({
+      userId: command.userId,
+      items: command.items,
+      shippingAddress: command.shippingAddress,
+    });
+
+    await this.orderRepository.save(order);
+    await this.eventBus.publish(
+      new OrderCreatedEvent(order.id.value)
+    );
+
+    return order.id.value;
+  }
+}`}
+  language="typescript"
+  filename="Command Handler 예제"
+/>
+
+<CodeBlock
+  code={`// src/application/queries/get-order-summary.query.ts
+export class GetOrderSummaryQuery {
+  constructor(
+    public readonly orderId: string,
+    public readonly includeItems: boolean = true,
+  ) {}
+}
+
+// src/application/queries/handlers/get-order-summary.handler.ts
+export class GetOrderSummaryHandler {
+  constructor(
+    // Query 쪽은 읽기 전용 모델을 직접 조회
+    private readonly readDb: IReadDatabase,
+  ) {}
+
+  async handle(
+    query: GetOrderSummaryQuery,
+  ): Promise<OrderSummaryDto> {
+    // Read Model에서 비정규화된 데이터를 바로 조회
+    // JOIN 없이 한 번의 쿼리로 필요한 모든 데이터를 가져옴
+    const summary = await this.readDb.query(\`
+      SELECT
+        o.id, o.status, o.total_amount,
+        o.user_name, o.shipping_address,
+        o.item_count, o.created_at
+      FROM order_summaries o
+      WHERE o.id = $1
+    \`, [query.orderId]);
+
+    if (!summary) {
+      throw new NotFoundError('Order', query.orderId);
+    }
+
+    return OrderSummaryDto.from(summary);
+  }
+}`}
+  language="typescript"
+  filename="Query Handler 예제"
+/>
+
+<Callout type="tip" title="AI 프로젝트에서 CQRS를 도입해야 할 때">
+  CQRS는 모든 프로젝트에 필요한 것은 아닙니다. 다음 조건이 충족될 때 도입을 고려하세요:
+  - 읽기와 쓰기의 비율이 극단적으로 다를 때 (예: 읽기 90%, 쓰기 10%)
+  - 읽기 모델이 여러 Aggregate의 데이터를 조합해야 할 때
+  - 쓰기와 읽기의 스케일링 요구사항이 다를 때
+
+  AI 에이전트에게 CQRS를 적용한 프로젝트를 맡길 때는, `architecture.md`에 Command와 Query의 디렉토리 구조와 네이밍 규칙을 명확히 기술해야 합니다.
+</Callout>
+
+### 이벤트 소싱 개요
+
+이벤트 소싱은 CQRS와 자주 함께 사용되는 패턴으로, 상태를 직접 저장하는 대신 **상태 변경 이벤트의 시퀀스**를 저장합니다.
+
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant C as Command
+    participant A as Aggregate
+    participant ES as Event Store
+    participant P as Projection
+    participant RDB as Read DB
+    C->>A: CreateOrder
+    A->>A: 비즈니스 규칙 검증
+    A->>ES: OrderCreated Event 저장
+    ES-->>P: Event 전파
+    P->>RDB: Read Model 업데이트
+    Note over ES: 이벤트는 불변이므로 삭제/수정 불가
+    C->>A: AddItem
+    A->>ES: ItemAdded Event 저장
+    ES-->>P: Event 전파
+    P->>RDB: Read Model 업데이트
+    Note over A: Aggregate 상태 = 모든 이벤트의 재생 결과`}
+  title="이벤트 소싱 흐름"
+  caption="상태를 직접 저장하지 않고, 이벤트 시퀀스로부터 현재 상태를 도출합니다."
+/>
+
+<CodeBlock
+  code={`// src/domain/order/events.ts
+export abstract class DomainEvent {
+  public readonly occurredAt: Date = new Date();
+  abstract readonly eventType: string;
+}
+
+export class OrderCreatedEvent extends DomainEvent {
+  readonly eventType = 'ORDER_CREATED';
+  constructor(
+    public readonly orderId: string,
+    public readonly userId: string,
+    public readonly items: Array<{
+      productId: string;
+      quantity: number;
+      price: number;
+    }>,
+  ) { super(); }
+}
+
+export class OrderItemAddedEvent extends DomainEvent {
+  readonly eventType = 'ORDER_ITEM_ADDED';
+  constructor(
+    public readonly orderId: string,
+    public readonly productId: string,
+    public readonly quantity: number,
+    public readonly price: number,
+  ) { super(); }
+}
+
+export class OrderConfirmedEvent extends DomainEvent {
+  readonly eventType = 'ORDER_CONFIRMED';
+  constructor(
+    public readonly orderId: string,
+    public readonly confirmedAt: Date,
+  ) { super(); }
+}`}
+  language="typescript"
+  filename="src/domain/order/events.ts"
+/>
+
+---
+
+## 마이크로서비스 vs 모놀리스
+
+AI 코딩 시대에 아키텍처를 선택할 때 가장 빈번하게 마주하는 결정입니다. AI 에이전트는 컨텍스트 윈도우의 제약이 있기 때문에, 아키텍처 선택이 AI의 코드 생성 품질에 직접적인 영향을 미칩니다.
+
+<ComparisonTable
+  title="마이크로서비스 vs 모놀리스 비교"
+  headers={['관점', '모놀리스', '모듈러 모놀리스', '마이크로서비스']}
+  rows={[
+    { feature: 'AI 컨텍스트 활용', values: ['전체 코드 참조 가능', '모듈 단위로 집중', '서비스 경계가 컨텍스트'] },
+    { feature: '코드 생성 일관성', values: ['높음 (단일 코드베이스)', '높음 (공유 규칙)', '낮음 (서비스별 차이)'] },
+    { feature: '배포 복잡도', values: ['낮음', '중간', '높음'] },
+    { feature: '팀 규모 적합성', values: ['1-5명', '5-15명', '15명 이상'] },
+    { feature: '초기 개발 속도', values: ['빠름', '빠름', '느림'] },
+    { feature: '스케일링 유연성', values: ['제한적', '중간', '높음'] },
+    { feature: 'AI 에이전트 독립 작업', values: ['충돌 가능성 높음', '모듈별 분리 가능', '서비스별 독립'] },
+    { feature: '테스트 복잡도', values: ['낮음', '중간', '높음 (통합 테스트)'] },
+    { feature: 'CLAUDE.md 관리', values: ['1개 파일', '1개 + 모듈별 rules', '서비스별 각각'] },
+  ]}
+/>
+
+<Callout type="tip" title="AI 시대의 권장: 모듈러 모놀리스로 시작하기">
+  AI 코딩에서 가장 실용적인 출발점은 **모듈러 모놀리스**입니다. 이유는 다음과 같습니다:
+
+  1. AI가 전체 코드베이스를 참조할 수 있어 **일관된 코드 생성**이 가능합니다.
+  2. 모듈 경계가 명확하므로 **여러 AI 에이전트가 병렬 작업**할 때 충돌이 줄어듭니다.
+  3. 나중에 마이크로서비스로 분리할 때, 모듈 경계가 자연스러운 **서비스 경계**가 됩니다.
+  4. 하나의 `CLAUDE.md`로 프로젝트 전체를 관리할 수 있어 **컨텍스트 관리가 용이**합니다.
+</Callout>
+
+### 모듈러 모놀리스 디렉토리 구조
+
+<CodeBlock
+  code={`src/
+├── modules/
+│   ├── user/                    # 사용자 모듈
+│   │   ├── domain/
+│   │   │   ├── entity.ts
+│   │   │   ├── repository.ts    # Interface
+│   │   │   └── value-objects/
+│   │   ├── application/
+│   │   │   ├── commands/
+│   │   │   ├── queries/
+│   │   │   └── services/
+│   │   ├── infrastructure/
+│   │   │   ├── persistence/
+│   │   │   └── external/
+│   │   ├── presentation/
+│   │   │   ├── controllers/
+│   │   │   └── dto/
+│   │   └── index.ts             # 모듈 공개 API
+│   │
+│   ├── order/                   # 주문 모듈
+│   │   ├── domain/
+│   │   ├── application/
+│   │   ├── infrastructure/
+│   │   ├── presentation/
+│   │   └── index.ts
+│   │
+│   └── payment/                 # 결제 모듈
+│       ├── domain/
+│       ├── application/
+│       ├── infrastructure/
+│       ├── presentation/
+│       └── index.ts
+│
+├── shared/                      # 모듈 간 공유 코드
+│   ├── kernel/                  # 공통 도메인 개념
+│   │   ├── entity.base.ts
+│   │   ├── value-object.base.ts
+│   │   └── domain-event.base.ts
+│   ├── infrastructure/          # 공통 인프라
+│   │   ├── database.ts
+│   │   ├── event-bus.ts
+│   │   └── logger.ts
+│   └── errors/
+│       └── application-error.ts
+│
+└── main.ts                      # 앱 진입점 + DI 설정`}
+  language="text"
+  filename="모듈러 모놀리스 디렉토리 구조"
+/>
+
+<Callout type="warning" title="모듈 간 직접 참조 금지">
+  모듈러 모놀리스의 핵심 규칙: 모듈 간에는 `index.ts`에서 공개한 API만 사용해야 합니다.
+  `import {{ '{' }} User {{ '}' }} from '../user/domain/entity'`처럼 다른 모듈의 내부 파일을 직접 참조하면 안 됩니다.
+  이 규칙을 `architecture.md`에 명시하면, AI 에이전트가 모듈 경계를 존중하는 코드를 생성합니다.
+</Callout>
+
+---
+
+## AI 에이전트에게 아키텍처 전달하기
+
+AI 에이전트가 일관된 아키텍처를 따르려면, `.claude/rules/architecture.md` 파일에 아키텍처를 명확하게 기술해야 합니다. 단순히 "Clean Architecture를 사용한다"는 문장만으로는 부족합니다.
+
+### 효과적인 architecture.md 작성법
+
+<CodeBlock
+  code={`# Architecture
+
+## 아키텍처 스타일
+모듈러 모놀리스 + Clean Architecture 4레이어
+
+## 의존성 규칙
+- 의존성은 항상 안쪽을 향한다: Presentation → Application → Domain ← Infrastructure
+- Domain Layer는 어떤 외부 패키지도 import하지 않는다
+- Infrastructure → Domain (구현), Application → Domain (사용)
+- 모듈 간 통신은 반드시 Event Bus 또는 공개 인터페이스를 통한다
+
+## 레이어별 규칙
+
+### Domain Layer
+- 위치: src/modules/{module}/domain/
+- 포함: Entity, Value Object, Domain Service, Repository Interface, Domain Event
+- 금지: 외부 라이브러리 import, 직접 DB 접근, HTTP 관련 코드
+- Entity 생성은 반드시 정적 팩토리 메서드(create, reconstitute)를 사용
+
+### Application Layer
+- 위치: src/modules/{module}/application/
+- 포함: Use Case, Command Handler, Query Handler, Application Service
+- 금지: 직접 DB 쿼리 작성, HTTP Request/Response 객체 참조
+- 트랜잭션 경계는 Use Case 단위로 관리
+
+### Presentation Layer
+- 위치: src/modules/{module}/presentation/
+- 포함: Controller, DTO, Middleware, Input Validation
+- 금지: 비즈니스 로직 구현, 직접 Repository 호출
+- 입력 검증은 형식(format)만, 비즈니스 규칙 검증은 Domain에서
+
+### Infrastructure Layer
+- 위치: src/modules/{module}/infrastructure/
+- 포함: Repository 구현, External API Client, Message Publisher
+- 금지: 비즈니스 로직 구현
+- Domain의 Repository Interface를 구현
+
+## 네이밍 규칙
+- Use Case: {Action}{Resource}UseCase (예: CreateUserUseCase)
+- Command: {Action}{Resource}Command (예: CreateOrderCommand)
+- Query: Get{Resource}{Detail}Query (예: GetOrderSummaryQuery)
+- Event: {Resource}{Action}Event (과거형, 예: OrderCreatedEvent)
+- DTO: {Action}{Resource}{Request|Response}Dto
+
+## 에러 처리
+- Domain Error: 비즈니스 규칙 위반 (예: InsufficientBalanceError)
+- Application Error: 유스케이스 수준 에러 (예: UserNotFoundError)
+- Infrastructure Error: 기술적 에러 (예: DatabaseConnectionError)
+- 에러는 가능한 구체적 클래스로 정의하고, catch에서 타입별 처리`}
+  language="markdown"
+  filename=".claude/rules/architecture.md (권장 작성 예시)"
+/>
+
+<Callout type="info" title="왜 이렇게 상세해야 하는가">
+  AI 에이전트는 모호한 지시를 받으면 자체적으로 판단합니다. "Clean Architecture를 따라라"라고만 하면, AI마다 해석이 다릅니다.
+  레이어별 **위치**, **포함 요소**, **금지 사항**, **네이밍 규칙**을 구체적으로 명시하면 AI가 생성하는 코드가 일관되게 됩니다.
+  특히 "금지 사항"을 명시하는 것이 핵심입니다. AI는 "하지 말 것"을 알아야 경계를 넘지 않습니다.
+</Callout>
+
+### 실수를 유발하는 부족한 architecture.md
+
+<CodeBlock
+  code={`# Architecture (나쁜 예시)
+
+Clean Architecture를 사용합니다.
+4개 레이어로 구성됩니다.
+테스트를 잘 작성해주세요.`}
+  language="markdown"
+  filename="부족한 architecture.md 예시"
+/>
+
+<Callout type="warning" title="이 문서가 부족한 이유">
+  이런 수준의 architecture.md를 보면 AI는 다음과 같이 행동합니다:
+  - Controller에 비즈니스 로직을 직접 구현
+  - Repository 인터페이스 없이 Infrastructure에 직접 의존
+  - 네이밍이 일관되지 않음 (UserService, OrderManager, PaymentProcessor 혼재)
+  - 에러 처리를 단순 try-catch + console.error로 처리
+  - 모듈 간 직접 참조로 결합도 증가
+
+  **구체적인 규칙이 없으면, AI는 "가장 일반적인 패턴"을 따릅니다.** 그것은 보통 튜토리얼 수준의 단순한 코드입니다.
+</Callout>
+
+### architecture.md 점검 체크리스트
+
+| 항목 | 확인 질문 | 미기술 시 위험 |
+|------|-----------|--------------|
+| 레이어 정의 | 몇 개 레이어? 각 레이어의 디렉토리 경로는? | AI가 임의로 구조를 만듦 |
+| 의존성 규칙 | 어떤 레이어가 어떤 레이어에 의존? | 순환 의존성 발생 |
+| 금지 사항 | 각 레이어에서 하면 안 되는 것은? | 레이어 경계 위반 |
+| 네이밍 규칙 | 클래스/파일 네이밍 패턴은? | 비일관적 네이밍 |
+| 에러 처리 | 에러 클래스 구조와 처리 전략은? | throw new Error() 남발 |
+| 공통 코드 | shared/kernel의 위치와 역할은? | 코드 중복 |
+| 모듈 통신 | 모듈 간 통신 방식은? | 직접 참조로 강결합 |
+
+---
+
+## 아키텍처 안티패턴
+
+AI 에이전트가 코드를 생성할 때 발생하기 쉬운 아키텍처 안티패턴을 알아두면, 코드 리뷰에서 빠르게 문제를 발견할 수 있습니다.
+
+### 안티패턴 1: 뚱뚱한 컨트롤러 (Fat Controller)
+
+<Callout type="warning" title="가장 빈번한 안티패턴">
+  AI에게 "사용자 생성 API를 만들어줘"라고만 말하면, 높은 확률로 컨트롤러에 모든 로직을 넣습니다.
+  입력 검증, 비즈니스 규칙 확인, DB 저장, 이메일 발송까지 하나의 메서드에 들어갑니다.
+</Callout>
+
+<CodeBlock
+  code={`// 안티패턴: Fat Controller
+app.post('/users', async (req, res) => {
+  // 입력 검증, 비즈니스 로직, DB 접근이 모두 한 곳에
+  const { email, name, password } = req.body;
+
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+
+  const existing = await db.query(
+    'SELECT * FROM users WHERE email = $1',
+    [email]
+  );
+  if (existing.rows.length > 0) {
+    return res.status(409).json({ error: 'Email exists' });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+  const result = await db.query(
+    'INSERT INTO users (email, name, password) VALUES ($1, $2, $3) RETURNING *',
+    [email, name, hashedPassword]
+  );
+
+  await sendEmail(email, 'Welcome!', 'Welcome to our platform');
+
+  return res.status(201).json(result.rows[0]);
+});`}
+  language="typescript"
+  filename="안티패턴: Fat Controller (모든 로직이 한 곳에)"
+/>
+
+**해결**: Controller는 입력 검증과 응답 반환만. 비즈니스 로직은 Use Case로, DB 접근은 Repository로 분리합니다. architecture.md에 "Controller에서 직접 DB 쿼리를 작성하지 말 것"이라고 명시하세요.
+
+### 안티패턴 2: 도메인 모델 빈혈 (Anemic Domain Model)
+
+<CodeBlock
+  code={`// 안티패턴: 빈혈 도메인 모델
+// 엔터티가 데이터만 담고, 로직이 없음
+class Order {
+  id: string;
+  status: string;
+  items: OrderItem[];
+  totalAmount: number;
+}
+
+// 비즈니스 로직이 서비스에 분산됨
+class OrderService {
+  confirm(order: Order) {
+    if (order.status !== 'pending') {
+      throw new Error('Cannot confirm');
+    }
+    order.status = 'confirmed';
+    order.totalAmount = order.items.reduce(
+      (sum, item) => sum + item.price * item.quantity, 0
+    );
+  }
+}`}
+  language="typescript"
+  filename="안티패턴: Anemic Domain Model"
+/>
+
+<CodeBlock
+  code={`// 올바른 패턴: Rich Domain Model
+class Order {
+  private _status: OrderStatus;
+  private _items: OrderItem[];
+
+  confirm(): void {
+    if (this._status !== OrderStatus.PENDING) {
+      throw new InvalidStateTransitionError(
+        'Order must be pending to confirm'
+      );
+    }
+    this._status = OrderStatus.CONFIRMED;
+  }
+
+  get totalAmount(): number {
+    return this._items.reduce(
+      (sum, item) => sum + item.subtotal, 0
+    );
+  }
+
+  addItem(product: Product, quantity: number): void {
+    if (this._status !== OrderStatus.DRAFT) {
+      throw new Error('Cannot modify non-draft order');
+    }
+    this._items.push(
+      OrderItem.create(product, quantity)
+    );
+  }
+}`}
+  language="typescript"
+  filename="올바른 패턴: Rich Domain Model"
+/>
+
+### 안티패턴 3: 레이어 건너뛰기 (Layer Skipping)
+
+<Callout type="warning" title="레이어 건너뛰기">
+  Controller에서 Repository를 직접 호출하거나, Use Case에서 HTTP Response 객체를 다루는 것은 레이어를 건너뛰는 안티패턴입니다.
+  AI 에이전트는 "빠른 구현"을 위해 레이어를 생략하는 경향이 있습니다.
+  architecture.md에 각 레이어의 의존 가능한 대상을 명확히 기술하세요.
+</Callout>
+
+<CodeBlock
+  code={`// 안티패턴: Controller가 Repository를 직접 호출
+class UserController {
+  constructor(
+    private userRepo: PostgresUserRepository  // 구체 클래스에 의존!
+  ) {}
+
+  async getUser(req: Request, res: Response) {
+    // Application Layer를 건너뛰고 Infrastructure에 직접 접근
+    const user = await this.userRepo.findById(req.params.id);
+    return res.json(user);
+  }
+}
+
+// 올바른 패턴: Controller → UseCase → Repository(Interface)
+class UserController {
+  constructor(
+    private getUserUseCase: GetUserUseCase  // Application Layer
+  ) {}
+
+  async getUser(req: Request, res: Response) {
+    const user = await this.getUserUseCase.execute({
+      userId: req.params.id
+    });
+    return res.json(UserResponseDto.from(user));
+  }
+}`}
+  language="typescript"
+  filename="레이어 건너뛰기 안티패턴과 올바른 패턴"
+/>
+
+### 안티패턴 4: 순환 의존성 (Circular Dependency)
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph Bad["순환 의존성 (안티패턴)"]
+      A1["UserService"] --> B1["OrderService"]
+      B1 --> A1
+    end
+    subgraph Good["이벤트 기반 분리 (올바른 패턴)"]
+      A2["UserService"] --> E["Event Bus"]
+      E --> B2["OrderService"]
+    end
+    style Bad fill:#fdf2ee,stroke:#dc2626,color:#2d2a26
+    style Good fill:#fdf2ee,stroke:#16a34a,color:#2d2a26`}
+  title="순환 의존성 해결"
+  caption="모듈 간 직접 참조 대신 Event Bus를 통한 간접 통신으로 순환 의존성을 끊습니다."
+/>
+
+### 안티패턴 요약
+
+<ComparisonTable
+  title="AI가 만들기 쉬운 아키텍처 안티패턴"
+  headers={['안티패턴', '발생 상황', '방지 방법']}
+  rows={[
+    { feature: 'Fat Controller', values: ['"API 만들어줘"라고만 요청', 'Controller 금지 사항 명시'] },
+    { feature: 'Anemic Domain', values: ['Entity를 DTO처럼 생성', 'Entity에 비즈니스 메서드 예시 제공'] },
+    { feature: 'Layer Skipping', values: ['"빠르게 만들어줘" 요청', '레이어별 의존 규칙 명시'] },
+    { feature: 'Circular Dependency', values: ['모듈 간 상호 참조', 'Event Bus 패턴 명시'] },
+    { feature: 'God Class', values: ['하나의 서비스에 모든 기능', '단일 책임 원칙 강조'] },
+    { feature: 'Shotgun Surgery', values: ['하나의 변경이 여러 파일에 영향', '관련 로직을 모듈로 응집'] },
+  ]}
+/>
+
+---
+
+## 실전: 프로젝트 유형별 아키텍처
+
+프로젝트 유형에 따라 4레이어의 적용 방식이 달라집니다. AI 에이전트에게 프로젝트 유형을 명확히 전달하면, 해당 유형에 맞는 코드를 생성합니다.
+
+### REST API 프로젝트
+
+가장 일반적인 백엔드 프로젝트입니다. HTTP 요청-응답 기반의 동기 처리가 중심입니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph REST["REST API 아키텍처"]
+      direction TB
+      subgraph P1["Presentation"]
+        R1["Express Router"]
+        M1["Auth Middleware"]
+        V1["Validation Middleware"]
+        D1["Request/Response DTO"]
+      end
+      subgraph A1["Application"]
+        UC1["CRUD Use Cases"]
+        MAP1["DTO Mappers"]
+      end
+      subgraph D1L["Domain"]
+        E1["Entities"]
+        VO1["Value Objects"]
+        RI1["Repository Interfaces"]
+      end
+      subgraph I1["Infrastructure"]
+        PG1["PostgreSQL Repository"]
+        RD1["Redis Cache"]
+        S3["S3 File Storage"]
+      end
+    end
+    P1 --> A1
+    A1 --> D1L
+    I1 --> D1L
+    style P1 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style A1 fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
+    style D1L fill:#fdf2ee,stroke:#16a34a,color:#2d2a26
+    style I1 fill:#fdf2ee,stroke:#d97706,color:#2d2a26`}
+  title="REST API 프로젝트 아키텍처"
+  caption="전통적인 CRUD 기반 REST API의 4레이어 적용"
+/>
+
+### GraphQL API 프로젝트
+
+GraphQL에서는 Presentation Layer의 구성이 달라집니다. Resolver가 Controller 역할을 하고, Schema가 API 스펙을 정의합니다.
+
+<CodeBlock
+  code={`// src/presentation/graphql/resolvers/user.resolver.ts
+import { Resolver, Query, Mutation, Args } from 'type-graphql';
+
+@Resolver()
+export class UserResolver {
+  constructor(
+    private createUserUseCase: CreateUserUseCase,
+    private getUserUseCase: GetUserUseCase,
+  ) {}
+
+  @Query(() => UserType)
+  async user(@Args() { id }: GetUserArgs): Promise<UserType> {
+    const result = await this.getUserUseCase.execute({ id });
+    return UserType.from(result);
+  }
+
+  @Mutation(() => UserType)
+  async createUser(
+    @Args() input: CreateUserInput,
+  ): Promise<UserType> {
+    const result = await this.createUserUseCase.execute({
+      email: input.email,
+      name: input.name,
+    });
+    return UserType.from(result);
+  }
+}
+
+// Application, Domain, Infrastructure Layer는 REST와 동일!
+// Presentation만 교체하면 GraphQL로 전환 가능`}
+  language="typescript"
+  filename="GraphQL Resolver (Presentation Layer)"
+/>
+
+<Callout type="tip" title="Presentation Layer만 교체 가능">
+  Clean Architecture의 강점은 Presentation Layer를 교체해도 나머지 레이어가 영향받지 않는다는 것입니다.
+  REST에서 GraphQL로, 또는 gRPC로 전환할 때 Application, Domain, Infrastructure 코드는 재사용됩니다.
+  AI 에이전트에게 이 원칙을 알려주면, Presentation에 비즈니스 로직을 넣는 실수를 방지할 수 있습니다.
+</Callout>
+
+### 이벤트 기반 프로젝트
+
+비동기 메시지 처리가 중심인 프로젝트에서는 Presentation Layer가 메시지 소비자(Consumer)로 대체됩니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Event["이벤트 기반 아키텍처"]
+      direction TB
+      subgraph P2["Presentation (Event Consumer)"]
+        Q1["Message Queue Consumer"]
+        WH["Webhook Handler"]
+        SC["Scheduled Job Trigger"]
+      end
+      subgraph A2["Application"]
+        EH["Event Handlers"]
+        SAGA["Saga Orchestrator"]
+      end
+      subgraph D2["Domain"]
+        AGG["Aggregates"]
+        DE["Domain Events"]
+        POL["Domain Policies"]
+      end
+      subgraph I2["Infrastructure"]
+        RMQ["RabbitMQ Publisher"]
+        DB2["MongoDB Repository"]
+        EXT["External API Client"]
+      end
+    end
+    P2 --> A2
+    A2 --> D2
+    I2 --> D2
+    style P2 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style A2 fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
+    style D2 fill:#fdf2ee,stroke:#16a34a,color:#2d2a26
+    style I2 fill:#fdf2ee,stroke:#d97706,color:#2d2a26`}
+  title="이벤트 기반 프로젝트 아키텍처"
+  caption="HTTP 대신 메시지 큐, 웹훅, 스케줄러가 진입점이 되는 이벤트 기반 아키텍처"
+/>
+
+<CodeBlock
+  code={`// src/presentation/consumers/order-event.consumer.ts
+export class OrderEventConsumer {
+  constructor(
+    private processPaymentUseCase: ProcessPaymentUseCase,
+    private sendNotificationUseCase: SendNotificationUseCase,
+  ) {}
+
+  // Message Queue에서 메시지를 수신하면 실행
+  async handleOrderCreated(
+    event: OrderCreatedMessage,
+  ): Promise<void> {
+    // 1. 결제 처리
+    await this.processPaymentUseCase.execute({
+      orderId: event.orderId,
+      amount: event.totalAmount,
+      paymentMethod: event.paymentMethod,
+    });
+
+    // 2. 알림 발송
+    await this.sendNotificationUseCase.execute({
+      userId: event.userId,
+      type: 'ORDER_CONFIRMED',
+      data: { orderId: event.orderId },
+    });
+  }
+
+  async handlePaymentFailed(
+    event: PaymentFailedMessage,
+  ): Promise<void> {
+    // 보상 트랜잭션 (Saga 패턴)
+    await this.cancelOrderUseCase.execute({
+      orderId: event.orderId,
+      reason: event.failureReason,
+    });
+  }
+}`}
+  language="typescript"
+  filename="이벤트 기반 Presentation Layer"
+/>
+
+### 프로젝트 유형별 architecture.md 핵심 포인트
+
+<ComparisonTable
+  title="프로젝트 유형별 architecture.md 필수 기술 항목"
+  headers={['항목', 'REST API', 'GraphQL', '이벤트 기반']}
+  rows={[
+    { feature: 'Presentation 진입점', values: ['Express Router', 'GraphQL Resolver', 'Queue Consumer'] },
+    { feature: 'DTO 변환 위치', values: ['Controller', 'Resolver', 'Consumer'] },
+    { feature: '입력 검증 방식', values: ['Middleware', 'Schema + Validator', 'Message Schema'] },
+    { feature: '에러 처리', values: ['Error Middleware', 'Error Formatter', 'Dead Letter Queue'] },
+    { feature: '인증 방식', values: ['JWT Middleware', 'Context + Guard', 'Message Signing'] },
+    { feature: '트랜잭션 패턴', values: ['DB Transaction', 'DB Transaction', 'Saga Pattern'] },
+  ]}
+/>
+
+---
+
+## 테스트 전략과 아키텍처
+
+Clean Architecture의 레이어 분리는 테스트를 근본적으로 쉽게 만듭니다. 각 레이어별로 무엇을 어떻게 테스트해야 하는지 전략이 달라집니다.
+
+### 테스트 피라미드
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Pyramid["테스트 피라미드"]
+      direction TB
+      E2E["E2E 테스트 (느림, 적음)"]
+      INT["통합 테스트 (중간)"]
+      UNIT["단위 테스트 (빠름, 많음)"]
+    end
+    E2E --- INT
+    INT --- UNIT
+    style E2E fill:#fdf2ee,stroke:#dc2626,color:#2d2a26
+    style INT fill:#fdf2ee,stroke:#d97706,color:#2d2a26
+    style UNIT fill:#fdf2ee,stroke:#16a34a,color:#2d2a26`}
+  title="테스트 피라미드"
+  caption="하단(단위 테스트)이 가장 많고, 상단(E2E)이 가장 적은 피라미드 구조가 이상적입니다."
+/>
+
+### 레이어별 테스트 전략
+
+<ComparisonTable
+  title="레이어별 테스트 전략"
+  headers={['항목', 'Domain', 'Application', 'Infrastructure', 'Presentation']}
+  rows={[
+    { feature: '테스트 유형', values: ['단위 테스트', '단위 + 통합', '통합 테스트', 'E2E + 통합'] },
+    { feature: '외부 의존성', values: ['없음', 'Mock/Stub', '실제 DB/API', 'Supertest'] },
+    { feature: '실행 속도', values: ['매우 빠름', '빠름', '느림', '매우 느림'] },
+    { feature: '테스트 비중', values: ['50%', '30%', '10%', '10%'] },
+    { feature: 'Mocking 대상', values: ['없음', 'Repository, Service', 'DB Connection', 'Use Case'] },
+    { feature: 'AI 생성 난이도', values: ['쉬움', '중간', '어려움', '중간'] },
+  ]}
+/>
+
+### Domain Layer 테스트
+
+Domain Layer는 외부 의존성이 없기 때문에 테스트가 가장 쉽고 빠릅니다. AI에게 테스트 코드를 요청할 때 가장 좋은 시작점입니다.
+
+<CodeBlock
+  code={`// src/domain/user/__tests__/entity.test.ts
+import { User, UserStatus } from '../entity';
+
+describe('User Entity', () => {
+  describe('create', () => {
+    it('유효한 데이터로 PENDING 상태의 사용자를 생성한다', () => {
+      const user = User.create({
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      expect(user.status).toBe(UserStatus.PENDING);
+      expect(user.email.toString()).toBe('test@example.com');
+      expect(user.id.value).toBeDefined();
+    });
+
+    it('잘못된 이메일 형식이면 에러를 던진다', () => {
+      expect(() => User.create({
+        email: 'invalid-email',
+        name: 'Test User',
+      })).toThrow('Invalid email format');
+    });
+  });
+
+  describe('activate', () => {
+    it('PENDING 상태에서 ACTIVE로 전환된다', () => {
+      const user = User.create({
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      user.activate();
+
+      expect(user.status).toBe(UserStatus.ACTIVE);
+    });
+
+    it('PENDING이 아닌 상태에서 activate하면 에러를 던진다', () => {
+      const user = User.create({
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+      user.activate(); // PENDING → ACTIVE
+
+      expect(() => user.activate()).toThrow(
+        'Cannot activate user in ACTIVE status'
+      );
+    });
+  });
+});`}
+  language="typescript"
+  filename="src/domain/user/__tests__/entity.test.ts"
+/>
+
+### Application Layer 테스트
+
+Application Layer는 Repository와 외부 서비스를 Mock으로 대체하여 테스트합니다.
+
+<CodeBlock
+  code={`// src/application/use-cases/user/__tests__/create-user.test.ts
+import { CreateUserUseCase } from '../create-user.use-case';
+
+describe('CreateUserUseCase', () => {
+  let useCase: CreateUserUseCase;
+  let mockUserRepository: jest.Mocked<IUserRepository>;
+  let mockEmailService: jest.Mocked<IEmailService>;
+  let mockEventBus: jest.Mocked<IEventBus>;
+
+  beforeEach(() => {
+    // Interface 기반 Mock 생성
+    mockUserRepository = {
+      findById: jest.fn(),
+      findByEmail: jest.fn().mockResolvedValue(null),
+      save: jest.fn(),
+      delete: jest.fn(),
+    };
+    mockEmailService = {
+      sendWelcome: jest.fn(),
+    };
+    mockEventBus = {
+      publish: jest.fn(),
+    };
+
+    useCase = new CreateUserUseCase(
+      mockUserRepository,
+      mockEmailService,
+      mockEventBus,
+    );
+  });
+
+  it('새 사용자를 생성하고 환영 이메일을 발송한다', async () => {
+    const result = await useCase.execute({
+      email: 'new@example.com',
+      name: 'New User',
+    });
+
+    expect(result.email).toBe('new@example.com');
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockEmailService.sendWelcome).toHaveBeenCalledWith(
+      'new@example.com'
+    );
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('이미 존재하는 이메일이면 DuplicateError를 던진다', async () => {
+    mockUserRepository.findByEmail.mockResolvedValue(
+      User.create({ email: 'exists@example.com', name: 'Existing' })
+    );
+
+    await expect(
+      useCase.execute({
+        email: 'exists@example.com',
+        name: 'New User',
+      })
+    ).rejects.toThrow(DuplicateError);
+
+    expect(mockUserRepository.save).not.toHaveBeenCalled();
+    expect(mockEmailService.sendWelcome).not.toHaveBeenCalled();
+  });
+});`}
+  language="typescript"
+  filename="src/application/use-cases/user/__tests__/create-user.test.ts"
+  highlightLines={[12, 13, 14, 15, 16, 17, 18, 19, 20, 21]}
+/>
+
+<Callout type="tip" title="AI에게 테스트 생성을 요청하는 팁">
+  AI에게 테스트 코드를 요청할 때는 레이어를 명시하세요:
+  - "User Entity의 **단위 테스트**를 작성해줘" (Domain)
+  - "CreateUserUseCase의 테스트를 **Repository를 Mock해서** 작성해줘" (Application)
+  - "UserController의 **통합 테스트를 Supertest로** 작성해줘" (Presentation)
+
+  레이어를 명시하지 않으면 AI는 E2E 테스트와 단위 테스트를 혼합하거나, 불필요하게 실제 DB를 사용하는 느린 테스트를 생성할 수 있습니다.
+</Callout>
+
+### 테스트와 아키텍처의 선순환
+
+<MermaidDiagram
+  chart={`flowchart LR
+    A["Clean Architecture\n레이어 분리"] --> B["인터페이스 기반\n의존성 주입"]
+    B --> C["Mock/Stub으로\n빠른 테스트"]
+    C --> D["높은 테스트 커버리지\n빠른 피드백"]
+    D --> E["자신감 있는 리팩토링\n코드 품질 향상"]
+    E --> A
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#16a34a,color:#2d2a26
+    style D fill:#fdf2ee,stroke:#3b82f6,color:#2d2a26
+    style E fill:#fdf2ee,stroke:#d97706,color:#2d2a26`}
+  title="테스트와 아키텍처의 선순환"
+  caption="좋은 아키텍처는 좋은 테스트를 가능하게 하고, 좋은 테스트는 아키텍처 개선을 가능하게 합니다."
+/>
+
+---
+
+## 핵심 정리
+
+이 챕터에서 다룬 내용을 정리하면 다음과 같습니다:
+
+| 주제 | 핵심 포인트 |
+|------|------------|
+| **4레이어 구조** | Presentation, Application, Domain, Infrastructure. 의존성은 항상 안쪽으로 |
+| **레이어별 코드** | 각 레이어의 책임과 코드 패턴을 구체적으로 정의해야 AI가 따름 |
+| **CQRS** | 읽기/쓰기 분리로 각각 최적화. 규모가 큰 프로젝트에서 도입 고려 |
+| **아키텍처 선택** | AI 시대에는 모듈러 모놀리스가 실용적 출발점 |
+| **architecture.md** | 레이어 정의, 금지 사항, 네이밍 규칙을 구체적으로 기술해야 효과적 |
+| **안티패턴** | Fat Controller, Anemic Domain, Layer Skipping 등을 architecture.md에서 명시적으로 금지 |
+| **프로젝트 유형** | REST, GraphQL, 이벤트 기반 등 유형에 따라 Presentation Layer 구성이 달라짐 |
+| **테스트 전략** | 레이어별로 테스트 유형과 Mock 전략이 다름. Domain 테스트가 가장 쉬움 |
+
+<Callout type="info" title="다음 챕터 미리보기">
+  다음 챕터 "가이드라인"에서는 AI 에이전트의 사용 규칙, 권한 모델, 그리고 Hooks를 통한 자동 검증 파이프라인 구축 방법을 다룹니다.
+  아키텍처가 "어떻게 코드를 구조화할 것인가"라면, 가이드라인은 "어떤 규칙 하에서 AI와 협업할 것인가"에 대한 답입니다.
+</Callout>
+
 
 <ChapterNav
   prev={{ title: '컨텍스트와 컨벤션', path: '/docs/part-2--프로젝트-템플릿-구조-컨텍스트와-컨벤션' }}
