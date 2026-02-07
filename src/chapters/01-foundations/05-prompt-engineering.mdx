@@ -3,13 +3,14 @@ import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { Timeline } from '../../components/Timeline';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 1: 기초/프롬프트 엔지니어링" />
 
 # 프롬프트 엔지니어링 기초
 
-> Claude Code와 효과적으로 소통하는 핵심 원칙
+> Claude Code와 효과적으로 소통하는 핵심 원칙과 실전 테크닉
 
 ## 왜 프롬프트가 중요한가
 
@@ -19,6 +20,54 @@ import { ChapterNav } from '../../components/ChapterNav';
 </Callout>
 
 Claude Code는 터미널에서 자연어로 지시하는 도구입니다. "좋은 코드를 얻는 것"은 "좋은 지시를 내리는 것"에서 시작합니다. [Anthropic 공식 문서](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview)에서는 프롬프트 엔지니어링 기법을 **가장 범용적인 것부터 전문적인 것** 순서로 시도할 것을 권장합니다.
+
+### 프롬프트와 코드 품질의 상관관계
+
+프롬프트 엔지니어링은 단순히 "말을 잘하는 것"이 아닙니다. 이것은 **의도를 정확하게 전달하는 기술**이며, 소프트웨어 엔지니어링에서 요구사항 정의와 같은 역할을 합니다. 모호한 요구사항이 모호한 소프트웨어를 낳듯, 모호한 프롬프트는 모호한 코드를 낳습니다.
+
+<MermaidDiagram
+  chart={`flowchart TD
+    A["프롬프트 품질"] --> B["코드 품질"]
+    A --> C["반복 수정 횟수"]
+    A --> D["개발 속도"]
+    B --> E["유지보수 비용"]
+    C --> F["전체 개발 시간"]
+    D --> F
+    E --> G["프로젝트 성공"]
+    F --> G
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style F fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style G fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="프롬프트 품질이 프로젝트 전체에 미치는 영향"
+  caption="좋은 프롬프트는 코드 품질, 개발 속도, 유지보수 비용 모두에 직접적인 영향을 미칩니다"
+/>
+
+### 코딩 프롬프트의 특수성
+
+일반적인 대화형 프롬프트와 코딩용 프롬프트는 근본적으로 다릅니다. Claude Code에서의 프롬프트는 단순한 질문이 아니라 **실행 가능한 작업 지시**입니다.
+
+<ComparisonTable
+  title="일반 프롬프트 vs 코딩 프롬프트"
+  headers={['구분', '일반 대화 프롬프트', 'Claude Code 프롬프트']}
+  rows={[
+    { feature: '목적', values: ['정보 획득/대화', '코드 생성/수정/실행'] },
+    { feature: '결과물', values: ['텍스트 응답', '파일 시스템 변경, 명령 실행'] },
+    { feature: '검증', values: ['주관적 판단', '테스트 통과, 빌드 성공 여부'] },
+    { feature: '컨텍스트', values: ['대화 히스토리', '코드베이스 전체 + 대화 히스토리'] },
+    { feature: '부작용', values: ['없음', '파일 변경, 프로세스 실행, 패키지 설치'] },
+    { feature: '되돌리기', values: ['재질문', 'git revert, undo 필요'] },
+  ]}
+/>
+
+<Callout type="warning" title="코딩 프롬프트의 위험성">
+  Claude Code의 프롬프트는 **실제 파일 시스템에 변경을 가합니다**.
+  잘못된 프롬프트는 코드 삭제, 잘못된 의존성 추가, 보안 취약점 도입 등의
+  실질적 피해를 줄 수 있습니다. 항상 Git으로 버전 관리하면서 작업하세요.
+</Callout>
 
 ## Anthropic 공식 프롬프트 기법
 
@@ -37,6 +86,67 @@ Claude Code는 터미널에서 자연어로 지시하는 도구입니다. "좋�
     { feature: '9', values: ['Long context tips', '긴 컨텍스트 처리 최적화'] },
   ]}
 />
+
+## 계층적 프롬프트 구조
+
+Claude Code에서 프롬프트는 단일 입력이 아닙니다. **시스템 프롬프트, CLAUDE.md, 사용자 프롬프트**가 계층적으로 결합되어 Claude의 행동을 결정합니다. 이 구조를 이해하면 각 레벨에서 어떤 지시를 내려야 효과적인지 알 수 있습니다.
+
+<MermaidDiagram
+  chart={`flowchart TD
+    A["시스템 프롬프트\n(Claude Code 내장)"] --> D["최종 프롬프트\n(Claude에게 전달)"]
+    B["CLAUDE.md 계층\n(프로젝트/글로벌/규칙)"] --> D
+    C["사용자 프롬프트\n(터미널 입력)"] --> D
+    D --> E["Claude의 응답\n(코드 생성/수정)"]
+    style A fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26`}
+  title="프롬프트 계층 구조"
+  caption="세 가지 레벨의 프롬프트가 합쳐져 Claude의 최종 행동을 결정합니다"
+/>
+
+<ComparisonTable
+  title="프롬프트 계층별 역할"
+  headers={['계층', '설정 위치', '역할', '변경 빈도']}
+  rows={[
+    { feature: '시스템 프롬프트', values: ['Claude Code 내장', '도구 사용법, 안전 규칙, 기본 행동', '변경 불가 (Anthropic 관리)'] },
+    { feature: 'Enterprise 정책', values: ['시스템 디렉토리', '조직 전체 보안/규정 준수', '매우 드묾 (관리자만)'] },
+    { feature: '글로벌 CLAUDE.md', values: ['~/.claude/CLAUDE.md', '개인 선호 (언어, 스타일)', '드묾'] },
+    { feature: '프로젝트 CLAUDE.md', values: ['./CLAUDE.md', '프로젝트 컨벤션, 기술 스택', '프로젝트 초기 + 간헐적'] },
+    { feature: 'Rules', values: ['.claude/rules/*.md', '조건부 규칙 (파일 패턴별)', '필요시'] },
+    { feature: '사용자 프롬프트', values: ['터미널 입력', '구체적 작업 지시', '매 대화'] },
+  ]}
+/>
+
+### 각 계층에서 효과적인 지시
+
+<CodeBlock
+  code={`# 1. CLAUDE.md (프로젝트 레벨) - 반복되는 규칙
+## 코딩 규칙
+- 함수 최대 길이: 30줄
+- 파라미터 최대: 3개
+- 에러 처리: 커스텀 AppError 클래스 사용
+- 테스트: 모든 서비스에 단위 테스트 필수
+
+## 기술 스택
+- TypeScript 5.x (strict mode)
+- Express.js 4.x
+- PostgreSQL 15, TypeORM
+
+# 2. 사용자 프롬프트 (세션 레벨) - 구체적 작업
+"UserService에 비밀번호 재설정 기능을 추가해줘.
+기존 패턴(src/services/auth-service.ts)을 따르고,
+실패 케이스 테스트도 함께 작성해줘"`}
+  language="text"
+  filename="계층별 프롬프트 역할 분담"
+/>
+
+<Callout type="tip" title="계층 활용 원칙">
+  **반복되는 규칙은 CLAUDE.md에, 일회성 지시는 사용자 프롬프트에** 넣으세요.
+  매번 "TypeScript strict mode를 사용해"라고 말하는 대신, CLAUDE.md에 한 번 적으면 됩니다.
+  사용자 프롬프트는 "무엇을 할 것인가"에만 집중하세요.
+</Callout>
 
 ## Claude Code 핵심 워크플로우
 
@@ -143,11 +253,271 @@ console.log는 파싱이 안 되고 로그 레벨 구분도 안 돼"`}
   ]}
 />
 
-## 컨텍스트 관리
+## 실전 프롬프트 템플릿
+
+실무에서 가장 자주 사용되는 작업별 프롬프트 템플릿입니다. 이 템플릿을 기반으로 자신의 프로젝트에 맞게 수정하여 사용하세요.
+
+### 버그 수정 프롬프트
+
+<CodeBlock
+  code={`# 버그 수정 템플릿
+"다음 버그를 수정해줘:
+
+## 증상
+[버그 증상을 구체적으로 기술]
+예: 사용자가 장바구니에서 상품을 삭제하면 수량이 0이 되는 대신
+    음수가 되는 버그가 있어
+
+## 재현 경로
+1. 장바구니에 상품 1개 추가
+2. 수량을 1로 설정
+3. 삭제 버튼 클릭
+4. 수량이 -1이 됨
+
+## 기대 동작
+삭제 시 해당 상품이 장바구니에서 완전히 제거되어야 함
+
+## 관련 파일
+@src/services/cart-service.ts
+@src/components/CartItem.tsx
+
+수정 전에 버그를 재현하는 실패 테스트를 먼저 작성하고,
+테스트가 통과하도록 수정해줘"`}
+  language="text"
+  filename="버그 수정 프롬프트 템플릿"
+/>
+
+### 기능 추가 프롬프트
+
+<CodeBlock
+  code={`# 기능 추가 템플릿
+"다음 기능을 구현해줘:
+
+## 기능 설명
+사용자 프로필에 아바타 이미지 업로드 기능 추가
+
+## 요구사항
+- 지원 형식: JPG, PNG, WebP
+- 최대 크기: 5MB
+- 업로드 후 자동 리사이즈: 200x200px
+- S3 버킷에 저장 (환경변수 AVATAR_BUCKET 사용)
+
+## 기술 제약
+- 기존 multer 미들웨어 패턴 따르기
+- sharp 라이브러리로 이미지 처리
+- 기존 ErrorHandler 패턴으로 에러 처리
+
+## 참고 파일
+@src/middleware/upload.ts (기존 업로드 패턴)
+@src/services/file-service.ts (파일 처리 서비스)
+
+구현 후 단위 테스트와 통합 테스트를 함께 작성해줘"`}
+  language="text"
+  filename="기능 추가 프롬프트 템플릿"
+/>
+
+### 리팩토링 프롬프트
+
+<CodeBlock
+  code={`# 리팩토링 템플릿
+"@src/services/order-service.ts 를 리팩토링해줘.
+
+## 현재 문제
+- 함수가 200줄 이상으로 너무 길어
+- 주문 생성, 검증, 결제, 알림이 하나의 함수에 혼재
+- 테스트 작성이 어려운 구조
+
+## 리팩토링 목표
+- 각 책임을 별도 함수/클래스로 분리
+- 단일 책임 원칙 (SRP) 적용
+- 기존 동작은 100% 보존 (행동 변경 없음)
+
+## 제약사항
+- 외부 인터페이스(API 시그니처)는 변경하지 마
+- 새 라이브러리 추가하지 마
+- 기존 테스트가 모두 통과해야 해
+
+리팩토링 전에 현재 동작을 검증하는 테스트를 확인하고,
+리팩토링 후 모든 테스트를 실행해줘"`}
+  language="text"
+  filename="리팩토링 프롬프트 템플릿"
+/>
+
+### 테스트 작성 프롬프트
+
+<CodeBlock
+  code={`# 테스트 작성 템플릿
+"@src/services/payment-service.ts 의 테스트를 작성해줘.
+
+## 테스트 대상
+processPayment 함수
+
+## 커버해야 할 시나리오
+1. 정상 결제 (유효한 카드, 충분한 잔액)
+2. 잔액 부족
+3. 만료된 카드
+4. 네트워크 타임아웃
+5. 중복 결제 방지 (멱등성 키)
+6. 결제 금액 0원 이하
+
+## 테스트 규칙
+- 외부 API는 mock 처리
+- 각 테스트는 독립적으로 실행 가능
+- describe/it 패턴 사용
+- 에러 메시지도 검증
+
+기존 테스트 패턴은 @src/services/__tests__/auth-service.test.ts 를 참고해줘"`}
+  language="text"
+  filename="테스트 작성 프롬프트 템플릿"
+/>
+
+### 코드 리뷰 프롬프트
+
+<CodeBlock
+  code={`# 코드 리뷰 템플릿
+"@src/api/routes/payments.ts 를 리뷰해줘.
+
+## 리뷰 관점 (우선순위 순)
+1. 보안: 입력 검증, 인증/인가, SQL 인젝션
+2. 에러 처리: 누락된 에러 핸들링, 불명확한 에러 메시지
+3. 성능: N+1 쿼리, 불필요한 데이터 로드
+4. 가독성: 네이밍, 함수 길이, 복잡도
+
+## 출력 형식
+각 이슈를 다음 형식으로 보고해줘:
+- 위치: (파일:줄번호)
+- 심각도: critical / warning / suggestion
+- 설명: 무엇이 문제인지
+- 제안: 어떻게 수정하면 되는지
+
+코드를 직접 수정하지 말고 리뷰 결과만 출력해줘"`}
+  language="text"
+  filename="코드 리뷰 프롬프트 템플릿"
+/>
+
+## 안티패턴과 개선 방법
+
+프롬프트 작성 시 흔히 발생하는 안티패턴과 이를 개선하는 방법입니다.
+
+### 안티패턴 1: 모호한 지시
+
+<ComparisonTable
+  title="모호한 지시 vs 구체적인 지시"
+  headers={['안티패턴', '문제점', '개선된 프롬프트']}
+  rows={[
+    { feature: '"코드 좀 개선해줘"', values: ['무엇을 개선할지 불명확', '"이 함수의 시간 복잡도를 O(n^2)에서 O(n log n)으로 개선해줘"'] },
+    { feature: '"에러 처리 추가해줘"', values: ['어떤 에러를, 어떻게 처리할지 불명확', '"네트워크 타임아웃 시 3회 재시도하고, 실패하면 사용자에게 알림을 보내줘"'] },
+    { feature: '"이거 테스트해줘"', values: ['어떤 케이스를 테스트할지 불명확', '"정상 케이스, 빈 입력, null 입력, 최대 길이 초과 케이스를 테스트해줘"'] },
+    { feature: '"보안 강화해줘"', values: ['어떤 보안 위협을 방어할지 불명확', '"사용자 입력에 XSS 방지 새니타이징을 추가하고, CSRF 토큰 검증을 넣어줘"'] },
+  ]}
+/>
+
+### 안티패턴 2: 한 번에 너무 많은 요청
+
+<CodeBlock
+  code={`# 나쁜 예: 한 프롬프트에 7가지 작업
+"로그인 기능 만들고, 회원가입도 추가하고, 비밀번호 재설정도 넣고,
+소셜 로그인도 구현하고, 2FA도 넣고, 세션 관리도 하고,
+모든 테스트도 작성해줘"
+
+# 좋은 예: 단계별 분리
+# Step 1
+"로그인/회원가입 API의 기본 구조를 잡아줘.
+JWT 인증 방식으로 @src/services/auth-service.ts에 구현해줘"
+
+# Step 2 (Step 1 완료 후)
+"비밀번호 재설정 기능을 추가해줘.
+이메일 전송은 기존 @src/services/email-service.ts를 활용해"
+
+# Step 3 (Step 2 완료 후)
+"Google OAuth2 소셜 로그인을 추가해줘.
+passport-google-oauth20 라이브러리를 사용해"`}
+  language="text"
+  filename="작업 분리 예시"
+/>
+
+### 안티패턴 3: 컨텍스트 부족
+
+<ComparisonTable
+  title="컨텍스트 없는 프롬프트 vs 컨텍스트가 풍부한 프롬프트"
+  headers={['구분', '컨텍스트 부족', '컨텍스트 충분']}
+  rows={[
+    { feature: '기능 구현', values: ['API 만들어줘', 'Express.js로 사용자 CRUD REST API를 만들어줘. 기존 @src/routes/products.ts 패턴을 따르고, Zod 스키마 검증 포함'] },
+    { feature: 'DB 작업', values: ['DB 연동해줘', 'TypeORM으로 User 엔터티와 마이그레이션을 작성해줘. 기존 @src/entities/product.ts 패턴 참고. PostgreSQL 15 사용'] },
+    { feature: '배포', values: ['Docker 설정해줘', '이 Node.js 앱의 멀티스테이지 Dockerfile을 작성해줘. 프로덕션 이미지 크기를 최소화하고, non-root 사용자로 실행'] },
+  ]}
+/>
+
+### 안티패턴 4: 부정형 지시만 사용
+
+<CodeBlock
+  code={`# 나쁜 예: 하지 말라는 것만 나열
+"any 타입 쓰지 마
+var 쓰지 마
+console.log 쓰지 마
+class 쓰지 마
+callback 패턴 쓰지 마"
+
+# 좋은 예: 원하는 방향을 제시
+"TypeScript strict mode 규칙을 따라줘:
+- 모든 변수에 명시적 타입 선언
+- const/let만 사용 (var 대신)
+- 구조화된 로거(winston) 사용
+- 함수형 컴포넌트와 hooks 패턴 사용
+- async/await 패턴으로 비동기 처리
+
+이유: 타입 안전성과 코드 일관성을 위해서야"`}
+  language="text"
+  filename="긍정형 지시 예시"
+/>
+
+### 안티패턴 5: 검증 수단 없는 요청
+
+<CodeBlock
+  code={`# 나쁜 예: 검증 방법 없음
+"정렬 함수 만들어줘"
+
+# 좋은 예: 검증 수단 포함
+"숫자 배열을 오름차순으로 정렬하는 함수를 만들어줘.
+
+다음 테스트 케이스를 통과해야 해:
+- [3, 1, 2] → [1, 2, 3]
+- [] → []
+- [1] → [1]
+- [-1, 3, -2] → [-2, -1, 3]
+- [1, 1, 1] → [1, 1, 1]
+
+구현 후 이 테스트를 작성하고 실행해줘"`}
+  language="text"
+  filename="검증 수단 포함 예시"
+/>
+
+## 컨텍스트 관리 전략
 
 Claude Code에서 가장 중요한 자원은 **컨텍스트 윈도우**입니다. 공식 문서에 따르면 컨텍스트가 가득 차면 성능이 저하됩니다.
 
-### 컨텍스트 관리 전략
+### 컨텍스트 윈도우의 구조
+
+<MermaidDiagram
+  chart={`flowchart TD
+    A["컨텍스트 윈도우\n(모델별 최대 용량)"] --> B["시스템 프롬프트\n(Claude Code 내장)"]
+    A --> C["CLAUDE.md 계층\n(프로젝트 규칙)"]
+    A --> D["대화 히스토리\n(이전 메시지들)"]
+    A --> E["읽은 파일 내용\n(코드 컨텍스트)"]
+    A --> F["도구 실행 결과\n(명령어 출력)"]
+    A --> G["남은 공간\n(새 응답 생성용)"]
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style G fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style C fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style D fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style E fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style F fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26`}
+  title="컨텍스트 윈도우 구성 요소"
+  caption="컨텍스트가 채워질수록 새 응답을 위한 공간이 줄어들고, 성능이 저하됩니다"
+/>
+
+### 컨텍스트 관리 명령어
 
 <CodeBlock
   code={`# 작업 간 컨텍스트 초기화
@@ -166,6 +536,19 @@ Claude Code에서 가장 중요한 자원은 **컨텍스트 윈도우**입니다
   filename="컨텍스트 관리 명령어"
 />
 
+### 컨텍스트 절약 프롬프트 기법
+
+<ComparisonTable
+  title="컨텍스트 소비 비교"
+  headers={['접근 방식', '컨텍스트 소비', '효율적인 대안']}
+  rows={[
+    { feature: '"전체 코드베이스를 분석해줘"', values: ['매우 높음', '"src/services/ 디렉토리의 인증 관련 코드만 분석해줘"'] },
+    { feature: '"이 파일 전체를 설명해줘"', values: ['높음', '"이 파일의 processPayment 함수만 설명해줘"'] },
+    { feature: '에러 로그 전체 붙여넣기', values: ['높음', '"마지막 에러 스택트레이스만 분석해줘: [핵심 부분]"'] },
+    { feature: '긴 대화에서 반복 수정', values: ['누적 소비', '"/clear 후 더 나은 프롬프트로 새 시작"'] },
+  ]}
+/>
+
 <Callout type="warning" title="피해야 할 패턴">
   [Anthropic 공식 문서](https://www.anthropic.com/engineering/claude-code-best-practices)에서 경고하는 일반적 실패 패턴:
 
@@ -174,6 +557,249 @@ Claude Code에서 가장 중요한 자원은 **컨텍스트 윈도우**입니다
   - **과도한 CLAUDE.md**: 너무 긴 CLAUDE.md는 Claude가 무시함 → 핵심만 간결하게
   - **검증 없는 신뢰**: 항상 테스트, 타입 체크 등 검증 수단을 함께 제공
 </Callout>
+
+## 멀티턴 대화 전략
+
+복잡한 작업은 하나의 프롬프트로 완료하기 어렵습니다. **점진적으로 구현하고, 피드백을 주고, 방향을 조정하는** 멀티턴 전략이 필요합니다.
+
+### 점진적 구현 패턴
+
+<MermaidDiagram
+  chart={`flowchart TD
+    A["1. 기본 구조 요청"] --> B["Claude 구현"]
+    B --> C["개발자 리뷰"]
+    C --> D{"만족?"}
+    D -->|"아니오"| E["2. 피드백 제공"]
+    E --> B
+    D -->|"예"| F["3. 다음 기능 요청"]
+    F --> G["Claude 확장 구현"]
+    G --> H["개발자 리뷰"]
+    H --> I{"만족?"}
+    I -->|"아니오"| J["4. 추가 피드백"]
+    J --> G
+    I -->|"예"| K["5. 테스트/마무리"]
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style F fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style K fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style D fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style I fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26`}
+  title="점진적 구현 피드백 루프"
+  caption="한 번에 완벽을 기대하지 말고, 점진적으로 구현하며 피드백을 주세요"
+/>
+
+<CodeBlock
+  code={`# Turn 1: 기본 골격
+"결제 처리 서비스의 기본 클래스 구조를 만들어줘.
+인터페이스와 주요 메서드 시그니처만 정의하고, 구현은 TODO로 남겨둬"
+
+# Turn 2: 핵심 로직 구현
+"processPayment 메서드를 구현해줘.
+Stripe SDK를 사용하고, 멱등성 키를 지원해야 해"
+
+# Turn 3: 에러 처리 보강
+"다음 에러 케이스를 추가해줘:
+- 카드 거절 (card_declined)
+- 잔액 부족 (insufficient_funds)
+- 네트워크 오류 (3회 재시도 후 실패)"
+
+# Turn 4: 테스트 작성
+"지금까지 구현한 PaymentService의 단위 테스트를 작성해줘.
+Stripe SDK는 mock 처리하고, 모든 에러 케이스를 커버해"
+
+# Turn 5: 피드백 반영
+"재시도 로직에서 exponential backoff를 적용해줘.
+현재 즉시 재시도하는데, 1초 → 2초 → 4초로 지연해줘"`}
+  language="text"
+  filename="점진적 구현 멀티턴 대화"
+/>
+
+### 피드백 제공 기법
+
+효과적인 피드백은 Claude가 정확하게 수정할 수 있도록 **구체적인 위치, 문제점, 원하는 결과**를 포함해야 합니다.
+
+<ComparisonTable
+  title="피드백 품질 비교"
+  headers={['구분', '비효과적인 피드백', '효과적인 피드백']}
+  rows={[
+    { feature: '구조 변경', values: ['이 구조 좀 이상해', 'validateInput 함수를 별도 파일(validators.ts)로 분리하고, processOrder에서 import해서 사용해줘'] },
+    { feature: '에러 수정', values: ['에러가 나', 'TypeError: Cannot read property id of undefined가 line 42에서 발생해. user가 null일 수 있는 케이스를 처리해줘'] },
+    { feature: '스타일 수정', values: ['코드 스타일 고쳐줘', 'camelCase로 변수명을 바꾸고, 화살표 함수를 사용해줘. ESLint 규칙: @typescript-eslint/naming-convention'] },
+  ]}
+/>
+
+### 방향 전환 기법
+
+작업 중 방향을 바꿔야 할 때의 프롬프트 패턴입니다.
+
+<CodeBlock
+  code={`# 전면 방향 전환 (이전 작업 폐기)
+"잠깐, 방향을 바꾸자. REST API 대신 GraphQL로 구현하자.
+지금까지의 변경사항을 되돌리고,
+Apollo Server 기반으로 같은 기능을 구현해줘"
+
+# 부분 방향 전환 (일부만 수정)
+"전체 구조는 좋은데, 인증 방식만 바꾸자.
+세션 기반 인증을 JWT 기반으로 변경해줘.
+나머지 비즈니스 로직은 그대로 유지하고"
+
+# 이전 작업 참조
+"아까 만든 validateInput 함수를 여기서도 재사용해줘.
+동일한 검증 로직이 필요해"`}
+  language="text"
+  filename="방향 전환 프롬프트"
+/>
+
+## Claude Code 전용 키워드와 지시어
+
+Claude Code에서 특별한 의미를 가지는 키워드와 패턴들이 있습니다. 이들을 활용하면 Claude의 행동을 더 정밀하게 제어할 수 있습니다.
+
+### 사고 깊이 제어
+
+<ComparisonTable
+  title="사고 깊이 제어 키워드"
+  headers={['키워드/패턴', '효과', '사용 시점']}
+  rows={[
+    { feature: '"ultrathink" 또는 "megathink"', values: ['최대 사고 깊이로 분석', '복잡한 아키텍처 설계, 까다로운 버그 추적'] },
+    { feature: '"think harder"', values: ['더 깊은 사고 유도', '첫 답변이 불충분했을 때 재사고 요청'] },
+    { feature: '"간단하게"', values: ['최소 사고로 빠른 응답', '단순한 수정, 보일러플레이트 생성'] },
+    { feature: 'Plan Mode (Shift+Tab 2회)', values: ['코드 수정 없이 분석/계획만', '구현 전 전략 수립, 코드베이스 탐색'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`# 최대 사고 깊이 활용 (복잡한 문제)
+"ultrathink. 이 마이크로서비스 간 순환 의존성 문제를 분석하고
+해결 방안을 제시해줘. 서비스 A→B→C→A 순환이 발생하고 있어"
+
+# Plan Mode 활용 (분석만, 수정 없음)
+# Shift+Tab 2회로 Plan Mode 진입 후:
+"이 프로젝트의 인증 시스템 전체 흐름을 분석해줘.
+로그인부터 토큰 갱신, 로그아웃까지의 플로우를 파악해줘"
+
+# 간단한 작업 (빠른 처리)
+"이 변수명을 userName에서 currentUserName으로 바꿔줘"`}
+  language="text"
+  filename="사고 깊이 제어 예시"
+/>
+
+### 출력 형식 제어
+
+<CodeBlock
+  code={`# 설명 없이 코드만 출력
+"설명 없이 코드만 작성해줘"
+
+# 단계별 설명 포함
+"각 단계를 설명하면서 구현해줘"
+
+# 특정 형식으로 출력
+"변경사항을 다음 형식으로 요약해줘:
+- 파일: [파일 경로]
+- 변경: [추가/수정/삭제]
+- 이유: [변경 이유]"
+
+# diff 형식으로 확인
+"수정할 내용을 diff 형식으로 먼저 보여줘.
+확인 후 적용하겠다고 하면 그때 수정해줘"`}
+  language="text"
+  filename="출력 형식 제어"
+/>
+
+### 실행 제어
+
+<CodeBlock
+  code={`# 자동 실행 허용
+"이 변경사항을 적용하고, 테스트를 실행하고,
+실패하면 수정까지 해줘"
+
+# 확인 후 실행
+"변경사항을 보여주고, 내가 확인하면 적용해줘"
+
+# 읽기만 수행
+"이 코드를 분석만 해줘. 파일을 수정하지 마"
+
+# 특정 명령어 실행
+"npm test를 실행하고 결과를 알려줘"
+
+# 연쇄 실행
+"린트 수정 → 테스트 실행 → 커밋 순서로 진행해줘"`}
+  language="text"
+  filename="실행 제어 키워드"
+/>
+
+## 프롬프트 체이닝 기법
+
+복잡한 작업을 여러 단계로 분해하여 **각 단계의 출력을 다음 단계의 입력으로 활용**하는 기법입니다. 이는 Anthropic 공식 문서의 "Chain complex prompts" 기법에 해당합니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    A["1단계\n분석"] --> B["2단계\n설계"]
+    B --> C["3단계\n구현"]
+    C --> D["4단계\n테스트"]
+    D --> E["5단계\n리뷰"]
+    A -.->|"분석 결과"| B
+    B -.->|"설계 문서"| C
+    C -.->|"구현 코드"| D
+    D -.->|"테스트 결과"| E
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="프롬프트 체이닝 워크플로우"
+  caption="각 단계의 결과가 다음 단계의 입력이 됩니다"
+/>
+
+### 대규모 기능 구현 체이닝 예시
+
+<CodeBlock
+  code={`# Chain 1: 현황 분석
+"현재 인증 시스템의 구조를 분석해줘.
+사용 중인 라이브러리, 토큰 방식, 미들웨어 체인을 파악해줘"
+
+# Chain 2: 설계 (Chain 1 결과 기반)
+"분석 결과를 바탕으로 OAuth2.0 통합 설계를 해줘.
+기존 JWT 인증과 어떻게 공존할지 계획을 세워줘"
+
+# Chain 3: 인터페이스 정의 (Chain 2 결과 기반)
+"설계에 따라 인터페이스와 타입을 먼저 정의해줘.
+OAuthProvider, OAuthUser, OAuthToken 타입이 필요해"
+
+# Chain 4: 핵심 구현 (Chain 3 결과 기반)
+"정의한 인터페이스를 구현해줘.
+Google OAuth부터 시작하고, 추후 다른 프로바이더를 쉽게 추가할 수 있게 해줘"
+
+# Chain 5: 테스트 (Chain 4 결과 기반)
+"구현한 OAuth 서비스의 테스트를 작성해줘.
+토큰 교환, 사용자 프로필 조회, 에러 케이스를 커버해줘"
+
+# Chain 6: 통합 리뷰 (전체 체인 결과)
+"지금까지의 모든 변경사항을 리뷰해줘.
+보안, 에러 처리, 기존 시스템과의 호환성을 확인해줘"`}
+  language="text"
+  filename="대규모 기능 구현 체이닝"
+/>
+
+### 세션 분리 체이닝
+
+<CodeBlock
+  code={`# Session A: 설계 + 구현
+"사용자 알림 시스템을 구현해줘. 스펙은 다음과 같아..."
+# → 구현 완료 후 세션 종료
+
+# Session B: 독립 리뷰 (새로운 컨텍스트에서)
+"src/services/notification-service.ts를 리뷰해줘.
+다른 개발자가 작성한 코드라고 가정하고 객관적으로 리뷰해줘.
+보안, 성능, 에러 처리에 집중해줘"
+# → 편향 없는 리뷰 결과
+
+# Session C: 리뷰 반영
+"다음 리뷰 피드백을 notification-service.ts에 반영해줘:
+1. 재시도 로직에 exponential backoff 추가
+2. 실패한 알림의 DLQ(Dead Letter Queue) 처리
+3. 배치 전송 시 rate limit 적용"`}
+  language="text"
+  filename="세션 분리 체이닝 패턴"
+/>
 
 ## Claude 4.x 전용 팁
 
@@ -222,6 +848,12 @@ Opus 4.5는 불필요한 추상화나 추가 파일을 생성하는 경향이 �
   filename="인터뷰 패턴"
 />
 
+<Callout type="tip" title="인터뷰 패턴이 유효한 이유">
+  복잡한 기능을 구현할 때 개발자가 미처 생각하지 못한 결정 사항들이 있습니다.
+  Claude에게 먼저 질문을 받으면 **요구사항의 빈틈을 사전에 발견**할 수 있고,
+  결과적으로 더 완성도 높은 코드를 얻을 수 있습니다.
+</Callout>
+
 ### Writer/Reviewer 패턴
 
 <CodeBlock
@@ -235,9 +867,393 @@ Opus 4.5는 불필요한 추상화나 추가 파일을 생성하는 경향이 �
   filename="Writer/Reviewer 분리 패턴"
 />
 
+### 러버덕 디버깅 패턴
+
+Claude를 러버덕(rubber duck)으로 활용하여 사고 과정을 정리하는 패턴입니다.
+
+<CodeBlock
+  code={`# 러버덕 패턴: Claude에게 설명하며 정리
+"내가 지금 겪고 있는 문제를 설명할게. 내 사고 과정에서
+빠진 부분이 있으면 지적해줘.
+
+1. 사용자가 결제를 시도하면 간헐적으로 504 타임아웃이 발생해
+2. 로그를 보면 Stripe API 호출은 성공하는데 DB 저장에서 지연이 있어
+3. DB 커넥션 풀이 가득 차 있는 것 같아
+4. 그런데 다른 서비스에서는 같은 DB를 사용해도 문제가 없어
+
+내가 놓치고 있는 게 뭘까? 추가로 확인해봐야 할 것이 있을까?"`}
+  language="text"
+  filename="러버덕 디버깅 패턴"
+/>
+
+### 레거시 코드 이해 패턴
+
+<CodeBlock
+  code={`# 레거시 코드 이해 단계적 접근
+# Step 1: 진입점 파악
+"@src/legacy/payment-processor.js 의 전체 구조를 파악하고
+주요 함수와 데이터 흐름을 설명해줘. 코드를 수정하지는 마"
+
+# Step 2: 의존성 추적
+"이 파일이 의존하는 다른 모듈들을 추적해줘.
+import/require를 따라가며 의존성 그래프를 그려줘"
+
+# Step 3: 핵심 로직 해석
+"processPayment 함수의 비즈니스 로직을 단계별로 설명해줘.
+특히 에러가 발생할 수 있는 지점을 표시해줘"
+
+# Step 4: 현대화 계획
+"이 레거시 코드를 TypeScript로 마이그레이션하는 계획을 세워줘.
+기존 동작을 100% 보존하면서 점진적으로 개선하는 방법을 제안해줘"`}
+  language="text"
+  filename="레거시 코드 이해 패턴"
+/>
+
+## 도메인별 프롬프트 가이드
+
+각 개발 도메인에 최적화된 프롬프트 패턴입니다.
+
+### 프론트엔드 프롬프트
+
+<CodeBlock
+  code={`# React 컴포넌트 생성
+"사용자 프로필 카드 컴포넌트를 만들어줘.
+- TypeScript + React 함수형 컴포넌트
+- Props: name, email, avatarUrl, role
+- 반응형: 모바일(320px)에서도 잘 보여야 해
+- CSS Module 사용 (@src/styles/ 패턴 참고)
+- Storybook 스토리도 함께 작성해줘"
+
+# 상태 관리 설계
+"장바구니 기능의 상태 관리를 설계해줘.
+- Zustand 사용 (기존 @src/stores/auth-store.ts 패턴 참고)
+- 상품 추가/삭제/수량 변경/전체 초기화
+- localStorage 영속성
+- 낙관적 업데이트 (서버 동기화 실패 시 롤백)"
+
+# 접근성 개선
+"@src/components/Modal.tsx의 접근성(a11y)을 개선해줘.
+- 키보드 탐색 (Tab, Escape)
+- ARIA 속성 추가
+- 포커스 트랩
+- 스크린 리더 지원"`}
+  language="text"
+  filename="프론트엔드 프롬프트"
+/>
+
+### 백엔드 프롬프트
+
+<CodeBlock
+  code={`# API 엔드포인트 설계
+"주문 관리 REST API를 설계해줘.
+- RESTful 원칙 준수
+- 엔드포인트: CRUD + 주문 상태 변경 + 목록 조회(페이지네이션)
+- Zod로 입력 검증
+- 에러 응답: RFC 7807 형식
+- OpenAPI(Swagger) 문서도 함께 생성해줘"
+
+# 데이터베이스 설계
+"e커머스 주문 시스템의 DB 스키마를 설계해줘.
+- PostgreSQL + TypeORM
+- 테이블: orders, order_items, payments
+- 인덱스 전략 포함
+- 마이그레이션 파일 생성
+- 정규화 수준: 3NF"
+
+# 성능 최적화
+"@src/services/product-service.ts의 getProductList 함수에서
+N+1 쿼리 문제가 발생하고 있어.
+QueryBuilder의 leftJoinAndSelect를 사용해서 해결해줘.
+변경 전후 쿼리 수를 비교하는 테스트도 작성해줘"`}
+  language="text"
+  filename="백엔드 프롬프트"
+/>
+
+### DevOps 프롬프트
+
+<CodeBlock
+  code={`# CI/CD 파이프라인 구축
+"GitHub Actions CI/CD 파이프라인을 구성해줘.
+- 트리거: main 브랜치 PR, push
+- 단계: lint → type-check → unit-test → build → deploy
+- 캐싱: node_modules, Docker layer
+- 환경별 배포: staging (PR merge), production (release tag)
+- 시크릿은 GitHub Secrets 사용"
+
+# Docker 최적화
+"현재 Dockerfile의 이미지 크기를 줄여줘.
+- 멀티스테이지 빌드 적용
+- Alpine 기반으로 변경
+- 불필요한 devDependencies 제거
+- non-root 사용자로 실행
+- 현재 크기와 최적화 후 크기를 비교해줘"
+
+# 모니터링 설정
+"Prometheus + Grafana 기반 모니터링을 설정해줘.
+- 커스텀 메트릭: 요청 수, 응답 시간, 에러율
+- 알림 규칙: 5분간 에러율 5% 초과 시
+- docker-compose.yml에 통합"`}
+  language="text"
+  filename="DevOps 프롬프트"
+/>
+
+### 데이터 엔지니어링 프롬프트
+
+<CodeBlock
+  code={`# ETL 파이프라인
+"CSV 데이터를 PostgreSQL로 적재하는 ETL 파이프라인을 만들어줘.
+- 입력: data/raw/ 디렉토리의 CSV 파일들
+- 변환: 날짜 형식 통일, 결측값 처리, 중복 제거
+- 적재: upsert 방식 (기존 데이터 업데이트)
+- 로깅: 처리 건수, 에러 건수, 소요 시간
+- Python + pandas 사용"
+
+# 데이터 검증
+"@src/etl/transform.py의 데이터 변환 로직에 검증을 추가해줘.
+- 스키마 검증: 필수 컬럼 존재 여부
+- 타입 검증: 날짜, 숫자, 이메일 형식
+- 비즈니스 규칙: 금액 > 0, 날짜 < 오늘
+- 검증 실패 시 상세한 리포트 생성"`}
+  language="text"
+  filename="데이터 엔지니어링 프롬프트"
+/>
+
+## 프롬프트 디버깅
+
+Claude가 예상과 다른 결과를 생성했을 때, 문제를 진단하고 수정하는 방법입니다.
+
+### 예상과 다른 결과의 원인
+
+<ComparisonTable
+  title="프롬프트 디버깅 체크리스트"
+  headers={['증상', '가능한 원인', '해결 방법']}
+  rows={[
+    { feature: '관련 없는 파일을 수정', values: ['작업 범위가 모호', '수정할 파일을 @ 기호로 명시적으로 지정'] },
+    { feature: '과도하게 복잡한 코드', values: ['Opus 모델의 과잉 설계 경향', 'CLAUDE.md에 "단순하게 유지" 규칙 추가 또는 Sonnet 사용'] },
+    { feature: '기존 패턴을 무시', values: ['참고 파일을 제공하지 않음', '"@src/existing-pattern.ts 패턴을 따라줘" 명시'] },
+    { feature: '테스트 없이 구현', values: ['테스트 작성을 요청하지 않음', '"테스트를 함께 작성하고, 실행까지 해줘" 추가'] },
+    { feature: '이전 대화 내용 반영 안 됨', values: ['컨텍스트 윈도우 초과', '/compact 실행 또는 핵심 요구사항 재전달'] },
+    { feature: '보안 취약점 포함', values: ['보안 요구사항 미명시', 'CLAUDE.md에 보안 규칙 추가, 프롬프트에 보안 관점 명시'] },
+  ]}
+/>
+
+### 반복 교정 시 탈출 전략
+
+<CodeBlock
+  code={`# 상황: 같은 문제로 3번째 교정 중
+# 나쁜 접근: 계속 같은 세션에서 수정 요청
+"아까 말한 대로 해줘"  # → 컨텍스트가 오염되어 악화
+
+# 좋은 접근: /clear 후 완전한 새 프롬프트
+/clear
+
+"PaymentService.processPayment 함수를 수정해줘.
+
+## 현재 문제
+재시도 로직이 무한 루프에 빠져
+
+## 정확한 요구사항
+- 최대 3회 재시도
+- 각 재시도 간 exponential backoff (1s, 2s, 4s)
+- 3회 실패 시 PaymentFailedError throw
+- 재시도 횟수를 로그에 기록
+
+## 제약사항
+- 기존 retry-utils.ts의 withRetry 함수 사용하지 마 (버그 있음)
+- setTimeout 대신 delay 유틸 사용
+
+## 검증
+테스트에서 재시도 횟수와 지연 시간을 검증해줘"`}
+  language="text"
+  filename="반복 교정 탈출 전략"
+/>
+
+<Callout type="tip" title="2회 교정 규칙">
+  같은 이슈로 2번 이상 교정했다면 **접근 방식을 바꿔야 합니다**.
+  `/clear` 후 더 상세한 프롬프트를 작성하거나,
+  문제를 더 작은 단위로 분해하세요.
+  반복 교정은 컨텍스트를 오염시켜 오히려 품질을 떨어뜨립니다.
+</Callout>
+
+## 프롬프트 라이브러리 구축 방법
+
+자주 사용하는 프롬프트를 체계적으로 관리하면 팀 전체의 AI 활용 효율이 크게 향상됩니다.
+
+### 프롬프트 라이브러리 구조
+
+<CodeBlock
+  code={`# 프로젝트 내 프롬프트 라이브러리 구조
+prompts/
+├── templates/
+│   ├── bug-fix.md          # 버그 수정 템플릿
+│   ├── feature-add.md      # 기능 추가 템플릿
+│   ├── refactor.md         # 리팩토링 템플릿
+│   ├── test-write.md       # 테스트 작성 템플릿
+│   └── code-review.md      # 코드 리뷰 템플릿
+├── patterns/
+│   ├── interview.md        # 인터뷰 패턴
+│   ├── writer-reviewer.md  # Writer/Reviewer 패턴
+│   └── chain.md            # 체이닝 패턴
+└── domain/
+    ├── frontend.md         # 프론트엔드 특화 프롬프트
+    ├── backend.md          # 백엔드 특화 프롬프트
+    └── devops.md           # DevOps 특화 프롬프트`}
+  language="text"
+  filename="프롬프트 라이브러리 디렉토리 구조"
+/>
+
+### 프롬프트 템플릿 작성 가이드
+
+<CodeBlock
+  code={`# prompts/templates/bug-fix.md
+# 버그 수정 프롬프트 템플릿
+
+## 사용법
+아래 [대괄호] 부분을 실제 내용으로 교체하세요.
+
+## 템플릿
+"다음 버그를 수정해줘:
+
+증상: [버그의 구체적 증상]
+재현 경로: [1. ... 2. ... 3. ...]
+기대 동작: [올바른 동작]
+관련 파일: @[파일 경로]
+
+수정 전에 버그를 재현하는 실패 테스트를 먼저 작성하고,
+테스트가 통과하도록 수정한 뒤, 전체 테스트를 실행해줘"
+
+## 변형
+- 급한 핫픽스: "최소한의 변경으로" 추가
+- 근본 원인 분석: "근본 원인을 분석하고" 추가
+- 회귀 방지: "유사한 버그를 방지하는 가드 코드도 추가해줘" 추가`}
+  language="markdown"
+  filename="프롬프트 템플릿 예시"
+/>
+
+### 팀 차원의 프롬프트 공유
+
+<ComparisonTable
+  title="프롬프트 라이브러리 관리 방법"
+  headers={['방법', '장점', '단점']}
+  rows={[
+    { feature: 'Git 저장소에 포함', values: ['버전 관리, PR 리뷰 가능', '프로젝트마다 별도 관리'] },
+    { feature: '팀 위키 (Notion, Confluence)', values: ['접근 쉬움, 검색 가능', '버전 관리 어려움'] },
+    { feature: 'Custom Slash Commands', values: ['Claude Code에서 직접 실행', '설정 필요, 팀 공유 제한적'] },
+    { feature: 'CLAUDE.md에 @import', values: ['자동 로드, 프로젝트 일체형', '파일 크기 제한 주의'] },
+  ]}
+/>
+
+<Callout type="tip" title="Custom Slash Commands 활용">
+  Claude Code의 `.claude/commands/` 디렉토리에 자주 사용하는 프롬프트를 저장하면
+  `/project:command-name` 형식으로 즉시 실행할 수 있습니다.
+  팀 공유는 Git으로, 개인용은 `~/.claude/commands/`에 저장하세요.
+</Callout>
+
+<CodeBlock
+  code={`# .claude/commands/review.md (팀 공유 커스텀 커맨드)
+이 PR의 변경사항을 리뷰해줘.
+
+## 리뷰 관점
+1. 보안 취약점
+2. 에러 처리 누락
+3. 성능 이슈
+4. 테스트 커버리지
+
+## 출력 형식
+각 이슈를 severity (critical/warning/info)와 함께 보고해줘.
+
+---
+
+# 사용법: /project:review 로 실행`}
+  language="markdown"
+  filename=".claude/commands/review.md"
+/>
+
+## 프롬프트 워크플로우 종합
+
+전체 프롬프트 엔지니어링 워크플로우를 종합하면 다음과 같습니다.
+
+<MermaidDiagram
+  chart={`flowchart TD
+    Start["작업 시작"] --> Assess{"작업 복잡도?"}
+    Assess -->|"단순\n(변수 이름 변경 등)"| Simple["직접 프롬프트\n간단하게 지시"]
+    Assess -->|"보통\n(기능 추가 등)"| Medium["4단계 워크플로우\nExplore→Plan→Code→Commit"]
+    Assess -->|"복잡\n(아키텍처 변경 등)"| Complex["프롬프트 체이닝\n분석→설계→구현→테스트→리뷰"]
+    Simple --> Verify{"결과 검증"}
+    Medium --> Verify
+    Complex --> Verify
+    Verify -->|"만족"| Done["커밋"]
+    Verify -->|"부분 수정"| Feedback["구체적 피드백"]
+    Verify -->|"방향 전환"| Clear["/clear 후 재시작"]
+    Feedback --> Verify
+    Clear --> Assess
+    style Start fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Done fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Assess fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26
+    style Verify fill:#f0ece5,stroke:#d4cdc4,color:#2d2a26`}
+  title="프롬프트 엔지니어링 종합 워크플로우"
+  caption="작업 복잡도에 따라 적절한 프롬프트 전략을 선택하고, 결과를 검증하며 반복합니다"
+/>
+
+### 프롬프트 엔지니어링 체크리스트
+
+작업 전에 다음 체크리스트를 확인하면 프롬프트 품질을 일관되게 유지할 수 있습니다.
+
+<ComparisonTable
+  title="프롬프트 작성 전 체크리스트"
+  headers={['항목', '확인 사항', '예시']}
+  rows={[
+    { feature: '작업 범위', values: ['수정할 파일과 함수가 명확한가?', '@src/services/user-service.ts의 createUser 함수'] },
+    { feature: '요구사항', values: ['기대하는 결과가 구체적인가?', '입력: email, name → 출력: User 객체, DB 저장'] },
+    { feature: '제약사항', values: ['기술적 제약이 명시되어 있는가?', '기존 패턴 따르기, 새 라이브러리 금지'] },
+    { feature: '검증 수단', values: ['결과를 어떻게 검증할 것인가?', '테스트 실행, 타입 체크, 수동 확인'] },
+    { feature: '참고 자료', values: ['관련 파일이나 문서를 제공했는가?', '@src/existing-pattern.ts 참고'] },
+    { feature: '컨텍스트', values: ['현재 세션의 컨텍스트가 깨끗한가?', '무관한 작업이 섞여 있으면 /clear'] },
+  ]}
+/>
+
 <Callout type="tip" title="CLAUDE.md에 압축 보존 지시">
   `/compact` 실행 시 중요한 컨텍스트가 유실될 수 있습니다.
   CLAUDE.md에 "압축 시 반드시 보존할 내용"을 명시하면 `/compact` 후에도 핵심 맥락이 유지됩니다.
+</Callout>
+
+### 프롬프트 성숙도 모델
+
+프롬프트 엔지니어링 능력은 점진적으로 발전합니다.
+
+<Timeline
+  title="프롬프트 엔지니어링 성숙도 단계"
+  events={[
+    {
+      date: 'Level 1',
+      title: '초급: 기본 지시',
+      description: '"로그인 기능 만들어줘"처럼 단순 요청. 결과물의 품질 편차가 크고, 반복 수정이 잦음.',
+    },
+    {
+      date: 'Level 2',
+      title: '중급: 구조화된 지시',
+      description: '요구사항, 제약사항, 참고 파일을 포함한 구조화된 프롬프트 작성. 첫 결과의 적중률이 높아짐.',
+    },
+    {
+      date: 'Level 3',
+      title: '고급: 전략적 활용',
+      description: '4단계 워크플로우, 프롬프트 체이닝, 세션 분리 등 전략적 패턴 활용. 복잡한 작업도 효율적으로 수행.',
+      highlight: true,
+    },
+    {
+      date: 'Level 4',
+      title: '전문가: 시스템 구축',
+      description: '프롬프트 라이브러리, Custom Commands, CLAUDE.md 체계를 구축하여 팀 전체의 AI 활용도를 높임.',
+      highlight: true,
+    },
+  ]}
+/>
+
+<Callout type="info" title="핵심 정리">
+  프롬프트 엔지니어링의 핵심은 **"AI에게 일을 잘 시키는 것"**이 아니라
+  **"자신의 의도를 정확하게 전달하는 것"**입니다.
+  명확한 요구사항 정의, 적절한 컨텍스트 제공, 검증 가능한 결과 기준 --
+  이 세 가지만 갖추면 Claude Code와의 협업 효율이 크게 향상됩니다.
 </Callout>
 
 <ChapterNav
