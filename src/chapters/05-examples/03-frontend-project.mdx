@@ -33,6 +33,46 @@ import { ChapterNav } from '../../components/ChapterNav';
   caption="타입 먼저 정의하면 Claude가 타입에 맞는 정확한 코드를 생성합니다"
 />
 
+## 프론트엔드 아키텍처 개요
+
+프론트엔드 프로젝트도 백엔드와 마찬가지로 **관심사 분리**가 중요합니다. 이 예제에서는 **Feature-based 아키텍처**를 채택합니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Pages["페이지 레이어"]
+      P1["Dashboard.tsx"]
+      P2["Settings.tsx"]
+    end
+    subgraph Features["기능 레이어"]
+      F1["통계 카드"]
+      F2["데이터 그리드"]
+      F3["검색 필터"]
+    end
+    subgraph Shared["공유 레이어"]
+      S1["UI 컴포넌트"]
+      S2["커스텀 훅"]
+      S3["유틸리티"]
+    end
+    subgraph Core["코어 레이어"]
+      C1["타입 정의"]
+      C2["API 클라이언트"]
+      C3["상수/설정"]
+    end
+    Pages --> Features
+    Features --> Shared
+    Shared --> Core
+    style Pages fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Features fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Shared fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Core fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="Feature-based 프론트엔드 아키텍처"
+  caption="의존성 방향: Pages → Features → Shared → Core"
+/>
+
+<Callout type="info" title="Feature-based vs Atomic Design">
+  **Feature-based 아키텍처**는 기능 단위로 파일을 그룹화합니다. 대시보드 관련 컴포넌트, 훅, 타입이 한 폴더에 모이므로 관련 코드를 찾기 쉽습니다. **Atomic Design**(atoms, molecules, organisms)은 UI 복잡도 단위로 분류합니다. 프로젝트 규모가 커지면 Feature-based가 더 직관적입니다.
+</Callout>
+
 ## 최종 프로젝트 구조
 
 <FileTree
@@ -56,6 +96,8 @@ import { ChapterNav } from '../../components/ChapterNav';
                 { name: 'Button.tsx', type: 'file', description: '버튼 컴포넌트' },
                 { name: 'Card.tsx', type: 'file', description: '카드 컴포넌트' },
                 { name: 'Input.tsx', type: 'file', description: '입력 필드' },
+                { name: 'Badge.tsx', type: 'file', description: '배지 컴포넌트' },
+                { name: 'Skeleton.tsx', type: 'file', description: '스켈레톤 UI' },
               ],
             },
             {
@@ -66,6 +108,7 @@ import { ChapterNav } from '../../components/ChapterNav';
                 { name: 'StatCard.tsx', type: 'file', description: '통계 카드' },
                 { name: 'Chart.tsx', type: 'file', description: '차트 래퍼' },
                 { name: 'DataGrid.tsx', type: 'file', description: '데이터 그리드' },
+                { name: 'SearchFilter.tsx', type: 'file', description: '검색 필터' },
               ],
             },
           ],
@@ -77,6 +120,16 @@ import { ChapterNav } from '../../components/ChapterNav';
           children: [
             { name: 'useDebounce.ts', type: 'file' },
             { name: 'useFetch.ts', type: 'file' },
+            { name: 'useLocalStorage.ts', type: 'file' },
+          ],
+        },
+        {
+          name: 'stores/',
+          type: 'folder',
+          description: '상태 관리 (Zustand)',
+          children: [
+            { name: 'useDashboardStore.ts', type: 'file', description: '대시보드 상태' },
+            { name: 'useFilterStore.ts', type: 'file', description: '필터 상태' },
           ],
         },
         {
@@ -84,6 +137,7 @@ import { ChapterNav } from '../../components/ChapterNav';
           type: 'folder',
           children: [
             { name: 'dashboard.ts', type: 'file', description: '타입 정의' },
+            { name: 'api.ts', type: 'file', description: 'API 응답 타입' },
           ],
         },
         {
@@ -93,6 +147,8 @@ import { ChapterNav } from '../../components/ChapterNav';
           children: [
             { name: 'StatCard.test.tsx', type: 'file' },
             { name: 'DataGrid.test.tsx', type: 'file' },
+            { name: 'useDebounce.test.ts', type: 'file' },
+            { name: 'Dashboard.test.tsx', type: 'file' },
           ],
         },
         {
@@ -102,10 +158,22 @@ import { ChapterNav } from '../../components/ChapterNav';
             { name: 'Dashboard.tsx', type: 'file', description: '대시보드 페이지' },
           ],
         },
+        {
+          name: 'stories/',
+          type: 'folder',
+          description: 'Storybook 스토리',
+          children: [
+            { name: 'StatCard.stories.tsx', type: 'file' },
+            { name: 'DataGrid.stories.tsx', type: 'file' },
+            { name: 'Button.stories.tsx', type: 'file' },
+          ],
+        },
       ],
     },
     { name: 'tailwind.config.ts', type: 'file' },
     { name: 'tsconfig.json', type: 'file' },
+    { name: 'vitest.config.ts', type: 'file' },
+    { name: '.storybook/', type: 'folder', description: 'Storybook 설정' },
   ]}
 />
 
@@ -122,7 +190,15 @@ import { ChapterNav } from '../../components/ChapterNav';
 2. DataGridColumn<T>: key(keyof T), header, width, sortable,
    render(커스텀 렌더러 함수)
 
-3. DataGridProps<T>: columns, data, loading, onRowClick, emptyMessage`}
+3. DataGridProps<T>: columns, data, loading, onRowClick, emptyMessage
+
+4. DashboardStats: totalRevenue, newUsers, orderCount, conversionRate
+   각각 value(number), change({ value: number, type: 'increase'|'decrease' })
+
+5. Order: id, customerName, amount, status, createdAt
+   OrderStatus: 'pending' | 'processing' | 'completed' | 'cancelled'
+
+6. ApiResponse<T>: data(T), meta({ total, page, limit }), error(optional)`}
   language="text"
   filename="프롬프트 1: 타입 정의"
 />
@@ -130,6 +206,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 ### Claude가 생성하는 것
 
 - **`dashboard.ts`** — `StatCardProps`, `DataGridColumn<T>`, `DataGridProps<T>` 인터페이스. 제네릭 `<T>`로 어떤 데이터 타입이든 수용 가능
+- **`api.ts`** — `ApiResponse<T>`, `DashboardStats`, `Order`, `OrderStatus` 등 API 응답 타입
 
 ### 여기서 배우는 것
 
@@ -138,6 +215,50 @@ import { ChapterNav } from '../../components/ChapterNav';
 
   타입 없이 "통계 카드 컴포넌트 만들어줘"라고 하면 Claude가 props를 임의로 결정합니다. 타입을 먼저 정의하면 **원하는 인터페이스를 확정**하고 나서 구현을 맡기는 셈입니다. 백엔드에서 Repository 인터페이스를 먼저 정의한 것과 같은 원리입니다.
 </Callout>
+
+<CodeBlock
+  code={`// src/types/dashboard.ts - Claude가 생성하는 타입 예시
+import { ReactNode } from 'react';
+
+export interface StatCardProps {
+  title: string;
+  value: number | string;
+  change?: {
+    value: number;
+    type: 'increase' | 'decrease';
+  };
+  icon: ReactNode;
+  loading?: boolean;
+}
+
+export interface DataGridColumn<T> {
+  key: keyof T;
+  header: string;
+  width?: string;
+  sortable?: boolean;
+  render?: (value: T[keyof T], row: T) => ReactNode;
+}
+
+export interface DataGridProps<T> {
+  columns: DataGridColumn<T>[];
+  data: T[];
+  loading?: boolean;
+  onRowClick?: (row: T) => void;
+  emptyMessage?: string;
+}
+
+export type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+
+export interface Order {
+  id: string;
+  customerName: string;
+  amount: number;
+  status: OrderStatus;
+  createdAt: string;
+}`}
+  language="typescript"
+  filename="src/types/dashboard.ts (생성 결과 예시)"
+/>
 
 ---
 
@@ -149,7 +270,8 @@ Tailwind CSS로 스타일링하고 다음을 포함해:
 - 로딩 상태: animate-pulse 스켈레톤 UI
 - 변화율 표시: 증가는 초록(↑), 감소는 빨강(↓)
 - 접근성: role="status", aria-label 포함
-- hover 시 shadow 트랜지션`}
+- hover 시 shadow 트랜지션
+- React.memo로 불필요한 리렌더링 방지`}
   language="text"
   filename="프롬프트 2: StatCard 구현"
 />
@@ -169,6 +291,53 @@ Tailwind CSS로 스타일링하고 다음을 포함해:
   접근성을 **나중에 추가하면** 구조를 바꿔야 할 수 있습니다. 처음부터 프롬프트에 명시하면 자연스럽게 반영됩니다.
 </Callout>
 
+<CodeBlock
+  code={`// src/components/dashboard/StatCard.tsx - 생성 결과 예시
+import { memo } from 'react';
+import type { StatCardProps } from '../../types/dashboard';
+
+function StatCardInner({ title, value, change, icon, loading = false }: StatCardProps) {
+  if (loading) {
+    return (
+      <div
+        role="status"
+        aria-label={\`\${title} 로딩 중\`}
+        className="rounded-xl border bg-white p-6 animate-pulse"
+      >
+        <div className="h-4 w-24 bg-gray-200 rounded mb-4" />
+        <div className="h-8 w-32 bg-gray-200 rounded mb-2" />
+        <div className="h-3 w-16 bg-gray-200 rounded" />
+        <span className="sr-only">{title} 데이터를 불러오는 중입니다</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border bg-white p-6 hover:shadow-lg transition-shadow">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-gray-500">{title}</p>
+        <span aria-hidden="true">{icon}</span>
+      </div>
+      <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
+      {change && (
+        <p
+          aria-label={\`\${change.type === 'increase' ? '증가' : '감소'} \${change.value}%\`}
+          className={\`mt-1 text-sm font-medium \${
+            change.type === 'increase' ? 'text-green-600' : 'text-red-600'
+          }\`}
+        >
+          {change.type === 'increase' ? '↑' : '↓'} {change.value}%
+        </p>
+      )}
+    </div>
+  );
+}
+
+export const StatCard = memo(StatCardInner);`}
+  language="tsx"
+  filename="src/components/dashboard/StatCard.tsx (생성 결과 예시)"
+/>
+
 ---
 
 ## 실습 3: DataGrid 컴포넌트
@@ -181,7 +350,8 @@ Tailwind CSS로 스타일링하고 다음 기능을 포함해:
 - 빈 상태 메시지
 - 행 클릭 이벤트
 - 커스텀 셀 렌더러 (render prop)
-- 접근성: aria-sort, 키보드로 행 선택 가능 (Enter, Space)`}
+- 접근성: aria-sort, 키보드로 행 선택 가능 (Enter, Space)
+- useMemo로 정렬된 데이터 메모이제이션`}
   language="text"
   filename="프롬프트 3: DataGrid 구현"
 />
@@ -204,7 +374,80 @@ Tailwind CSS로 스타일링하고 다음 기능을 포함해:
 
 ---
 
-## 실습 4: 커스텀 훅
+## 실습 4: 상태 관리 — Zustand + React Query
+
+프론트엔드에서 상태 관리는 크게 **서버 상태**와 **클라이언트 상태**로 나뉩니다. Claude Code를 활용하여 두 가지를 명확하게 분리합니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Server["서버 상태 (React Query)"]
+      RQ1["useQuery\n데이터 패칭"]
+      RQ2["useMutation\n데이터 변경"]
+      RQ3["캐시 관리\n자동 갱신"]
+    end
+    subgraph Client["클라이언트 상태 (Zustand)"]
+      Z1["필터 설정"]
+      Z2["UI 상태\n사이드바, 모달"]
+      Z3["사용자 환경설정"]
+    end
+    subgraph Component["컴포넌트"]
+      C1["Dashboard.tsx"]
+    end
+    Component --> Server
+    Component --> Client
+    style Server fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Client fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Component fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="서버 상태 vs 클라이언트 상태 분리"
+  caption="React Query는 API 데이터를, Zustand는 UI 상태를 각각 전담합니다"
+/>
+
+<CodeBlock
+  code={`다음 상태 관리 코드를 구현해줘:
+
+1. src/hooks/useDashboardQuery.ts (React Query)
+   - useDashboardStats(): /api/dashboard/stats GET, 30초마다 자동 갱신
+   - useOrders(params): /api/orders GET, 페이지네이션과 필터 지원
+   - useUpdateOrderStatus(): 주문 상태 변경 mutation, 성공 시 캐시 무효화
+
+2. src/stores/useFilterStore.ts (Zustand)
+   - searchQuery: 검색어
+   - statusFilter: OrderStatus | 'all'
+   - dateRange: { start, end }
+   - setSearchQuery, setStatusFilter, setDateRange 액션
+   - resetFilters: 초기화 액션
+
+각 상태 관리 도구의 역할을 명확히 분리해줘.`}
+  language="text"
+  filename="프롬프트 4: 상태 관리"
+/>
+
+### Claude가 생성하는 것
+
+- **`useDashboardQuery.ts`** — React Query 기반 서버 상태 관리 훅. `staleTime`, `refetchInterval` 등 캐싱 전략 포함
+- **`useFilterStore.ts`** — Zustand 기반 클라이언트 상태 저장소. 필터 설정을 중앙에서 관리
+
+### 여기서 배우는 것
+
+<ComparisonTable
+  title="서버 상태 vs 클라이언트 상태"
+  headers={['구분', '서버 상태 (React Query)', '클라이언트 상태 (Zustand)']}
+  rows={[
+    { feature: '데이터 출처', values: ['API 서버', '브라우저 메모리'] },
+    { feature: '예시', values: ['주문 목록, 통계 데이터', '검색 필터, 사이드바 열림/닫힘'] },
+    { feature: '캐싱', values: ['자동 캐싱 + 무효화', '직접 관리 불필요'] },
+    { feature: '동기화', values: ['서버와 주기적 동기화', '로컬에서만 유효'] },
+    { feature: '영속성', values: ['서버에 저장', '새로고침 시 초기화 (필요하면 localStorage)'] },
+  ]}
+/>
+
+<Callout type="info" title="왜 두 가지를 분리하나?">
+  `useState`로 API 데이터를 관리하면 **캐싱, 로딩 상태, 에러 재시도, 자동 갱신**을 모두 직접 구현해야 합니다. React Query는 이 모든 것을 선언적으로 처리합니다. 반면 검색 필터 같은 순수 UI 상태에 React Query를 사용하면 불필요하게 복잡해집니다. Zustand는 `setState`만으로 충분한 간단한 상태에 적합합니다.
+</Callout>
+
+---
+
+## 실습 5: 커스텀 훅
 
 <CodeBlock
   code={`다음 커스텀 훅을 구현해줘:
@@ -214,15 +457,21 @@ Tailwind CSS로 스타일링하고 다음 기능을 포함해:
 
 2. useFetch<T>(url): GET 요청 + 로딩/에러 상태 관리
    - AbortController로 언마운트 시 요청 취소
-   - 에러 시 AbortError는 무시`}
+   - 에러 시 AbortError는 무시
+
+3. useLocalStorage<T>(key, initialValue): localStorage 동기화
+   - SSR 안전 (typeof window 체크)
+   - JSON 직렬화/역직렬화
+   - 타입 안전 (제네릭)`}
   language="text"
-  filename="프롬프트 4: 커스텀 훅"
+  filename="프롬프트 5: 커스텀 훅"
 />
 
 ### Claude가 생성하는 것
 
 - **`useDebounce.ts`** — `setTimeout`/`clearTimeout`으로 값 변경을 지연하는 훅
 - **`useFetch.ts`** — `data`, `error`, `loading` 상태를 관리하는 데이터 패칭 훅
+- **`useLocalStorage.ts`** — `localStorage`와 React 상태를 동기화하는 훅
 
 ### 여기서 배우는 것
 
@@ -234,9 +483,31 @@ Tailwind CSS로 스타일링하고 다음 기능을 포함해:
   cleanup이 없으면 **메모리 누수**와 **경쟁 조건(race condition)**이 발생합니다. 이전 요청의 응답이 나중에 도착해서 새 데이터를 덮어쓰는 문제가 대표적입니다.
 </Callout>
 
+<CodeBlock
+  code={`// src/hooks/useDebounce.ts - 생성 결과 예시
+import { useState, useEffect } from 'react';
+
+export function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    // cleanup: 값이 바뀌면 이전 타이머 취소
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}`}
+  language="typescript"
+  filename="src/hooks/useDebounce.ts (생성 결과 예시)"
+/>
+
 ---
 
-## 실습 5: 테스트 작성
+## 실습 6: 테스트 작성
 
 <CodeBlock
   code={`@src/components/dashboard/StatCard.tsx 의 테스트를 작성해줘.
@@ -254,15 +525,21 @@ Testing Library를 사용하고 다음 케이스를 커버해:
 4. 행 클릭 이벤트
 5. 키보드로 행 선택 (Enter, Space)
 
+@src/hooks/useDebounce.ts 훅 테스트도 작성해줘:
+1. 지연 후 값 반영
+2. 빠른 연속 변경 시 마지막 값만 반영
+3. 언마운트 시 타이머 정리
+
 테스트 작성 후 실행까지 해줘.`}
   language="text"
-  filename="프롬프트 5: 테스트 작성"
+  filename="프롬프트 6: 테스트 작성"
 />
 
 ### Claude가 생성하는 것
 
 - **`StatCard.test.tsx`** — 5개 테스트 케이스 (렌더링, 변화율, 로딩, 아이콘)
 - **`DataGrid.test.tsx`** — 5개 테스트 케이스 (데이터, 정렬, 빈 상태, 클릭, 키보드)
+- **`useDebounce.test.ts`** — 3개 테스트 케이스 (지연, 연속 변경, 정리)
 - 테스트 실행 결과 (실패 시 자동 수정)
 
 ### 여기서 배우는 것
@@ -271,14 +548,100 @@ Testing Library를 사용하고 다음 케이스를 커버해:
   생성된 테스트에서 `screen.getByText()`, `screen.getByRole()` 같은 쿼리를 확인하세요. Testing Library는 **사용자가 실제로 보고 상호작용하는 방식**으로 테스트합니다:
   - `getByText('총 매출')` — "총 매출"이라는 텍스트가 화면에 있는가?
   - `getByRole('status')` — 스크린 리더가 인식하는 status 요소가 있는가?
-  - `fireEvent.click()` → `fireEvent.keyDown(Enter)` — 클릭과 키보드 모두 작동하는가?
+  - `fireEvent.click()` / `fireEvent.keyDown(Enter)` — 클릭과 키보드 모두 작동하는가?
 
   구현 세부사항(className, state 값)이 아닌 **사용자 관점의 동작**을 검증합니다.
 </Callout>
 
+### 컴포넌트 테스트 전략
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Unit["단위 테스트"]
+      U1["커스텀 훅\nuseDebounce, useFetch"]
+      U2["유틸 함수\n포맷팅, 검증"]
+    end
+    subgraph Component["컴포넌트 테스트"]
+      C1["렌더링 검증\nStatCard, DataGrid"]
+      C2["사용자 인터랙션\n클릭, 키보드, 입력"]
+      C3["접근성 검증\nrole, aria 속성"]
+    end
+    subgraph Integration["통합 테스트"]
+      I1["페이지 레벨\nDashboard 조립"]
+      I2["API 연동\nMSW 모킹"]
+    end
+    subgraph E2E["E2E 테스트"]
+      E1["사용자 시나리오\nPlaywright"]
+    end
+    Unit --> Component
+    Component --> Integration
+    Integration --> E2E
+    style Unit fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Component fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Integration fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E2E fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="프론트엔드 테스트 피라미드"
+  caption="아래에서 위로 갈수록 테스트 범위가 넓어지고, 실행 속도는 느려집니다"
+/>
+
+<ComparisonTable
+  title="프론트엔드 테스트 레벨별 비교"
+  headers={['레벨', '대상', '도구', '실행 속도', '커버리지']}
+  rows={[
+    { feature: '단위 테스트', values: ['훅, 유틸 함수', 'Vitest / Jest', '매우 빠름 (ms)', '로직 검증'] },
+    { feature: '컴포넌트 테스트', values: ['개별 컴포넌트', 'Testing Library', '빠름 (ms~s)', '렌더링 + 인터랙션'] },
+    { feature: '통합 테스트', values: ['페이지 단위', 'Testing Library + MSW', '보통 (s)', 'API 연동 포함'] },
+    { feature: 'E2E 테스트', values: ['사용자 시나리오', 'Playwright / Cypress', '느림 (s~min)', '전체 흐름'] },
+  ]}
+/>
+
 ---
 
-## 실습 6: 접근성 검증
+## 실습 7: Storybook 연동
+
+컴포넌트를 독립적으로 개발하고 문서화하기 위해 Storybook을 활용합니다.
+
+<CodeBlock
+  code={`@src/components/dashboard/StatCard.tsx 의 Storybook 스토리를 작성해줘.
+
+src/stories/StatCard.stories.tsx:
+- Default: 기본 상태 (title, value, change 포함)
+- Loading: 로딩 스켈레톤 상태
+- Increase: 증가 변화율 표시
+- Decrease: 감소 변화율 표시
+- NoChange: 변화율 없는 상태
+- LargeNumber: 큰 숫자 포맷팅 확인
+
+@src/components/dashboard/DataGrid.tsx 스토리도 작성해줘:
+- WithData: 데이터가 있는 기본 상태
+- Loading: 로딩 상태
+- Empty: 빈 데이터 상태
+- CustomRenderer: 커스텀 셀 렌더러 예시
+
+argTypes로 props를 제어할 수 있게 하고,
+autodocs로 자동 문서화를 포함해줘.`}
+  language="text"
+  filename="프롬프트 7: Storybook 스토리"
+/>
+
+### Claude가 생성하는 것
+
+- **`StatCard.stories.tsx`** — 6개 스토리 (Default, Loading, Increase, Decrease, NoChange, LargeNumber)
+- **`DataGrid.stories.tsx`** — 4개 스토리 (WithData, Loading, Empty, CustomRenderer)
+
+### 여기서 배우는 것
+
+<Callout type="info" title="Storybook이 테스트를 보완하는 방법">
+  Testing Library는 **동작이 맞는지** 자동으로 검증합니다. Storybook은 **시각적으로 어떻게 보이는지** 사람이 확인합니다. 두 도구를 함께 사용하면:
+  - **Testing Library**: "로딩 시 role=status가 있는가?" (자동 검증)
+  - **Storybook**: "로딩 스켈레톤이 자연스럽게 보이는가?" (시각적 확인)
+
+  Storybook의 스토리는 또한 **컴포넌트 문서** 역할을 합니다. 새 팀원이 "StatCard는 어떤 상태들을 가지나?"를 코드 대신 Storybook에서 바로 확인할 수 있습니다.
+</Callout>
+
+---
+
+## 실습 8: 접근성 검증
 
 <CodeBlock
   code={`@src/components/dashboard/ 아래 모든 컴포넌트의 접근성을 검토해줘.
@@ -287,15 +650,19 @@ Testing Library를 사용하고 다음 케이스를 커버해:
 2. 스크린 리더: aria-label, role, aria-sort 속성 확인
 3. 색상 대비: 텍스트와 배경 간 WCAG AA(4.5:1) 충족 여부
 4. 로딩 상태: role="status"와 sr-only 안내 텍스트 확인
+5. 포커스 관리: 모달/드롭다운 열릴 때 포커스 트랩
+6. 모션 감소: prefers-reduced-motion 미디어 쿼리 대응
 
+또한 jest-axe를 사용해서 자동화된 접근성 테스트도 추가해줘.
 수정 후 테스트를 실행해줘.`}
   language="text"
-  filename="프롬프트 6: 접근성 검증"
+  filename="프롬프트 8: 접근성 검증"
 />
 
 ### Claude가 수행하는 것
 
 - 모든 대시보드 컴포넌트를 순회하며 접근성 문제 발견 및 수정
+- jest-axe 기반 자동화된 접근성 테스트 추가
 - 수정 후 기존 테스트가 여전히 통과하는지 확인
 
 ### 여기서 배우는 것
@@ -309,6 +676,7 @@ Testing Library를 사용하고 다음 케이스를 커버해:
     { feature: '색상 대비', values: ['WCAG AA 기준 4.5:1 이상', 'Tailwind의 600/900 색상 조합'] },
     { feature: '로딩 상태', values: ['비동기 상태를 명확히 전달', 'role="status", sr-only 텍스트'] },
     { feature: '정렬 상태', values: ['현재 정렬 방향을 인식 가능', 'aria-sort="ascending|descending"'] },
+    { feature: '모션 감소', values: ['애니메이션 민감 사용자 배려', 'prefers-reduced-motion 미디어 쿼리'] },
   ]}
 />
 
@@ -316,31 +684,325 @@ Testing Library를 사용하고 다음 케이스를 커버해:
   실습 2~3에서 프롬프트에 접근성을 포함했는데 왜 다시 검증하나요? Claude가 **모든 요구사항을 100% 반영하지 않을 수 있기** 때문입니다. 접근성 전용 검토 단계를 두면 빠뜨린 부분을 보완할 수 있습니다. "수정 후 테스트를 실행해줘"를 포함하여 기존 기능이 깨지지 않는지도 확인합니다.
 </Callout>
 
+<CodeBlock
+  code={`// jest-axe를 사용한 자동화 접근성 테스트 예시
+import { render } from '@testing-library/react';
+import { axe, toHaveNoViolations } from 'jest-axe';
+import { StatCard } from '../components/dashboard/StatCard';
+
+expect.extend(toHaveNoViolations);
+
+describe('StatCard 접근성', () => {
+  it('WCAG 위반 사항이 없어야 한다', async () => {
+    const { container } = render(
+      <StatCard
+        title="총 매출"
+        value="₩12,500,000"
+        change={{ value: 12.5, type: 'increase' }}
+        icon={<span>📊</span>}
+      />
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it('로딩 상태에서도 WCAG를 준수해야 한다', async () => {
+    const { container } = render(
+      <StatCard title="총 매출" value="" icon={<span>📊</span>} loading />
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+});`}
+  language="tsx"
+  filename="jest-axe 접근성 자동 테스트 예시"
+/>
+
 ---
 
-## 실습 7: 대시보드 페이지 조립
+## 실습 9: 성능 최적화
+
+대시보드처럼 데이터가 많은 화면에서는 성능 최적화가 필수입니다. Claude Code에 최적화를 요청하는 방법을 배웁니다.
+
+<CodeBlock
+  code={`@src/pages/Dashboard.tsx의 성능을 최적화해줘:
+
+1. React.memo: StatCard, DataGrid에 적용 (props 비교)
+2. useMemo: 필터링/정렬된 주문 목록 메모이제이션
+3. useCallback: 이벤트 핸들러 안정화 (onRowClick, onSearch)
+4. 코드 스플리팅: React.lazy로 Chart 컴포넌트 지연 로딩
+5. 가상화: 1000행 이상의 DataGrid에 @tanstack/react-virtual 적용
+6. 이미지 최적화: loading="lazy" 적용
+
+최적화 전후 성능 차이를 주석으로 설명해줘.`}
+  language="text"
+  filename="프롬프트 9: 성능 최적화"
+/>
+
+### Claude가 수행하는 것
+
+- 각 컴포넌트에 적절한 메모이제이션 적용
+- Chart 컴포넌트를 `React.lazy`로 분리
+- DataGrid에 가상 스크롤링 적용
+- 최적화 근거를 주석으로 설명
+
+### 여기서 배우는 것
+
+<ComparisonTable
+  title="React 성능 최적화 기법"
+  headers={['기법', '해결하는 문제', '적용 시점', '주의사항']}
+  rows={[
+    { feature: 'React.memo', values: ['불필요한 리렌더링', 'props가 자주 안 바뀌는 컴포넌트', '비교 비용 > 렌더링 비용이면 역효과'] },
+    { feature: 'useMemo', values: ['비싼 계산의 반복 실행', '정렬, 필터링, 변환 연산', '의존성 배열 정확히 지정'] },
+    { feature: 'useCallback', values: ['자식 컴포넌트의 불필요한 리렌더링', 'memo된 자식에 전달하는 핸들러', '단독 사용은 효과 없음'] },
+    { feature: 'React.lazy', values: ['초기 번들 크기', '조건부로 렌더링되는 큰 컴포넌트', 'Suspense fallback 필수'] },
+    { feature: '가상 스크롤', values: ['대량 DOM 노드', '100행 이상의 리스트/테이블', '고정 높이 필요'] },
+  ]}
+/>
+
+<Callout type="warning" title="과도한 최적화 주의">
+  모든 컴포넌트에 `React.memo`를 적용하거나, 모든 함수에 `useCallback`을 감싸는 것은 **오히려 성능을 저하**시킬 수 있습니다. 메모이제이션 자체에도 메모리와 비교 비용이 들기 때문입니다. **측정 먼저, 최적화는 나중에(Measure first, optimize later)** 원칙을 따르세요. React DevTools Profiler로 실제 병목을 확인한 후 최적화하세요.
+</Callout>
+
+<CodeBlock
+  code={`// 코드 스플리팅 예시 - Chart 컴포넌트 지연 로딩
+import { lazy, Suspense } from 'react';
+
+// Chart는 recharts 등 무거운 라이브러리를 포함하므로 별도 청크로 분리
+const Chart = lazy(() => import('../components/dashboard/Chart'));
+
+function Dashboard() {
+  return (
+    <div>
+      {/* StatCard는 즉시 렌더링 */}
+      <StatCard title="총 매출" value={stats.totalRevenue} />
+
+      {/* Chart는 필요할 때 로딩 */}
+      <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
+        <Chart data={chartData} />
+      </Suspense>
+    </div>
+  );
+}`}
+  language="tsx"
+  filename="코드 스플리팅 예시"
+/>
+
+---
+
+## 실습 10: CSS/스타일링 전략
+
+<CodeBlock
+  code={`프로젝트의 스타일링 시스템을 체계화해줘:
+
+1. tailwind.config.ts 커스터마이징:
+   - 디자인 토큰: colors (primary, secondary, success, danger)
+   - 간격: spacing 스케일 확장
+   - 폰트: Pretendard 또는 Inter 설정
+   - 애니메이션: fadeIn, slideUp 커스텀 키프레임
+
+2. src/components/ui/Button.tsx 변형 시스템:
+   - variant: primary, secondary, outline, ghost, danger
+   - size: sm, md, lg
+   - className을 조합할 수 있게 clsx + tailwind-merge 사용
+   - disabled 상태 스타일
+
+3. 반응형 디자인 패턴:
+   - 모바일 우선 (sm → md → lg → xl)
+   - 대시보드 그리드: 1열 → 2열 → 4열`}
+  language="text"
+  filename="프롬프트 10: 스타일링 시스템"
+/>
+
+### Claude가 생성하는 것
+
+- **`tailwind.config.ts`** — 프로젝트 맞춤 디자인 토큰이 포함된 설정
+- **`Button.tsx`** — variant와 size를 조합하는 다형성 버튼 컴포넌트
+- 반응형 유틸리티 클래스 패턴 예시
+
+### 여기서 배우는 것
+
+<ComparisonTable
+  title="프론트엔드 스타일링 도구 비교"
+  headers={['도구', '장점', '단점', '적합한 프로젝트']}
+  rows={[
+    { feature: 'Tailwind CSS', values: ['빠른 개발, 일관된 디자인 토큰', '긴 className, 학습 곡선', '대부분의 프로젝트, 특히 디자인 시스템'] },
+    { feature: 'CSS Modules', values: ['스코프된 CSS, 기존 CSS 지식 활용', '타입 안전성 부족, 동적 스타일 어려움', 'CSS 전문 지식이 있는 팀'] },
+    { feature: 'Styled Components', values: ['JS에서 동적 스타일, 테마 지원', '런타임 비용, 번들 크기 증가', '복잡한 테마, 동적 스타일 필요 시'] },
+    { feature: 'Vanilla Extract', values: ['타입 안전, 제로 런타임', '설정 복잡, 생태계 작음', '성능 중시 대규모 프로젝트'] },
+  ]}
+/>
+
+<Callout type="tip" title="Claude Code로 디자인 시스템 구축하기">
+  Claude Code에 기존 컴포넌트를 참조(`@` 기호)하면서 새 컴포넌트를 요청하면, **일관된 스타일 패턴**을 따릅니다. 예를 들어 "@src/components/ui/Button.tsx 와 같은 variant 패턴으로 Badge 컴포넌트를 만들어줘"라고 요청하면, Button의 스타일 시스템을 자동으로 참고합니다. 이 방식으로 디자인 시스템을 점진적으로 확장할 수 있습니다.
+</Callout>
+
+<CodeBlock
+  code={`// clsx + tailwind-merge를 사용한 variant 시스템 예시
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+const buttonVariants = {
+  primary: 'bg-primary-600 text-white hover:bg-primary-700',
+  secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
+  outline: 'border border-gray-300 bg-transparent hover:bg-gray-50',
+  ghost: 'bg-transparent hover:bg-gray-100',
+  danger: 'bg-red-600 text-white hover:bg-red-700',
+};
+
+const buttonSizes = {
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-base',
+  lg: 'px-6 py-3 text-lg',
+};
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: keyof typeof buttonVariants;
+  size?: keyof typeof buttonSizes;
+}
+
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  className,
+  disabled,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      className={cn(
+        'inline-flex items-center justify-center rounded-lg font-medium',
+        'transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500',
+        buttonVariants[variant],
+        buttonSizes[size],
+        disabled && 'opacity-50 cursor-not-allowed',
+        className
+      )}
+      disabled={disabled}
+      {...props}
+    />
+  );
+}`}
+  language="tsx"
+  filename="variant 시스템을 가진 Button 컴포넌트 예시"
+/>
+
+---
+
+## 실습 11: E2E 테스트 — Playwright 연동
+
+실제 브라우저에서 사용자 시나리오를 검증하는 E2E 테스트를 Claude Code로 작성합니다.
+
+<CodeBlock
+  code={`Playwright E2E 테스트를 설정하고 다음 시나리오를 작성해줘:
+
+1. playwright.config.ts 설정:
+   - baseURL: http://localhost:5173
+   - 브라우저: chromium, firefox
+   - 스크린샷: 실패 시 자동 캡처
+   - webServer: dev 서버 자동 시작
+
+2. e2e/dashboard.spec.ts 시나리오:
+   - 대시보드 페이지 로딩 확인 (4개 StatCard 표시)
+   - 주문 검색: 검색어 입력 → 디바운스 후 결과 필터링
+   - 주문 정렬: 컬럼 헤더 클릭 → 정렬 방향 토글
+   - 주문 상세: 행 클릭 → 상세 정보 표시
+   - 반응형: 모바일 뷰포트에서 1열 레이아웃 확인
+
+3. e2e/accessibility.spec.ts:
+   - 전체 페이지 axe 스캔
+   - 키보드만으로 모든 기능 접근 가능한지 확인`}
+  language="text"
+  filename="프롬프트 11: E2E 테스트"
+/>
+
+### Claude가 생성하는 것
+
+- **`playwright.config.ts`** — 브라우저, 스크린샷, 개발 서버 설정
+- **`e2e/dashboard.spec.ts`** — 5개 사용자 시나리오
+- **`e2e/accessibility.spec.ts`** — 접근성 E2E 검증
+
+### 여기서 배우는 것
+
+<Callout type="info" title="E2E 테스트의 가치와 비용">
+  E2E 테스트는 **실제 브라우저에서 실제 사용자처럼** 테스트합니다. 컴포넌트 테스트가 놓칠 수 있는 **통합 문제**(라우팅, 네트워크, CSS 레이아웃)를 발견합니다.
+
+  하지만 실행 시간이 길고 깨지기 쉽습니다(flaky). 따라서:
+  - **핵심 사용자 흐름**만 E2E로 테스트
+  - **세부 로직**은 단위/컴포넌트 테스트로 커버
+  - CI에서는 **병렬 실행**으로 속도 확보
+</Callout>
+
+<CodeBlock
+  code={`// e2e/dashboard.spec.ts - Playwright E2E 테스트 예시
+import { test, expect } from '@playwright/test';
+
+test.describe('대시보드', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/dashboard');
+  });
+
+  test('StatCard 4개가 표시되어야 한다', async ({ page }) => {
+    const statCards = page.locator('[data-testid="stat-card"]');
+    await expect(statCards).toHaveCount(4);
+  });
+
+  test('검색어 입력 후 결과가 필터링되어야 한다', async ({ page }) => {
+    const searchInput = page.getByPlaceholder('주문 검색...');
+    await searchInput.fill('김철수');
+
+    // 디바운스 대기 (300ms)
+    await page.waitForTimeout(500);
+
+    const rows = page.locator('tbody tr');
+    for (const row of await rows.all()) {
+      await expect(row).toContainText('김철수');
+    }
+  });
+
+  test('모바일에서 1열 레이아웃이어야 한다', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    const grid = page.locator('[data-testid="stat-grid"]');
+    await expect(grid).toHaveCSS('grid-template-columns', '1fr');
+  });
+});`}
+  language="typescript"
+  filename="e2e/dashboard.spec.ts (생성 결과 예시)"
+/>
+
+---
+
+## 실습 12: 대시보드 페이지 조립
 
 <CodeBlock
   code={`지금까지 만든 컴포넌트와 훅을 조합해서 대시보드 페이지를 만들어줘.
 
 src/pages/Dashboard.tsx:
 - 상단: StatCard 4개 (총 매출, 신규 사용자, 주문 수, 전환율)
-- useFetch로 /api/dashboard/stats에서 데이터 로딩
+- useDashboardStats()로 통계 데이터 로딩 (React Query)
+- 중간: 검색 필터 (useFilterStore의 상태 사용)
+- useDebounce로 300ms 디바운스 적용
 - 하단: DataGrid로 최근 주문 목록 표시
-- 주문 상태 컬럼에 커스텀 렌더러 (배지 스타일)
-- 검색 입력: useDebounce로 300ms 디바운스 적용
+- useOrders(params)로 주문 데이터 로딩
+- 주문 상태 컬럼에 커스텀 렌더러 (Badge 컴포넌트)
+- 금액 컬럼에 원화 포맷팅
 
 로딩 상태와 에러 상태도 처리해줘.
-Tailwind CSS로 반응형 레이아웃을 적용해 (sm: 2열, lg: 4열).`}
+Tailwind CSS로 반응형 레이아웃을 적용해 (sm: 2열, lg: 4열).
+에러 바운더리로 예외 상황도 처리해줘.`}
   language="text"
-  filename="프롬프트 7: 대시보드 페이지 조립"
+  filename="프롬프트 12: 대시보드 페이지 조립"
 />
 
 ### Claude가 생성하는 것
 
-- **`Dashboard.tsx`** — StatCard, DataGrid, useDebounce, useFetch를 조합한 대시보드 페이지
+- **`Dashboard.tsx`** — StatCard, DataGrid, useDebounce, React Query, Zustand를 조합한 대시보드 페이지
 - 반응형 그리드 (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`)
-- 주문 상태별 배지 컬러 (pending: 노랑, completed: 초록, cancelled: 빨강)
+- 주문 상태별 배지 컬러 (pending: 노랑, processing: 파랑, completed: 초록, cancelled: 빨강)
 
 ### 여기서 배우는 것
 
@@ -350,11 +1012,181 @@ Tailwind CSS로 반응형 레이아웃을 적용해 (sm: 2열, lg: 4열).`}
   이것이 컴포넌트 기반 개발의 가치입니다. 각 실습에서 독립적으로 테스트된 부품을 **조립만 하면 페이지가 완성**됩니다. 백엔드의 Clean Architecture에서 레이어를 조립하는 것과 같은 원리입니다.
 </Callout>
 
+### 컴포넌트 의존성 트리
+
+<MermaidDiagram
+  chart={`flowchart TB
+    Dashboard["Dashboard.tsx\n(페이지)"]
+    Dashboard --> StatCard["StatCard x4\n(통계 표시)"]
+    Dashboard --> SearchFilter["SearchFilter\n(검색 필터)"]
+    Dashboard --> DataGrid["DataGrid\n(주문 목록)"]
+    Dashboard --> ErrorBoundary["ErrorBoundary\n(에러 처리)"]
+    StatCard --> Card["Card\n(UI)"]
+    StatCard --> Skeleton["Skeleton\n(로딩)"]
+    SearchFilter --> Input["Input\n(UI)"]
+    SearchFilter --> useDebounce["useDebounce\n(훅)"]
+    SearchFilter --> useFilterStore["useFilterStore\n(Zustand)"]
+    DataGrid --> Badge["Badge\n(상태 배지)"]
+    DataGrid --> useDashboardQuery["useDashboardQuery\n(React Query)"]
+    Dashboard --> useDashboardQuery
+    style Dashboard fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style StatCard fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style SearchFilter fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style DataGrid fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="대시보드 컴포넌트 의존성 트리"
+  caption="각 컴포넌트는 독립적으로 테스트되고, 페이지에서 조립됩니다"
+/>
+
+<CodeBlock
+  code={`// src/pages/Dashboard.tsx - 조립 결과 예시 (핵심 부분)
+import { Suspense } from 'react';
+import { StatCard } from '../components/dashboard/StatCard';
+import { DataGrid } from '../components/dashboard/DataGrid';
+import { SearchFilter } from '../components/dashboard/SearchFilter';
+import { Badge } from '../components/ui/Badge';
+import { useDashboardStats, useOrders } from '../hooks/useDashboardQuery';
+import { useFilterStore } from '../stores/useFilterStore';
+import { useDebounce } from '../hooks/useDebounce';
+import type { Order, DataGridColumn } from '../types/dashboard';
+
+const orderColumns: DataGridColumn<Order>[] = [
+  { key: 'id', header: '주문번호', width: '120px' },
+  { key: 'customerName', header: '고객명', sortable: true },
+  {
+    key: 'amount',
+    header: '금액',
+    sortable: true,
+    render: (value) => \`₩\${Number(value).toLocaleString()}\`,
+  },
+  {
+    key: 'status',
+    header: '상태',
+    render: (value) => {
+      const colorMap = {
+        pending: 'yellow',
+        processing: 'blue',
+        completed: 'green',
+        cancelled: 'red',
+      };
+      return <Badge color={colorMap[value as string]}>{value}</Badge>;
+    },
+  },
+  { key: 'createdAt', header: '주문일', sortable: true },
+];
+
+export function Dashboard() {
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { searchQuery, statusFilter } = useFilterStore();
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  const { data: orders, isLoading: ordersLoading } = useOrders({
+    search: debouncedSearch,
+    status: statusFilter,
+  });
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* 통계 카드 */}
+      <div data-testid="stat-grid"
+           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="총 매출"
+          value={stats ? \`₩\${stats.totalRevenue.value.toLocaleString()}\` : ''}
+          change={stats?.totalRevenue.change}
+          icon={<span aria-hidden="true">💰</span>}
+          loading={statsLoading}
+        />
+        {/* ... 나머지 StatCard 3개 */}
+      </div>
+
+      {/* 검색 필터 */}
+      <SearchFilter />
+
+      {/* 주문 목록 */}
+      <DataGrid<Order>
+        columns={orderColumns}
+        data={orders?.data ?? []}
+        loading={ordersLoading}
+        onRowClick={(order) => console.log('주문 상세:', order.id)}
+        emptyMessage="주문 내역이 없습니다."
+      />
+    </div>
+  );
+}`}
+  language="tsx"
+  filename="src/pages/Dashboard.tsx (조립 결과 예시)"
+/>
+
+---
+
+## 정리: 프론트엔드 개발 워크플로우 요약
+
+<ComparisonTable
+  title="실습별 역할과 Claude Code 활용 포인트"
+  headers={['실습', '결과물', 'Claude Code 활용 포인트']}
+  rows={[
+    { feature: '1. 타입 정의', values: ['dashboard.ts, api.ts', '타입을 먼저 정의하여 이후 프롬프트의 정확도 향상'] },
+    { feature: '2. StatCard', values: ['StatCard.tsx', '@로 타입 파일 참조하여 props 일관성 확보'] },
+    { feature: '3. DataGrid', values: ['DataGrid.tsx', '제네릭 컴포넌트로 재사용성 극대화'] },
+    { feature: '4. 상태 관리', values: ['React Query + Zustand', '서버/클라이언트 상태 분리 패턴'] },
+    { feature: '5. 커스텀 훅', values: ['useDebounce, useFetch 등', 'cleanup 함수로 메모리 누수 방지'] },
+    { feature: '6. 테스트', values: ['test 파일들', '"테스트 작성 후 실행해줘"로 자동 수정'] },
+    { feature: '7. Storybook', values: ['stories 파일들', '시각적 문서화와 컴포넌트 독립 개발'] },
+    { feature: '8. 접근성', values: ['a11y 수정 + jest-axe', '접근성 전용 검토로 누락 보완'] },
+    { feature: '9. 성능 최적화', values: ['memo, lazy, 가상 스크롤', '측정 후 최적화 원칙'] },
+    { feature: '10. 스타일링', values: ['디자인 토큰 + variant 시스템', '@로 기존 컴포넌트 참조하여 일관성'] },
+    { feature: '11. E2E 테스트', values: ['Playwright 시나리오', '핵심 흐름만 E2E, 나머지는 단위 테스트'] },
+    { feature: '12. 페이지 조립', values: ['Dashboard.tsx', '테스트된 부품을 조립하여 완성'] },
+  ]}
+/>
+
 <Callout type="tip" title="프론트엔드에서 Claude Code 활용 팁">
   - **이미지 붙여넣기**: 디자인 스크린샷을 터미널에 붙여넣으면 Claude가 시각적으로 인식합니다
   - **기존 컴포넌트 참조**: `@` 기호로 기존 컴포넌트를 참조하면 일관된 패턴을 따릅니다
   - **타입 먼저**: props 타입을 먼저 정의하면 Claude가 더 정확한 코드를 생성합니다
   - **테스트 병행**: "구현 후 테스트를 실행해줘"를 습관적으로 포함하세요
+  - **점진적 확장**: 한 번에 모든 것을 요청하지 말고, 단계별로 나누어 요청하세요
+  - **패턴 참조**: "@ 기존파일과 같은 패턴으로" 요청하면 코드베이스 일관성이 유지됩니다
+</Callout>
+
+---
+
+## 프론트엔드 도구 생태계 비교
+
+<ComparisonTable
+  title="프론트엔드 주요 도구 선택 가이드"
+  headers={['카테고리', '추천 도구', '대안', '선택 기준']}
+  rows={[
+    { feature: '번들러', values: ['Vite', 'webpack, Turbopack', 'Vite: 빠른 HMR, 간단한 설정'] },
+    { feature: '테스트', values: ['Vitest + Testing Library', 'Jest + Testing Library', 'Vitest: Vite 생태계 통합, 빠른 실행'] },
+    { feature: 'E2E', values: ['Playwright', 'Cypress', 'Playwright: 멀티 브라우저, 빠른 실행'] },
+    { feature: '상태 관리', values: ['Zustand + React Query', 'Redux Toolkit, Jotai', 'Zustand: 간결한 API, 작은 번들'] },
+    { feature: '스타일링', values: ['Tailwind CSS', 'CSS Modules, Styled Components', 'Tailwind: 빠른 개발, 디자인 토큰'] },
+    { feature: '폼 처리', values: ['React Hook Form + Zod', 'Formik + Yup', 'RHF: 렌더링 최적화, Zod: TS 통합'] },
+    { feature: '컴포넌트 문서', values: ['Storybook', 'Docusaurus', 'Storybook: 인터랙티브 컴포넌트 문서'] },
+    { feature: '라우팅', values: ['TanStack Router', 'React Router', 'TanStack: 타입 안전 라우팅'] },
+  ]}
+/>
+
+---
+
+## 백엔드 API 예제와의 비교
+
+<ComparisonTable
+  title="백엔드 vs 프론트엔드 아키텍처 원칙 비교"
+  headers={['원칙', '백엔드 (TypeScript API)', '프론트엔드 (React Dashboard)']}
+  rows={[
+    { feature: '관심사 분리', values: ['Domain / Application / Infrastructure / Presentation', 'Core / Shared / Features / Pages'] },
+    { feature: '인터페이스 우선', values: ['IUserRepository 인터페이스 → 구현체', 'Props 타입 정의 → 컴포넌트 구현'] },
+    { feature: '의존성 역전', values: ['UseCase가 Repository 인터페이스에 의존', '페이지가 커스텀 훅 추상화에 의존'] },
+    { feature: '테스트 격리', values: ['jest.Mocked로 Repository mock', 'MSW로 API mock, Testing Library로 컴포넌트 격리'] },
+    { feature: '조립 패턴', values: ['Composition Root (app.ts)', '페이지 컴포넌트에서 import + 조립'] },
+    { feature: 'Claude Code 활용', values: ['레이어별 순차 프롬프트', '타입 → 구현 → 테스트 순차 프롬프트'] },
+  ]}
+/>
+
+<Callout type="info" title="공통 원칙: 타입이 곧 설계도">
+  백엔드에서 Repository 인터페이스를 먼저 정의한 것처럼, 프론트엔드에서도 Props 타입을 먼저 정의합니다. 두 경우 모두 **"무엇이 필요한가"를 인터페이스로 확정한 뒤, "어떻게 구현할지"를 Claude에게 맡깁니다.** 이 순서가 Claude Code의 생성 품질을 결정합니다.
 </Callout>
 
 <ChapterNav
