@@ -16,6 +16,7 @@ import { templateFiles } from '../../data/template-files';
 ## 개요
 
 슬래시 커맨드는 AI 에이전트에서 자주 사용하는 작업을 **일관된 형식**으로 빠르게 실행하는 단축 명령어입니다.
+Claude Code의 슬래시 커맨드는 크게 **내장 커맨드**와 **커스텀 커맨드** 두 가지로 나뉩니다. 내장 커맨드는 Claude Code가 기본 제공하는 시스템 명령어이고, 커스텀 커맨드는 프로젝트별로 `.claude/commands/` 디렉토리에 마크다운 파일로 정의하여 팀의 워크플로우에 맞게 확장할 수 있습니다.
 
 ### 내장 커맨드 vs 커스텀 커맨드
 
@@ -23,57 +24,546 @@ import { templateFiles } from '../../data/template-files';
   title="커맨드 유형 비교"
   headers={['항목', '내장 커맨드', '커스텀 커맨드']}
   rows={[
-    { feature: '제공 주체', values: ['Claude Code 기본', '프로젝트 정의'] },
+    { feature: '제공 주체', values: ['Claude Code 기본', '프로젝트/개인 정의'] },
     { feature: '설정 파일', values: ['없음 (내장)', '.claude/commands/*.md'] },
     { feature: '커스터마이징', values: ['no', 'yes'] },
+    { feature: '인자 지원', values: ['커맨드별 상이', '$ARGUMENTS로 자유롭게'] },
+    { feature: '프론트매터', values: ['해당 없음', 'context, description, allowed-tools 등'] },
     { feature: '예시', values: ['/init, /clear, /help', '/commit, /pr, /review'] },
   ]}
 />
 
-## 내장 커맨드 — Claude Code 기본 제공
+---
+
+## 내장 커맨드 완전 가이드
 
 아래는 Claude Code에 **기본 내장**된 커맨드입니다. 별도 설정 없이 모든 프로젝트에서 바로 사용할 수 있습니다. Claude Code는 지속적으로 업데이트되므로, `/help`를 실행하면 현재 버전의 전체 커맨드 목록을 확인할 수 있습니다.
 
 ### 세션/컨텍스트 관리
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/help` | 전체 커맨드 목록 및 도움말 표시 |
-| `/init` | CLAUDE.md 자동 생성 |
-| `/clear` | 대화 기록 초기화 |
-| `/compact` | 컨텍스트 압축 (긴 세션에서 메모리 효율화) |
-| `/cost` | 현재 세션의 토큰 사용량 및 비용 확인 |
-| `/status` | 현재 git 상태 및 세션 정보 확인 |
-| `/model` | 사용할 AI 모델 변경 |
-| `/login` | 로그인 |
-| `/logout` | 로그아웃 |
+| 커맨드 | 설명 | 주요 사용 시점 |
+|--------|------|---------------|
+| `/help` | 전체 커맨드 목록 및 도움말 표시 | 처음 사용 시, 커맨드 확인 시 |
+| `/init` | CLAUDE.md 자동 생성 | 프로젝트 초기 설정 시 |
+| `/clear` | 대화 기록 초기화 | 새 작업 시작 시, 컨텍스트 리셋 |
+| `/compact` | 컨텍스트 압축 (긴 세션에서 메모리 효율화) | 토큰 한도 접근 시, 긴 대화 후 |
+| `/cost` | 현재 세션의 토큰 사용량 및 비용 확인 | 비용 모니터링 시 |
+| `/status` | 현재 git 상태 및 세션 정보 확인 | 작업 상태 점검 시 |
+| `/model` | 사용할 AI 모델 변경 | 모델 전환 시 (Sonnet, Opus 등) |
+| `/login` | Anthropic 계정 로그인 | 최초 설정 시 |
+| `/logout` | Anthropic 계정 로그아웃 | 계정 전환 시 |
 
 ### 설정/환경
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/config` | Claude Code 설정 관리 |
-| `/permissions` | 권한 규칙 확인 및 관리 |
-| `/memory` | 시스템 에디터에서 CLAUDE.md 직접 편집 |
-| `/mcp` | MCP 서버 상태 확인 및 관리 |
-| `/hooks` | Hook 설정을 인터랙티브하게 관리 |
-| `/doctor` | 설치 상태 진단 |
-| `/vim` | Vim 키 바인딩 모드 전환 |
-| `/terminal-setup` | 터미널 통합 설정 |
-| `/install-github-app` | GitHub App 설치 (PR 자동 리뷰 등) |
+| 커맨드 | 설명 | 주요 사용 시점 |
+|--------|------|---------------|
+| `/config` | Claude Code 설정 관리 | 전역/프로젝트 설정 변경 시 |
+| `/permissions` | 권한 규칙 확인 및 관리 | 보안 정책 조정 시 |
+| `/memory` | 시스템 에디터에서 CLAUDE.md 직접 편집 | CLAUDE.md 수정 시 |
+| `/mcp` | MCP 서버 상태 확인 및 관리 | 외부 도구 연동 시 |
+| `/hooks` | Hook 설정을 인터랙티브하게 관리 | 자동화 규칙 설정 시 |
+| `/doctor` | 설치 상태 진단 | 문제 발생 시 디버깅 |
+| `/vim` | Vim 키 바인딩 모드 전환 | 에디터 키바인딩 변경 시 |
+| `/terminal-setup` | 터미널 통합 설정 | 터미널 최초 설정 시 |
+| `/install-github-app` | GitHub App 설치 (PR 자동 리뷰 등) | CI/CD 연동 시 |
 
 ### 개발 지원
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/review` | 코드 리뷰 (내장) |
-| `/bug` | 버그 리포트 제출 |
+| 커맨드 | 설명 | 주요 사용 시점 |
+|--------|------|---------------|
+| `/review` | 코드 리뷰 (내장) | 코드 검토 시 |
+| `/bug` | 버그 리포트 제출 | Claude Code 버그 발견 시 |
+
+### 주요 내장 커맨드 상세
+
+#### /init — 프로젝트 초기화
+
+프로젝트 루트에 `CLAUDE.md` 파일을 자동 생성합니다. 기존 코드베이스를 분석하여 기술 스택, 빌드 명령어, 프로젝트 구조를 자동으로 파악하고 문서화합니다.
+
+<CodeBlock
+  code={`# 프로젝트 루트에서 실행
+/init
+
+# 생성되는 CLAUDE.md 예시 구조
+# - 프로젝트 개요
+# - 기술 스택
+# - 빌드/테스트 명령어
+# - 프로젝트 디렉토리 구조
+# - 코딩 컨벤션`}
+  language="bash"
+  filename="/init 사용 예시"
+/>
+
+<Callout type="tip" title="/init 활용 팁">
+  이미 CLAUDE.md가 있어도 `/init`을 실행하면 기존 내용을 덮어쓰지 않고, 빠진 부분을 보완하거나 업데이트를 제안합니다.
+  프로젝트가 성장하면서 정기적으로 `/init`을 실행하여 문서를 최신 상태로 유지하세요.
+</Callout>
+
+#### /compact — 컨텍스트 압축
+
+긴 대화 세션에서 컨텍스트 창이 가득 차면, `/compact`로 이전 대화를 요약하여 토큰을 절약합니다. 핵심 정보는 유지하면서 불필요한 중간 과정을 압축합니다.
+
+<CodeBlock
+  code={`# 기본 사용
+/compact
+
+# 커스텀 요약 지시와 함께 사용
+/compact 현재 작업 중인 인증 모듈 리팩토링에 집중하여 요약해줘
+
+# 사용 시점 판단
+# - 세션이 길어져 응답 속도가 느려질 때
+# - "컨텍스트 한도에 근접" 경고가 나올 때
+# - 새로운 하위 작업을 시작할 때`}
+  language="bash"
+  filename="/compact 사용 예시"
+/>
+
+#### /doctor — 설치 상태 진단
+
+Claude Code의 설치 상태, 인증, 네트워크 연결, MCP 서버 등 전반적인 환경을 진단합니다. 문제가 있을 때 가장 먼저 실행해야 할 커맨드입니다.
+
+<CodeBlock
+  code={`# 진단 실행
+/doctor
+
+# 출력 예시
+# Authentication: OK
+# Network: OK
+# MCP Servers: 2/2 connected
+# Node.js: v20.11.0
+# Claude Code: v2.1.3`}
+  language="bash"
+  filename="/doctor 사용 예시"
+/>
+
+#### /model — 모델 변경
+
+세션 중에 사용할 AI 모델을 변경합니다. 간단한 작업에는 빠른 모델(Sonnet)을, 복잡한 작업에는 강력한 모델(Opus)을 선택적으로 사용하여 비용과 성능을 최적화할 수 있습니다.
+
+<CodeBlock
+  code={`# 모델 변경
+/model
+
+# 모델 선택 화면에서 원하는 모델 지정
+# - claude-sonnet-4-20250514: 빠른 응답, 일반 작업
+# - claude-opus-4-0-20250115: 복잡한 추론, 고품질 코드
+# - claude-opus-4-6: 최신 모델, 최상위 성능`}
+  language="bash"
+  filename="/model 사용 예시"
+/>
+
+#### /cost — 비용 확인
+
+현재 세션에서 사용한 토큰 수와 예상 비용을 확인합니다. API 사용량을 모니터링하고 예산을 관리하는 데 유용합니다.
+
+---
+
+## 커스텀 커맨드 작성법 심화
+
+커스텀 커맨드는 `.claude/commands/` 디렉토리에 마크다운(`.md`) 파일로 정의합니다. 파일명이 곧 커맨드 이름이 됩니다.
+
+### 커맨드 파일 구조와 프론트매터 옵션
+
+<CodeBlock
+  code={`---
+description: "코드 변경사항을 분석하여 Conventional Commits 형식의 커밋 메시지를 생성합니다"
+allowed-tools: Bash, Read, Glob, Grep
+context:
+  - type: file
+    path: .claude/rules/conventions.md
+  - type: url
+    url: https://www.conventionalcommits.org/en/v1.0.0/
+---
+
+스테이징된 변경사항을 분석하여 커밋 메시지를 생성합니다.
+
+대상: $ARGUMENTS
+
+## 작업 절차
+
+1. \`git diff --staged\`로 스테이징된 변경사항 확인
+2. 변경 유형 분류 (feat, fix, docs 등)
+3. 영향 범위(scope) 식별
+4. Conventional Commits 형식으로 메시지 생성`}
+  language="markdown"
+  filename=".claude/commands/commit.md"
+/>
+
+### 프론트매터 옵션 상세
+
+| 옵션 | 타입 | 설명 |
+|------|------|------|
+| `description` | string | 커맨드 설명. `/` 입력 시 목록에 표시됨. Claude가 자동 매칭에도 활용 |
+| `allowed-tools` | string (쉼표 구분) | 커맨드 실행 중 사용할 수 있는 도구 제한. 미지정 시 모든 도구 허용 |
+| `context` | array | 커맨드 실행 전에 자동으로 로드할 컨텍스트 (파일, URL, 디렉토리) |
+| `context: fork` | string | "fork" 지정 시 독립된 서브에이전트에서 실행 (메인 컨텍스트 오염 방지) |
+
+### $ARGUMENTS — 커맨드 인자 활용
+
+`$ARGUMENTS`는 슬래시 커맨드 호출 시 전달되는 인자 문자열입니다. 커맨드 파일 본문 어디서든 사용할 수 있습니다.
+
+<CodeBlock
+  code={`# 커맨드 파일 (.claude/commands/test.md)
+---
+description: "지정된 파일에 대한 테스트 코드를 생성합니다"
+allowed-tools: Bash, Read, Write, Glob, Grep
+---
+
+$ARGUMENTS 파일에 대한 테스트 코드를 생성합니다.
+
+## 단계
+1. 대상 파일 읽기: $ARGUMENTS
+2. 함수/클래스 구조 분석
+3. 테스트 프레임워크 감지 (jest, vitest, pytest 등)
+4. 테스트 코드 생성 및 저장
+
+---
+
+# 사용법
+# /test src/services/user-service.ts
+# → $ARGUMENTS = "src/services/user-service.ts"
+
+# /test src/api/ --type integration
+# → $ARGUMENTS = "src/api/ --type integration"`}
+  language="markdown"
+  filename="$ARGUMENTS 활용 예시"
+/>
+
+<Callout type="info" title="인덱스 접근">
+  Claude Code v2.1+에서는 `$ARGUMENTS`에 대한 인덱스 접근도 지원합니다.
+  `$ARGUMENTS[0]`은 첫 번째 인자, `$ARGUMENTS[1]`은 두 번째 인자를 참조합니다.
+  `$0`, `$1` 등의 축약형도 사용할 수 있습니다.
+</Callout>
+
+### context 옵션 — 자동 컨텍스트 로드
+
+커맨드 실행 시 자동으로 참조할 파일이나 URL을 지정합니다. 커맨드가 항상 동일한 규칙이나 참조 문서를 필요로 할 때 유용합니다.
+
+<CodeBlock
+  code={`---
+description: "코드 리뷰 수행"
+context:
+  # 로컬 파일 참조
+  - type: file
+    path: .claude/rules/conventions.md
+
+  # 디렉토리 내 모든 파일 참조
+  - type: directory
+    path: src/domain/
+
+  # 외부 URL 참조
+  - type: url
+    url: https://owasp.org/www-project-top-ten/
+
+  # 현재 git diff 참조
+  - type: command
+    command: git diff --staged
+---
+
+위 컨텍스트를 기반으로 코드 리뷰를 수행합니다.`}
+  language="markdown"
+  filename="context 옵션 예시"
+/>
+
+### allowed-tools — 도구 제한
+
+커맨드가 사용할 수 있는 도구를 명시적으로 제한합니다. 보안이 중요한 커맨드에서 불필요한 도구 접근을 차단하는 데 유용합니다.
+
+<CodeBlock
+  code={`---
+description: "보안 취약점 스캔 (읽기 전용)"
+allowed-tools: Read, Glob, Grep
+---
+
+# allowed-tools를 Read, Glob, Grep으로 제한하면
+# 이 커맨드 실행 중에는 Bash, Write, Edit 등의
+# 파일 수정/명령 실행 도구를 사용할 수 없습니다.
+
+코드베이스의 보안 취약점을 분석합니다.
+절대 코드를 수정하지 마세요. 분석 결과만 보고합니다.`}
+  language="markdown"
+  filename="allowed-tools 제한 예시"
+/>
+
+---
+
+## 팀용 커맨드 라이브러리 구축
+
+### 디렉토리 구조
+
+<CodeBlock
+  code={`프로젝트/
+├── .claude/
+│   └── commands/              # 프로젝트 커스텀 커맨드 (git 커밋)
+│       ├── commit.md          # 커밋 메시지 생성
+│       ├── pr.md              # PR 설명 생성
+│       ├── review.md          # 코드 리뷰
+│       ├── test.md            # 테스트 생성
+│       ├── doc.md             # 문서 생성
+│       ├── refactor.md        # 리팩토링 제안
+│       ├── security.md        # 보안 스캔
+│       ├── changelog.md       # 변경 이력
+│       ├── migrate.md         # DB 마이그레이션
+│       ├── hotfix.md          # 핫픽스 가이드
+│       └── deploy.md          # 배포 워크플로우
+│
+~/
+└── .claude/
+    └── commands/              # 개인 커스텀 커맨드 (git 미포함)
+        ├── memo.md            # 개인 메모
+        ├── learn.md           # 학습 도우미
+        └── standup.md         # 스탠드업 리포트`}
+  language="text"
+  filename="커맨드 디렉토리 구조"
+/>
+
+<ComparisonTable
+  title="프로젝트 커맨드 vs 개인 커맨드"
+  headers={['항목', '프로젝트 커맨드', '개인 커맨드']}
+  rows={[
+    { feature: '위치', values: ['.claude/commands/', '~/.claude/commands/'] },
+    { feature: '공유 범위', values: ['팀 전체 (git 커밋)', '개인만'] },
+    { feature: '용도', values: ['팀 워크플로우 표준화', '개인 생산성 향상'] },
+    { feature: '커맨드 충돌 시', values: ['프로젝트 커맨드 우선', '프로젝트에 없을 때 실행'] },
+    { feature: '예시', values: ['/commit, /pr, /review', '/memo, /learn, /standup'] },
+  ]}
+/>
+
+### 팀 커맨드 표준화 전략
+
+<CodeBlock
+  code={`# .claude/commands/README.md (팀 가이드)
+# 이 디렉토리는 팀 공용 슬래시 커맨드를 정의합니다.
+#
+# 커맨드 추가 규칙:
+# 1. 파일명은 kebab-case: check-types.md, run-e2e.md
+# 2. 반드시 description 프론트매터 포함
+# 3. allowed-tools로 최소 권한 원칙 적용
+# 4. PR로 리뷰 후 머지
+#
+# 네이밍 컨벤션:
+# - 동사로 시작: /check-*, /run-*, /generate-*
+# - 약어 금지: /gen-doc (X) → /generate-doc (O)
+# - 단수형: /test (O), /tests (X)`}
+  language="markdown"
+  filename="팀 커맨드 가이드"
+/>
+
+---
+
+## 고급 커맨드 패턴
+
+### 컨텍스트 포크 (context: fork)
+
+`context: fork`를 지정하면 커맨드가 **독립된 서브에이전트**에서 실행됩니다. 메인 대화의 컨텍스트를 오염시키지 않으므로, 분석 작업이나 병렬 처리에 적합합니다.
+
+<CodeBlock
+  code={`---
+description: "코드베이스 전체 보안 감사 (서브에이전트에서 실행)"
+context: fork
+allowed-tools: Read, Glob, Grep
+---
+
+코드베이스 전체에 대한 보안 감사를 수행합니다.
+
+## 점검 항목
+1. 하드코딩된 시크릿 탐지 (API 키, 비밀번호, 토큰)
+2. SQL 인젝션 취약점
+3. XSS 취약점
+4. 안전하지 않은 의존성
+5. 권한 검증 누락
+
+## 출력 형식
+심각도별로 분류된 보안 리포트를 생성합니다.`}
+  language="markdown"
+  filename=".claude/commands/security-audit.md (fork 모드)"
+/>
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph MAIN["메인 에이전트 컨텍스트"]
+      U["사용자: /security-audit"] --> F["context: fork 감지"]
+      F --> R["서브에이전트 결과 수신"]
+      R --> N["메인 대화 계속"]
+    end
+    subgraph SUB["서브에이전트 (독립 컨텍스트)"]
+      S1["보안 감사 시작"] --> S2["파일 스캔"]
+      S2 --> S3["취약점 분석"]
+      S3 --> S4["리포트 생성"]
+    end
+    F -.->|"포크"| S1
+    S4 -.->|"결과 반환"| R
+    style MAIN fill:#fdf2ee,stroke:#2563eb,color:#2d2a26
+    style SUB fill:#fdf2ee,stroke:#9333ea,color:#2d2a26`}
+  title="context: fork 실행 흐름"
+  caption="서브에이전트는 독립된 컨텍스트에서 실행되어 메인 대화를 오염시키지 않습니다"
+  maxWidth="600px"
+/>
+
+### 커맨드 체이닝과 워크플로우 자동화
+
+여러 커맨드를 순차적으로 실행하는 **워크플로우 커맨드**를 만들 수 있습니다. 하나의 커맨드 파일에서 여러 단계를 정의하면 됩니다.
+
+<CodeBlock
+  code={`---
+description: "코드 변경 → 리뷰 → 테스트 → 커밋까지 전체 워크플로우"
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+---
+
+전체 개발 워크플로우를 순차적으로 실행합니다.
+
+대상: $ARGUMENTS
+
+## 1단계: 코드 리뷰
+변경된 파일에 대해 코드 리뷰를 수행합니다.
+- 보안 취약점, 코드 품질, 컨벤션 준수 여부 확인
+- Blocker가 있으면 여기서 중단하고 보고
+
+## 2단계: 테스트 생성 및 실행
+변경된 코드에 대한 테스트가 없으면 생성합니다.
+- 기존 테스트 프레임워크와 패턴을 따름
+- 테스트 실행 후 결과 확인
+
+## 3단계: 커밋
+모든 검증이 통과하면 커밋합니다.
+- Conventional Commits 형식
+- 변경 사항 요약을 본문에 포함`}
+  language="markdown"
+  filename=".claude/commands/ship.md (워크플로우 커맨드)"
+/>
+
+<Callout type="warning" title="워크플로우 커맨드 주의사항">
+  워크플로우 커맨드는 여러 단계를 포함하므로 토큰 소비가 큽니다.
+  각 단계에서 명확한 중단 조건을 정의하고, 실패 시 중간 결과를 보존하도록 설계하세요.
+</Callout>
+
+---
+
+## CI/CD 환경에서 커맨드 활용 (Headless 모드)
+
+Claude Code는 `--print` 플래그로 **headless 모드** 실행을 지원합니다. 이를 활용하면 CI/CD 파이프라인에서 슬래시 커맨드를 자동으로 실행할 수 있습니다.
+
+<CodeBlock
+  code={`# CI/CD에서 코드 리뷰 자동 실행
+claude --print "/review" --output-format json
+
+# PR 설명 자동 생성
+claude --print "/pr --base main" > pr-description.md
+
+# 보안 스캔 결과를 CI 아티팩트로 저장
+claude --print "/security --severity high" > security-report.md
+
+# 특정 파일에 대한 테스트 생성
+claude --print "/test src/services/payment.ts" > tests/payment.test.ts`}
+  language="bash"
+  filename="CI/CD Headless 모드 예시"
+/>
+
+### GitHub Actions 통합 예시
+
+<CodeBlock
+  code={`# .github/workflows/ai-review.yml
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run AI Code Review
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude --print "/review" --output-format json > review.json
+
+      - name: Post Review Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('review.json', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: review
+            });`}
+  language="yaml"
+  filename=".github/workflows/ai-review.yml"
+/>
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph CI["CI/CD 파이프라인"]
+      PR["PR 생성"] --> REVIEW["/review<br/>코드 리뷰"]
+      REVIEW --> TEST["/test<br/>테스트 생성"]
+      TEST --> SEC["/security<br/>보안 스캔"]
+      SEC --> REPORT["리포트 생성"]
+    end
+    subgraph OUT["출력"]
+      REPORT --> COMMENT["PR 코멘트"]
+      REPORT --> ARTIFACT["CI 아티팩트"]
+    end
+    style CI fill:#fdf2ee,stroke:#2563eb,color:#2d2a26
+    style OUT fill:#fdf2ee,stroke:#16a34a,color:#2d2a26`}
+  title="CI/CD에서 커맨드 활용 흐름"
+  caption="Headless 모드로 CI/CD 파이프라인에 AI 리뷰, 테스트, 보안 스캔을 자동화합니다"
+  maxWidth="650px"
+/>
+
+---
+
+## 커맨드 디버깅과 테스트
+
+### 커맨드 테스트 방법
+
+<CodeBlock
+  code={`# 1. 커맨드 파일 작성 후 직접 호출하여 테스트
+/my-command test-argument
+
+# 2. --print 모드로 출력만 확인 (실제 변경 없이)
+claude --print "/my-command test-argument"
+
+# 3. 디버깅: 커맨드 파일에 중간 확인 단계 추가
+---
+description: "디버깅용 커맨드"
+---
+
+## 디버깅 단계
+1. 먼저 $ARGUMENTS 값을 출력하세요
+2. 컨텍스트에 로드된 파일 목록을 보여주세요
+3. 실제 작업을 수행하기 전에 계획을 설명하세요`}
+  language="markdown"
+  filename="커맨드 디버깅 방법"
+/>
+
+### 커맨드 트러블슈팅 체크리스트
+
+| 증상 | 원인 | 해결 방법 |
+|------|------|----------|
+| 커맨드가 목록에 안 보임 | 파일 위치 오류 | `.claude/commands/` 디렉토리 확인 |
+| 커맨드가 목록에 안 보임 | 파일 확장자 오류 | `.md` 확장자 확인 |
+| $ARGUMENTS가 빈 값 | 인자 미전달 | 호출 시 인자 전달: `/cmd 인자값` |
+| 프론트매터 무시됨 | YAML 문법 오류 | `---` 구분자, 들여쓰기 확인 |
+| allowed-tools 무시됨 | 도구 이름 오타 | 정확한 도구명 사용 (Bash, Read, Write, Edit, Glob, Grep) |
+| context 파일 로드 실패 | 경로 오류 | 프로젝트 루트 기준 상대 경로 확인 |
+| fork 모드 미작동 | 문법 오류 | `context: fork`로 정확히 지정 |
 
 ---
 
 ## 커스텀 커맨드 — 이 프로젝트 템플릿 정의 (10개)
 
-아래 10개 커맨드는 Claude Code 내장이 **아닙니다**. 이 프로젝트 템플릿의 `.claude/commands/` 디렉토리에 마크다운 파일로 정의된 **프로젝트 전용 커스텀 커맨드**입니다. 팀의 워크플로우에 맞게 자유롭게 수정·추가할 수 있습니다.
+아래 10개 커맨드는 Claude Code 내장이 **아닙니다**. 이 프로젝트 템플릿의 `.claude/commands/` 디렉토리에 마크다운 파일로 정의된 **프로젝트 전용 커스텀 커맨드**입니다. 팀의 워크플로우에 맞게 자유롭게 수정할 수 있습니다.
 
 <Callout type="warning" title="커스텀 커맨드는 프로젝트마다 다릅니다">
   아래 커맨드들은 이 템플릿이 제공하는 예시입니다. `.claude/commands/커맨드명.md` 파일이 있어야 동작하며,
@@ -208,16 +698,16 @@ Closes #123
 - 발견된 이슈: 2개
 
 ### 필수 수정 (Blocker)
-🚨 [src/api/users.ts:45] SQL 인젝션 취약점 발견
+[src/api/users.ts:45] SQL 인젝션 취약점 발견
 
 ### 권장 사항 (Suggestion)
-💡 [src/services/user.ts:23] 에러 처리 개선 필요
+[src/services/user.ts:23] 에러 처리 개선 필요
 
 ### 질문 (Question)
-❓ [src/services/user.ts:50] 이 로직의 의도가 무엇인가요?
+[src/services/user.ts:50] 이 로직의 의도가 무엇인가요?
 
 ### 좋은 점 (Praise)
-✨ 에러 핸들링이 일관적으로 잘 구현되어 있습니다
+에러 핸들링이 일관적으로 잘 구현되어 있습니다
 
 ### 결론
 수정 요청 (Blocker 해결 필요)`}
@@ -349,12 +839,12 @@ function processOrder(order) {
 
 ### 요약
 - 스캔 범위: src/
-- 🔴 Critical: 1개
-- 🟠 High: 2개
-- 🟡 Medium: 3개
+- Critical: 1개
+- High: 2개
+- Medium: 3개
 
 ### 상세
-#### 🔴 SQL Injection
+#### SQL Injection (Critical)
 - 위치: src/api/users.ts:45
 - 설명: 사용자 입력이 쿼리에 직접 사용됨
 - 수정 권고: 파라미터화된 쿼리 사용
@@ -460,25 +950,158 @@ git push origin hotfix/ISSUE-123-critical-bug
   filename="/hotfix 출력 예시"
 />
 
+---
+
+## 실전 커맨드 모음 — 추가 예시
+
+기본 10개 외에도 팀 필요에 따라 다양한 커맨드를 추가할 수 있습니다. 아래는 실무에서 유용한 추가 커맨드 예시입니다.
+
+### /deploy — 배포 워크플로우
+
+<CodeBlock
+  code={`---
+description: "배포 전 체크리스트를 실행하고 배포 명령을 안내합니다"
+allowed-tools: Bash, Read, Glob, Grep
+---
+
+배포 전 점검 및 워크플로우를 안내합니다.
+
+환경: $ARGUMENTS (staging | production)
+
+## 점검 사항
+1. 모든 테스트 통과 확인
+2. 린트 검사 통과 확인
+3. 빌드 성공 확인
+4. 환경 변수 설정 확인
+5. 마이그레이션 스크립트 확인
+
+## 배포 단계
+1. 태그 생성 및 푸시
+2. CI/CD 파이프라인 트리거
+3. 배포 후 헬스체크
+4. 모니터링 대시보드 확인`}
+  language="markdown"
+  filename=".claude/commands/deploy.md"
+/>
+
+### /standup — 스탠드업 리포트
+
+<CodeBlock
+  code={`---
+description: "최근 커밋 기반으로 스탠드업 리포트를 생성합니다"
+allowed-tools: Bash, Read
+---
+
+최근 작업 내역을 기반으로 스탠드업 리포트를 생성합니다.
+
+## 절차
+1. 최근 24시간 또는 마지막 근무일 이후 커밋 조회
+2. 변경사항 분류 및 요약
+3. 아래 형식으로 출력
+
+## 출력 형식
+### 어제 한 일
+- (커밋 기반 요약)
+
+### 오늘 할 일
+- (진행 중인 브랜치/이슈 기반)
+
+### 블로커
+- (있으면 기재)`}
+  language="markdown"
+  filename=".claude/commands/standup.md"
+/>
+
+### /check-types — 타입 검사
+
+<CodeBlock
+  code={`---
+description: "TypeScript 타입 에러를 찾고 수정 방법을 안내합니다"
+allowed-tools: Bash, Read, Glob, Grep
+---
+
+TypeScript 타입 검사를 실행하고 에러를 분석합니다.
+
+## 절차
+1. tsc --noEmit 실행
+2. 에러 목록 파싱
+3. 각 에러에 대한 수정 방법 제안
+4. 심각도 순으로 정렬하여 출력`}
+  language="markdown"
+  filename=".claude/commands/check-types.md"
+/>
+
+---
+
+## 커맨드 보안과 권한 관리
+
+### 보안 원칙
+
+<ComparisonTable
+  title="커맨드 보안 등급"
+  headers={['등급', '허용 도구', '사용 사례', '예시']}
+  rows={[
+    { feature: '읽기 전용', values: ['Read, Glob, Grep', '분석, 리뷰, 보안 스캔', '/review, /security'] },
+    { feature: '제한된 쓰기', values: ['Read, Write, Glob, Grep', '문서 생성, 테스트 작성', '/doc, /test'] },
+    { feature: '전체 접근', values: ['모든 도구', '워크플로우 자동화', '/ship, /deploy'] },
+  ]}
+/>
+
+### 보안 체크리스트
+
+<CodeBlock
+  code={`# 커스텀 커맨드 보안 점검
+
+## 1. 최소 권한 원칙
+# 분석 전용 커맨드에는 Bash, Write, Edit를 허용하지 않음
+allowed-tools: Read, Glob, Grep
+
+## 2. 시크릿 노출 방지
+# 커맨드 파일에 API 키, 토큰 등을 절대 하드코딩하지 않음
+# 환경 변수 참조만 허용
+
+## 3. 위험한 명령 차단
+# Bash 허용 시에도 Hook으로 위험한 명령 차단
+# rm -rf, DROP TABLE 등
+
+## 4. 코드 리뷰 필수
+# 새 커맨드 추가 시 반드시 PR 리뷰를 거침
+# 특히 allowed-tools에 Bash가 포함된 경우 주의`}
+  language="markdown"
+  filename="커맨드 보안 점검"
+/>
+
+<Callout type="warning" title="Bash 도구 허용 시 주의">
+  `allowed-tools`에 Bash를 포함하면 커맨드 실행 중 임의의 셸 명령을 수행할 수 있습니다.
+  보안이 중요한 환경에서는 Bash 없이 Read/Glob/Grep만으로 구성하거나,
+  Hooks의 PreToolUse 이벤트로 위험한 명령을 차단하는 것이 좋습니다.
+</Callout>
+
+---
+
 ## 커스텀 커맨드 조합 워크플로우
 
 <MermaidDiagram
   chart={`flowchart LR
-    subgraph DEV["🔧 일반 개발"]
+    subgraph DEV["일반 개발"]
       R1["/review"] --> T1["/test"] --> C1["/commit"] --> P1["/pr"]
     end
-    subgraph SEC["🔒 보안 중심"]
+    subgraph SEC["보안 중심"]
       S2["/security"] --> R2["/review<br/>--focus security"] --> C2["/commit"]
     end
-    subgraph DOC["📝 문서 중심"]
+    subgraph DOC["문서 중심"]
       D3["/doc"] --> CL3["/changelog"] --> C3["/commit"]
+    end
+    subgraph CICD["CI/CD 자동화"]
+      AUTO["/review<br/>(headless)"] --> SCAN["/security<br/>(headless)"] --> REPORT["리포트<br/>생성"]
     end
     style DEV fill:#fdf2ee,stroke:#da7756,color:#2d2a26
     style SEC fill:#fdf2ee,stroke:#dc2626,color:#2d2a26
-    style DOC fill:#fdf2ee,stroke:#16a34a,color:#2d2a26`}
+    style DOC fill:#fdf2ee,stroke:#16a34a,color:#2d2a26
+    style CICD fill:#fdf2ee,stroke:#2563eb,color:#2d2a26`}
   title="커맨드 조합 워크플로우"
-  caption="상황에 따라 다른 커맨드 조합으로 효율적인 워크플로우를 구성합니다"
-  maxWidth="680px"
+  caption="상황에 따라 다른 커맨드 조합으로 효율적인 워크플로우를 구성합니다. CI/CD에서는 Headless 모드로 자동화할 수 있습니다."
+  maxWidth="750px"
 />
 
 <Callout type="tip" title="커스터마이징">
