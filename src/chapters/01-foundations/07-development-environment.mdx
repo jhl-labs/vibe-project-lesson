@@ -2,13 +2,53 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import { Callout } from '../../components/Callout';
 import { CodeBlock } from '../../components/CodeBlock';
 import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { Timeline } from '../../components/Timeline';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 1: 기초/개발 환경 설정" />
 
 # 개발 환경 설정
 
-> Claude Code를 최적으로 활용하기 위한 IDE, 터미널, 설정 가이드
+> Claude Code를 최적으로 활용하기 위한 IDE, 터미널, 셸, 원격 개발, 팀 표준화까지 아우르는 종합 가이드
+
+## 개발 환경 구성 전체 개요
+
+Claude Code를 효과적으로 사용하려면 IDE, 터미널, 셸 환경, 설정 파일이 유기적으로 연결되어야 합니다. 아래 다이어그램은 개발 환경의 전체 구성을 보여줍니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph IDE["IDE / 편집기"]
+      VS["VS Code + 확장"]
+      JB["JetBrains + 플러그인"]
+      NV["Vim/Neovim"]
+    end
+    subgraph TERM["터미널 환경"]
+      IT["iTerm2 / Windows Terminal"]
+      TM["tmux / zellij"]
+      SH["bash / zsh / fish"]
+    end
+    subgraph CONFIG["설정 체계"]
+      GS["글로벌 설정\n~/.claude/settings.json"]
+      PS["프로젝트 설정\n.claude/settings.json"]
+      LS["로컬 설정\n.claude/settings.local.json"]
+    end
+    subgraph REMOTE["원격 개발"]
+      SSH["SSH 원격 서버"]
+      DC["Docker / Devcontainer"]
+      CS["Codespaces / GitPod"]
+    end
+    CLI["Claude Code CLI"]
+    IDE --> CLI
+    TERM --> CLI
+    CLI --> CONFIG
+    CLI --> REMOTE
+  `}
+  title="Claude Code 개발 환경 전체 구성도"
+  caption="IDE, 터미널, 설정, 원격 환경이 Claude Code CLI를 중심으로 연결됩니다"
+/>
+
+---
 
 ## IDE 통합
 
@@ -38,6 +78,71 @@ code --install-extension anthropic.claude-code`}
 - 실시간 파일 변경사항 확인
 - 체크포인트 시스템 (Esc 두 번 또는 `/rewind`로 이전 상태 복원)
 
+#### VS Code 추천 설정
+
+Claude Code와 함께 사용하면 좋은 VS Code 설정입니다.
+
+<CodeBlock
+  code={`{
+  // 에디터 기본 설정
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.minimap.enabled": false,
+  "editor.wordWrap": "on",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+
+  // 터미널 설정 (Claude Code 친화적)
+  "terminal.integrated.fontSize": 14,
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.copyOnSelection": true,
+
+  // 파일 탐색기
+  "explorer.confirmDelete": false,
+  "explorer.autoReveal": true,
+
+  // Git 통합
+  "git.autofetch": true,
+  "git.confirmSync": false,
+
+  // 자동 저장 (Claude Code가 수정한 파일 반영)
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000
+}`}
+  language="json"
+  filename="settings.json (VS Code 사용자 설정)"
+/>
+
+#### VS Code 추천 확장 목록
+
+Claude Code와 함께 사용하면 생산성이 높아지는 확장들입니다.
+
+<ComparisonTable
+  title="VS Code 추천 확장"
+  headers={['확장', '용도', '필수 여부']}
+  rows={[
+    { feature: 'Claude Code (Anthropic)', values: ['Claude Code IDE 통합', '필수'] },
+    { feature: 'GitLens', values: ['Git 히스토리, blame 시각화', '강력 추천'] },
+    { feature: 'Error Lens', values: ['인라인 에러/경고 표시', '강력 추천'] },
+    { feature: 'Prettier', values: ['코드 포맷팅', '강력 추천'] },
+    { feature: 'ESLint', values: ['JavaScript/TypeScript 린팅', '프로젝트별'] },
+    { feature: 'Todo Tree', values: ['TODO/FIXME 시각화', '선택'] },
+    { feature: 'Project Manager', values: ['멀티 프로젝트 전환', '선택'] },
+    { feature: 'Remote - SSH', values: ['원격 서버 개발', '원격 개발 시'] },
+    { feature: 'Dev Containers', values: ['컨테이너 내 개발', '컨테이너 환경 시'] },
+  ]}
+/>
+
+#### VS Code 단축키 (Claude Code 연동)
+
+| 단축키 (Mac) | 단축키 (Windows/Linux) | 기능 |
+|---|---|---|
+| **Cmd+Shift+P** | **Ctrl+Shift+P** | 명령 팔레트 (Claude Code 명령 검색) |
+| **Cmd+\`** | **Ctrl+\`** | 통합 터미널 토글 |
+| **Cmd+Shift+\`** | **Ctrl+Shift+\`** | 새 터미널 생성 |
+| **Cmd+K Cmd+S** | **Ctrl+K Ctrl+S** | 키보드 단축키 편집 |
+| **Cmd+,** | **Ctrl+,** | 설정 열기 |
+
 <Callout type="info" title="VS Code 확장 문서">
   상세한 사용법은 [Claude Code VS Code 문서](https://code.claude.com/docs/en/vs-code)를 참조하세요.
   확장은 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code)에서 설치할 수 있습니다.
@@ -59,13 +164,304 @@ IntelliJ IDEA, PyCharm, WebStorm, PhpStorm, GoLand, Android Studio를 지원합�
   filename="JetBrains 플러그인 설치"
 />
 
+#### JetBrains IDE별 특화 기능
+
+<ComparisonTable
+  title="JetBrains IDE별 Claude Code 활용"
+  headers={['IDE', '주요 활용 시나리오', '추천 플러그인']}
+  rows={[
+    { feature: 'IntelliJ IDEA', values: ['Java/Kotlin 프로젝트, Spring Boot', 'Lombok, Spring Tools'] },
+    { feature: 'WebStorm', values: ['React/Vue/Angular, Node.js', 'Prettier, ESLint'] },
+    { feature: 'PyCharm', values: ['Python, Django/FastAPI, ML', 'Python Scientific'] },
+    { feature: 'GoLand', values: ['Go 서비스, gRPC', 'Go Linter'] },
+    { feature: 'PhpStorm', values: ['PHP, Laravel/Symfony', 'Laravel Idea'] },
+    { feature: 'Android Studio', values: ['Android 앱, Kotlin/Java', 'ADB Idea'] },
+  ]}
+/>
+
+#### JetBrains 추천 설정
+
+<CodeBlock
+  code={`# JetBrains IDE에서 Claude Code 활용 최적화
+
+# 1. 터미널 셸을 프로젝트 기본 셸로 설정
+# Settings → Tools → Terminal → Shell path
+# macOS: /bin/zsh
+# Linux: /bin/bash 또는 /bin/zsh
+
+# 2. 외부 변경 자동 감지 (Claude Code 파일 수정 반영)
+# Settings → Appearance & Behavior → System Settings
+# → "Synchronize external changes when switching to the IDE window" 체크
+
+# 3. 저장 시 자동 포맷팅
+# Settings → Tools → Actions on Save
+# → "Reformat code" 체크
+
+# 4. 키맵 커스터마이징
+# Settings → Keymap → "Terminal" 검색
+# → "Open in Terminal" 단축키 설정`}
+  language="bash"
+  filename="JetBrains IDE 최적화 설정"
+/>
+
 <Callout type="warning" title="JetBrains 플러그인은 베타">
   2026년 1월 기준, JetBrains 플러그인은 아직 베타 상태입니다.
   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/27310-claude-code-beta-)에서 최신 상태를 확인하세요.
   상세 문서는 [Claude Code JetBrains 문서](https://code.claude.com/docs/en/jetbrains)를 참조하세요.
 </Callout>
 
-## 터미널 설정
+### Vim / Neovim 통합
+
+터미널 기반 편집기를 선호하는 개발자를 위한 설정입니다. avante.nvim 플러그인을 통해 Neovim에서 Claude Code를 사용할 수 있습니다.
+
+<CodeBlock
+  code={`-- avante.nvim 설치 (lazy.nvim 패키지 매니저 사용)
+-- ~/.config/nvim/lua/plugins/avante.lua
+
+return {
+  "yetone/avante.nvim",
+  event = "VeryLazy",
+  lazy = false,
+  version = false,
+  opts = {
+    provider = "claude",
+    claude = {
+      endpoint = "https://api.anthropic.com",
+      model = "claude-sonnet-4-20250514",
+      temperature = 0,
+      max_tokens = 4096,
+    },
+  },
+  build = "make",
+  dependencies = {
+    "stevearc/dressing.nvim",
+    "nvim-lua/plenary.nvim",
+    "MunifTanjim/nui.nvim",
+    "nvim-tree/nvim-web-devicons",
+    "MeanderingProgrammer/render-markdown.nvim",
+  },
+}`}
+  language="lua"
+  filename="~/.config/nvim/lua/plugins/avante.lua"
+/>
+
+#### Neovim + Claude Code 터미널 연동
+
+avante.nvim 외에도 Neovim의 내장 터미널에서 Claude Code CLI를 직접 사용할 수 있습니다.
+
+<CodeBlock
+  code={`-- ~/.config/nvim/lua/config/claude-terminal.lua
+
+-- Claude Code 전용 터미널 토글
+vim.keymap.set('n', '<leader>cc', function()
+  vim.cmd('botright split | terminal claude')
+end, { desc = 'Claude Code 터미널 열기' })
+
+-- 현재 파일을 Claude Code에 전달
+vim.keymap.set('n', '<leader>cf', function()
+  local file = vim.fn.expand('%:p')
+  vim.cmd('botright split | terminal claude "이 파일을 검토해줘: ' .. file .. '"')
+end, { desc = '현재 파일 Claude Code로 전달' })
+
+-- 선택 영역을 Claude Code에 전달
+vim.keymap.set('v', '<leader>cs', function()
+  -- 선택된 텍스트 복사 후 Claude Code에 전달
+  vim.cmd('normal! y')
+  local text = vim.fn.getreg('"')
+  vim.cmd('botright split | terminal claude')
+end, { desc = '선택 영역 Claude Code로 전달' })`}
+  language="lua"
+  filename="Neovim Claude Code 키맵 설정"
+/>
+
+<Callout type="tip" title="Vim 모드 내장 지원">
+  Claude Code CLI 자체에 `/vim` 명령으로 Vim 모드가 내장되어 있습니다.
+  별도 플러그인 없이도 Vim 스타일의 입력 편집이 가능합니다.
+  Insert 모드와 Normal 모드를 지원하며, `Esc`로 모드를 전환합니다.
+</Callout>
+
+### IDE 기능 비교
+
+<ComparisonTable
+  title="IDE별 Claude Code 통합 기능 비교"
+  headers={['기능', 'VS Code', 'JetBrains', 'Vim/Neovim', '터미널 CLI']}
+  rows={[
+    { feature: '공식 통합', values: ['yes', 'partial', 'no', 'yes'] },
+    { feature: '인라인 편집 미리보기', values: ['yes', 'yes', 'no', 'no'] },
+    { feature: '파일 참조 (@멘션)', values: ['yes', 'yes', 'no', 'partial'] },
+    { feature: '대화 히스토리', values: ['yes', 'yes', 'no', 'yes'] },
+    { feature: '체크포인트/Rewind', values: ['yes', 'no', 'no', 'yes'] },
+    { feature: '멀티 탭/창', values: ['yes', 'yes', 'no', 'no'] },
+    { feature: '터미널 내장', values: ['yes', 'yes', 'yes', 'yes'] },
+    { feature: '원격 개발 지원', values: ['yes', 'yes', 'yes', 'yes'] },
+    { feature: '설정 난이도', values: ['낮음', '낮음', '보통', '없음'] },
+  ]}
+/>
+
+---
+
+## 터미널 환경 최적화
+
+### 터미널 에뮬레이터 선택
+
+Claude Code는 터미널 CLI이므로 터미널 에뮬레이터의 품질이 사용 경험에 직접 영향을 줍니다.
+
+<ComparisonTable
+  title="터미널 에뮬레이터 비교"
+  headers={['터미널', '플랫폼', '특징', 'Claude Code 호환성']}
+  rows={[
+    { feature: 'iTerm2', values: ['macOS', '프로파일, 분할, tmux 통합', '최적'] },
+    { feature: 'WezTerm', values: ['macOS/Linux/Windows', 'GPU 가속, Lua 설정, 멀티플렉서 내장', '최적'] },
+    { feature: 'Alacritty', values: ['macOS/Linux/Windows', 'GPU 가속, 최소주의', '양호'] },
+    { feature: 'Kitty', values: ['macOS/Linux', 'GPU 가속, 이미지 표시', '양호'] },
+    { feature: 'Windows Terminal', values: ['Windows', 'WSL 통합, 탭, 프로파일', '최적'] },
+    { feature: 'VS Code 터미널', values: ['모든 OS', 'IDE 통합, 확장 연동', '최적'] },
+  ]}
+/>
+
+### iTerm2 최적화 (macOS)
+
+<CodeBlock
+  code={`# iTerm2 추천 설정
+
+# 1. 프로파일 설정 (Preferences → Profiles)
+#    - Text → Font: JetBrains Mono 또는 Fira Code (14pt)
+#    - Text → "Use ligatures" 활성화
+#    - Terminal → Scrollback: 무제한 또는 100,000줄
+#    - Terminal → "Shell Integration" 활성화
+
+# 2. 24비트 색상 지원 확인
+#    ~/.zshrc 또는 ~/.bashrc에 추가:
+export COLORTERM=truecolor
+export TERM=xterm-256color
+
+# 3. Shift+Enter 키바인딩 (Claude Code 멀티라인)
+#    Preferences → Keys → Key Bindings
+#    + 버튼 → Shift+Enter → Send Hex Codes: 0x1b 0x0a
+
+# 4. 핫키로 빠른 접근
+#    Preferences → Keys → Hotkey
+#    "Show/hide all windows with a system-wide hotkey" 활성화`}
+  language="bash"
+  filename="iTerm2 최적화 설정"
+/>
+
+### Windows Terminal 설정
+
+<CodeBlock
+  code={`{
+  "profiles": {
+    "defaults": {
+      "font": {
+        "face": "JetBrains Mono",
+        "size": 14
+      },
+      "colorScheme": "One Half Dark",
+      "scrollbarState": "hidden",
+      "padding": "8, 8, 8, 8"
+    },
+    "list": [
+      {
+        "name": "Claude Dev",
+        "commandline": "powershell.exe",
+        "startingDirectory": "%USERPROFILE%\\\\projects",
+        "tabTitle": "Claude Dev"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "command": { "action": "splitPane", "split": "vertical" },
+      "keys": "alt+shift+plus"
+    },
+    {
+      "command": { "action": "splitPane", "split": "horizontal" },
+      "keys": "alt+shift+minus"
+    }
+  ]
+}`}
+  language="json"
+  filename="Windows Terminal settings.json"
+/>
+
+### tmux 연동
+
+tmux를 사용하면 세션을 유지하면서 여러 Claude Code 인스턴스를 관리할 수 있습니다.
+
+<CodeBlock
+  code={`# ~/.tmux.conf - Claude Code 최적화 설정
+
+# 24비트 색상 지원
+set -g default-terminal "tmux-256color"
+set -ag terminal-overrides ",xterm-256color:RGB"
+
+# 마우스 지원
+set -g mouse on
+
+# 스크롤백 버퍼 증가 (Claude Code 출력이 길 수 있음)
+set -g history-limit 50000
+
+# 상태 표시줄 커스터마이징
+set -g status-right '#[fg=green]#{pane_current_path} #[fg=yellow]%H:%M'
+
+# 창 분할 단축키 (직관적)
+bind | split-window -h -c "#{pane_current_path}"
+bind - split-window -v -c "#{pane_current_path}"
+
+# 새 창을 현재 디렉토리에서 열기
+bind c new-window -c "#{pane_current_path}"
+
+# Vim 스타일 패인 이동
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+
+# 패인 크기 조절
+bind -r H resize-pane -L 5
+bind -r J resize-pane -D 5
+bind -r K resize-pane -U 5
+bind -r L resize-pane -R 5`}
+  language="bash"
+  filename="~/.tmux.conf"
+/>
+
+#### tmux + Claude Code 워크플로우
+
+<CodeBlock
+  code={`# Claude Code 개발 세션 스크립트
+# ~/scripts/claude-dev-session.sh
+
+#!/bin/bash
+SESSION="claude-dev"
+
+# 세션 존재 여부 확인
+tmux has-session -t $SESSION 2>/dev/null
+
+if [ $? != 0 ]; then
+  # 새 세션 생성: 왼쪽에 에디터, 오른쪽에 Claude Code
+  tmux new-session -d -s $SESSION -n 'editor'
+
+  # 왼쪽 패인: 코드 편집 (vim 또는 에디터)
+  tmux send-keys -t $SESSION 'vim .' C-m
+
+  # 오른쪽 패인: Claude Code
+  tmux split-window -h -t $SESSION
+  tmux send-keys -t $SESSION 'claude' C-m
+
+  # 하단 패인: 일반 터미널 (테스트, git 등)
+  tmux split-window -v -t $SESSION
+  tmux send-keys -t $SESSION 'echo "Ready for testing"' C-m
+
+  # 레이아웃 조정 (에디터 60%, Claude 40%)
+  tmux select-layout -t $SESSION main-vertical
+fi
+
+# 세션 연결
+tmux attach-session -t $SESSION`}
+  language="bash"
+  filename="Claude Code tmux 개발 세션 스크립트"
+/>
 
 ### 키바인딩
 
@@ -115,6 +511,110 @@ Claude Code의 주요 키바인딩입니다.
   filename="테마 설정"
 />
 
+---
+
+## 셸 환경 설정
+
+### Zsh 프로파일 설정
+
+<CodeBlock
+  code={`# ~/.zshrc - Claude Code 개발 환경 최적화
+
+# ──────────────────────────────
+# Claude Code 환경 변수
+# ──────────────────────────────
+export ANTHROPIC_API_KEY="sk-ant-..."  # 실제 키는 비밀 관리자 사용
+export CLAUDE_CODE_USE_BEDROCK=0       # AWS Bedrock 사용 시 1
+export CLAUDE_CODE_USE_VERTEX=0        # Google Vertex 사용 시 1
+
+# ──────────────────────────────
+# Claude Code 별칭 (Aliases)
+# ──────────────────────────────
+alias cc='claude'                      # 빠른 실행
+alias ccc='claude --continue'          # 이전 대화 이어서
+alias ccr='claude --resume'            # 특정 세션 복원
+alias ccp='claude --print'             # 비대화형 출력
+alias ccv='claude --verbose'           # 상세 로그
+
+# 파이프 활용 별칭
+alias ccreview='claude -p "이 코드를 리뷰해줘"'
+alias ccfix='claude -p "이 에러를 분석하고 수정 방안을 제안해줘"'
+alias cctest='claude -p "이 코드의 테스트를 작성해줘"'
+
+# ──────────────────────────────
+# 프로젝트 이동 단축
+# ──────────────────────────────
+export PROJECTS_DIR="$HOME/projects"
+
+# 프로젝트 디렉토리로 이동하면서 Claude Code 실행
+function ccd() {
+  if [ -z "$1" ]; then
+    cd "$PROJECTS_DIR" && claude
+  else
+    cd "$PROJECTS_DIR/$1" && claude
+  fi
+}
+
+# 현재 git diff를 Claude에 전달하여 리뷰 요청
+function cc-review-diff() {
+  git diff | claude -p "이 변경사항을 리뷰해줘. 버그, 보안 이슈, 개선점을 알려줘."
+}
+
+# 최근 에러 로그를 Claude에 전달
+function cc-analyze-log() {
+  local logfile=\${1:-/tmp/app.log}
+  tail -100 "$logfile" | claude -p "이 로그에서 에러 원인을 분석해줘."
+}
+
+# ──────────────────────────────
+# 터미널 색상 (24비트)
+# ──────────────────────────────
+export COLORTERM=truecolor
+export TERM=xterm-256color
+
+# ──────────────────────────────
+# PATH 설정
+# ──────────────────────────────
+export PATH="$HOME/.local/bin:$PATH"   # Claude Code CLI 위치
+export PATH="$HOME/.npm-global/bin:$PATH"
+export PATH="$HOME/go/bin:$PATH"`}
+  language="bash"
+  filename="~/.zshrc (Claude Code 최적화)"
+/>
+
+### Bash 프로파일 설정
+
+<CodeBlock
+  code={`# ~/.bashrc - Claude Code 개발 환경 (Bash)
+
+# Claude Code 별칭
+alias cc='claude'
+alias ccc='claude --continue'
+alias ccr='claude --resume'
+
+# Bash 자동완성 (claude CLI가 지원하는 경우)
+if command -v claude &> /dev/null; then
+  eval "$(claude completion bash 2>/dev/null)" || true
+fi
+
+# 프롬프트에 현재 프로젝트 표시
+parse_git_branch() {
+  git branch 2>/dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
+}
+
+export PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[33m\]$(parse_git_branch)\[\033[00m\]\$ '`}
+  language="bash"
+  filename="~/.bashrc (Bash 기본 설정)"
+/>
+
+<Callout type="tip" title="Fish Shell 사용자">
+  Fish Shell을 사용한다면 `~/.config/fish/config.fish`에 유사한 설정을 추가하세요.
+  Fish의 `abbr` 기능으로 별칭 대신 약어를 설정하면 더 유연하게 사용할 수 있습니다.
+  예: `abbr --add cc claude`
+</Callout>
+
+---
+
 ## 설정 관리
 
 Claude Code는 계층적 설정 시스템을 사용합니다.
@@ -130,6 +630,101 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
     { feature: '~/.claude/settings.json', values: ['글로벌', '모든 프로젝트에 적용되는 기본 설정'] },
   ]}
 />
+
+### 설정 파일 상세
+
+#### 글로벌 설정
+
+<CodeBlock
+  code={`{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Read",
+      "Write",
+      "Edit"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(sudo *)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | bash)"
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_MAX_TOKENS": "8192",
+    "ANTHROPIC_MODEL": "claude-sonnet-4-20250514"
+  },
+  "preferredNotifChannel": "terminal_bell"
+}`}
+  language="json"
+  filename="~/.claude/settings.json (글로벌 설정)"
+/>
+
+#### 프로젝트 설정 (팀 공유)
+
+<CodeBlock
+  code={`{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npx jest:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx eslint:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git status:*)",
+      "Read",
+      "Write",
+      "Edit",
+      "Grep",
+      "Glob"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "env": {
+    "NODE_ENV": "development"
+  }
+}`}
+  language="json"
+  filename=".claude/settings.json (프로젝트 팀 공유 설정)"
+/>
+
+#### 개인 로컬 설정
+
+<CodeBlock
+  code={`{
+  "permissions": {
+    "allow": [
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)",
+      "Bash(kubectl:*)"
+    ]
+  },
+  "env": {
+    "ANTHROPIC_MODEL": "claude-opus-4-20250514",
+    "DATABASE_URL": "postgresql://localhost:5432/mydb"
+  }
+}`}
+  language="json"
+  filename=".claude/settings.local.json (개인 로컬 설정 - Git 미추적)"
+/>
+
+<Callout type="warning" title="보안 주의">
+  `.claude/settings.local.json`에 API 키나 비밀번호를 직접 넣지 마세요.
+  환경 변수나 시크릿 관리 도구(1Password CLI, AWS Secrets Manager 등)를 사용하세요.
+  이 파일은 자동으로 `.gitignore`에 추가되지만, 민감 정보는 별도 관리가 원칙입니다.
+</Callout>
 
 ### /config 명령
 
@@ -151,6 +746,66 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
   설정 시스템의 전체 구조와 옵션은 [Claude Code 설정 문서](https://code.claude.com/docs/en/settings)를 참조하세요.
 </Callout>
 
+---
+
+## 멀티 프로젝트 환경 설정
+
+여러 프로젝트를 동시에 다루는 개발자를 위한 설정입니다.
+
+### 프로젝트별 CLAUDE.md 전략
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph GLOBAL["글로벌 설정"]
+      GM["~/.claude/CLAUDE.md\n공통 규칙: 한국어 응답, 커밋 규칙"]
+      GS["~/.claude/settings.json\n공통 권한, 기본 모델"]
+    end
+    subgraph PROJ_A["프로젝트 A (React)"]
+      PA_M["CLAUDE.md\nReact 컨벤션, ESLint 규칙"]
+      PA_S[".claude/settings.json\nnpm 도구 허용"]
+      PA_L[".claude/settings.local.json\n개인 API 키"]
+    end
+    subgraph PROJ_B["프로젝트 B (Python)"]
+      PB_M["CLAUDE.md\nPython PEP 8, FastAPI 패턴"]
+      PB_S[".claude/settings.json\npip, pytest 허용"]
+      PB_L[".claude/settings.local.json\nDB 연결 정보"]
+    end
+    GLOBAL --> PROJ_A
+    GLOBAL --> PROJ_B
+  `}
+  title="멀티 프로젝트 설정 계층"
+  caption="글로벌 설정은 모든 프로젝트에 적용되고, 프로젝트별 설정이 이를 오버라이드합니다"
+/>
+
+### 프로젝트 전환 자동화
+
+<CodeBlock
+  code={`# 프로젝트별 환경 자동 전환 (.envrc 사용 - direnv)
+# 각 프로젝트 루트에 .envrc 파일 생성
+
+# ~/projects/react-app/.envrc
+export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+export NODE_ENV="development"
+
+# ~/projects/python-api/.envrc
+export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+export VIRTUAL_ENV="$PWD/.venv"
+export PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# ~/projects/critical-service/.envrc
+export ANTHROPIC_MODEL="claude-opus-4-20250514"
+export CLAUDE_CODE_MAX_TURNS=50
+
+# direnv 설치 및 활성화
+# macOS: brew install direnv
+# Linux: sudo apt install direnv
+# ~/.zshrc에 추가: eval "$(direnv hook zsh)"`}
+  language="bash"
+  filename="direnv로 프로젝트별 환경 자동 전환"
+/>
+
+---
+
 ## 상태 줄 (Status Line)
 
 터미널 하단에 현재 모델, 토큰 사용량, 비용 등을 실시간으로 표시할 수 있습니다.
@@ -170,6 +825,8 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
   상태 줄 설정에 대한 자세한 내용은 [Claude Code 상태 줄 문서](https://code.claude.com/docs/en/statusline)를 참조하세요.
 </Callout>
 
+---
+
 ## 알림 설정
 
 Claude Code가 작업을 완료하고 입력을 대기할 때 알림을 받을 수 있습니다.
@@ -186,9 +843,42 @@ claude config set --global preferredNotifChannel terminal_bell
   filename="알림 설정"
 />
 
+### 플랫폼별 데스크톱 알림 스크립트
+
+<CodeBlock
+  code={`# macOS 알림 (osascript 사용)
+# .claude/settings.json에 Hook으로 등록
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"$CLAUDE_NOTIFICATION_MESSAGE\" with title \"Claude Code\"'"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+# Linux 알림 (notify-send 사용)
+# command: "notify-send 'Claude Code' '$CLAUDE_NOTIFICATION_MESSAGE'"
+
+# Windows 알림 (PowerShell)
+# command: "powershell -Command \\"[System.Windows.Forms.MessageBox]::Show('$CLAUDE_NOTIFICATION_MESSAGE', 'Claude Code')\\""
+`}
+  language="json"
+  filename="플랫폼별 알림 Hook 설정"
+/>
+
 <Callout type="info" title="알림 설정 문서">
   Hooks를 활용한 알림 설정은 [Claude Code Hooks 문서](https://code.claude.com/docs/en/hooks-guide)를 참조하세요.
 </Callout>
+
+---
 
 ## 멀티 계정/프로필 관리
 
@@ -209,6 +899,481 @@ alias claude-personal='CLAUDE_CONFIG_DIR=~/.claude-personal claude'`}
   filename="멀티 프로필 관리"
 />
 
+---
+
+## 원격 개발 환경
+
+### SSH 원격 서버
+
+<CodeBlock
+  code={`# SSH로 원격 서버에 Claude Code 사용
+
+# 1. 원격 서버에 Claude Code CLI 설치
+ssh your-server "npm install -g @anthropic-ai/claude-code"
+
+# 2. API 키 전달 (SSH 포워딩 또는 원격 환경 변수)
+# 방법 A: SSH 접속 시 환경 변수 전달
+ssh -o SendEnv=ANTHROPIC_API_KEY your-server
+
+# sshd_config에 AcceptEnv 추가 필요:
+# AcceptEnv ANTHROPIC_API_KEY
+
+# 방법 B: 원격 서버의 ~/.bashrc에 설정
+# export ANTHROPIC_API_KEY="sk-ant-..."
+
+# 3. VS Code Remote SSH와 함께 사용
+# VS Code → Remote-SSH → 서버 연결 → Claude Code 확장 자동 설치`}
+  language="bash"
+  filename="SSH 원격 개발 설정"
+/>
+
+### Docker / Devcontainer
+
+<CodeBlock
+  code={`// .devcontainer/devcontainer.json
+{
+  "name": "Claude Code Dev Environment",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "npm install -g @anthropic-ai/claude-code && npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+  "remoteEnv": {
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+  },
+  "forwardPorts": [3000, 5432],
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind,consistency=cached"
+  ]
+}`}
+  language="json"
+  filename=".devcontainer/devcontainer.json"
+/>
+
+<Callout type="tip" title="Devcontainer의 장점">
+  Devcontainer를 사용하면 팀원 모두가 동일한 개발 환경을 사용할 수 있습니다.
+  Claude Code CLI, 확장, 설정이 모두 컨테이너에 포함되어 "내 PC에서는 됐는데" 문제가 사라집니다.
+  GitHub Codespaces, GitPod에서도 동일한 devcontainer 설정을 사용할 수 있습니다.
+</Callout>
+
+### GitHub Codespaces / GitPod
+
+<CodeBlock
+  code={`# GitHub Codespaces 설정
+# .devcontainer/devcontainer.json을 리포지토리에 커밋하면
+# Codespaces에서 자동으로 환경이 구성됩니다.
+
+# Codespaces Secrets에 ANTHROPIC_API_KEY 등록:
+# GitHub → Settings → Codespaces → Secrets → New secret
+# Name: ANTHROPIC_API_KEY
+# Value: sk-ant-...
+# Repository access: 특정 리포지토리 선택
+
+# GitPod 설정 (.gitpod.yml)
+# image: gitpod/workspace-full
+# tasks:
+#   - init: npm install -g @anthropic-ai/claude-code
+#     command: claude
+# vscode:
+#   extensions:
+#     - anthropic.claude-code`}
+  language="yaml"
+  filename="Codespaces / GitPod 설정"
+/>
+
+---
+
+## 디버깅 환경 연동
+
+Claude Code와 함께 디버거를 활용하면 버그를 더 빠르게 해결할 수 있습니다.
+
+### Node.js 디버깅
+
+<CodeBlock
+  code={`// .vscode/launch.json - Node.js 디버그 설정
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Current File",
+      "program": "\${file}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Tests (Jest)",
+      "program": "\${workspaceFolder}/node_modules/.bin/jest",
+      "args": ["--runInBand", "--watchAll=false"],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to Process",
+      "port": 9229,
+      "restart": true
+    }
+  ]
+}
+
+// 디버그 모드에서 실행 후 Claude Code에 에러 전달:
+// 1. 브레이크포인트 설정 → 디버그 실행
+// 2. 에러 메시지와 스택 트레이스 복사
+// 3. Claude Code에 붙여넣기하여 분석 요청`}
+  language="json"
+  filename=".vscode/launch.json (Node.js)"
+/>
+
+### Python 디버깅
+
+<CodeBlock
+  code={`// .vscode/launch.json - Python 디버그 설정
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "\${file}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Python: FastAPI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["app.main:app", "--reload", "--port", "8000"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Python: pytest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-v", "--tb=short"],
+      "console": "integratedTerminal"
+    }
+  ]
+}`}
+  language="json"
+  filename=".vscode/launch.json (Python)"
+/>
+
+### Go 디버깅
+
+<CodeBlock
+  code={`// .vscode/launch.json - Go 디버그 설정
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Go: Launch Package",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "\${workspaceFolder}/cmd/main.go"
+    },
+    {
+      "name": "Go: Test Current File",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "\${file}"
+    }
+  ]
+}
+
+// Claude Code + 디버깅 워크플로우:
+// 1. "이 함수에서 패닉이 발생해" → Claude가 가능한 원인 분석
+// 2. Claude 제안에 따라 브레이크포인트 설정
+// 3. 디버거에서 확인한 변수 값을 Claude에 전달
+// 4. Claude가 수정 코드 제안`}
+  language="json"
+  filename=".vscode/launch.json (Go)"
+/>
+
+---
+
+## 성능 최적화 팁
+
+대규모 프로젝트에서 Claude Code를 효율적으로 사용하기 위한 설정입니다.
+
+### .claudeignore 설정
+
+<CodeBlock
+  code={`# .claudeignore - Claude Code가 무시할 파일/디렉토리
+# .gitignore와 동일한 문법
+
+# 의존성 (수만 개 파일)
+node_modules/
+vendor/
+.venv/
+__pycache__/
+
+# 빌드 결과물
+dist/
+build/
+.next/
+out/
+
+# 대용량 바이너리
+*.wasm
+*.so
+*.dylib
+*.dll
+
+# 데이터 파일
+*.sql.gz
+*.csv
+*.parquet
+data/raw/
+
+# 미디어 파일
+*.mp4
+*.mp3
+*.png
+*.jpg
+*.gif
+*.svg
+
+# 캐시
+.cache/
+.turbo/
+.eslintcache
+
+# IDE 설정 (프로젝트 설정과 무관)
+.idea/
+*.swp
+*.swo`}
+  language="text"
+  filename=".claudeignore"
+/>
+
+### 대규모 프로젝트 권장 설정
+
+<ComparisonTable
+  title="프로젝트 규모별 권장 설정"
+  headers={['설정 항목', '소규모 (< 100 파일)', '중규모 (100-1000)', '대규모 (1000+)']}
+  rows={[
+    { feature: '.claudeignore', values: ['선택', '권장', '필수'] },
+    { feature: '서브트리 CLAUDE.md', values: ['불필요', '선택', '강력 권장'] },
+    { feature: '.claude/rules/', values: ['불필요', '선택', '필수'] },
+    { feature: '모델 선택', values: ['Sonnet', 'Sonnet', 'Sonnet (Opus는 복잡한 작업만)'] },
+    { feature: 'max_tokens', values: ['기본값', '기본값', '필요 시 조정'] },
+    { feature: '워크스페이스 분리', values: ['불필요', '선택', '모노레포 시 권장'] },
+  ]}
+/>
+
+<Callout type="tip" title="모노레포에서의 활용">
+  모노레포에서는 각 패키지/서비스 디렉토리에 개별 CLAUDE.md를 배치하세요.
+  루트 CLAUDE.md에는 전체 아키텍처와 공통 규칙만 기술하고,
+  각 하위 CLAUDE.md에 해당 모듈의 기술 스택과 패턴을 기술하면
+  Claude가 작업 중인 컨텍스트에 맞는 규칙을 자동으로 로드합니다.
+</Callout>
+
+---
+
+## 팀 환경 표준화
+
+### .editorconfig
+
+팀원 전체의 편집기 설정을 통일합니다.
+
+<CodeBlock
+  code={`# .editorconfig - 팀 전체 편집기 설정 통일
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+max_line_length = 100
+
+[*.py]
+indent_size = 4
+
+[*.go]
+indent_style = tab
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab`}
+  language="ini"
+  filename=".editorconfig"
+/>
+
+### .tool-versions (asdf / mise)
+
+언어 런타임 버전을 팀 전체에서 통일합니다.
+
+<CodeBlock
+  code={`# .tool-versions - 런타임 버전 관리
+# asdf 또는 mise(rtx)에서 사용
+nodejs 20.11.0
+python 3.12.1
+golang 1.22.0
+rust 1.75.0
+
+# 설치: asdf install 또는 mise install
+# 이 파일을 Git에 커밋하면 팀원 전체가 동일 버전 사용`}
+  language="text"
+  filename=".tool-versions"
+/>
+
+### 팀 온보딩 자동화
+
+<CodeBlock
+  code={`#!/bin/bash
+# scripts/setup-dev-env.sh - 신규 팀원 온보딩 스크립트
+
+set -e
+
+echo "=== 개발 환경 설정을 시작합니다 ==="
+
+# 1. 런타임 버전 확인
+echo "[1/6] 런타임 버전 확인..."
+if command -v mise &> /dev/null; then
+  mise install
+elif command -v asdf &> /dev/null; then
+  asdf install
+else
+  echo "mise 또는 asdf를 먼저 설치해주세요"
+  exit 1
+fi
+
+# 2. 의존성 설치
+echo "[2/6] 의존성 설치..."
+npm install
+
+# 3. Claude Code CLI 확인
+echo "[3/6] Claude Code CLI 확인..."
+if ! command -v claude &> /dev/null; then
+  echo "Claude Code CLI를 설치합니다..."
+  npm install -g @anthropic-ai/claude-code
+fi
+
+# 4. 터미널 설정
+echo "[4/6] 터미널 키바인딩 설정..."
+echo "Claude Code에서 /terminal-setup을 실행해주세요"
+
+# 5. Git hooks 설정
+echo "[5/6] Git hooks 설정..."
+npx husky install 2>/dev/null || true
+
+# 6. 환경 변수 확인
+echo "[6/6] 환경 변수 확인..."
+if [ -z "$ANTHROPIC_API_KEY" ]; then
+  echo "WARNING: ANTHROPIC_API_KEY가 설정되지 않았습니다"
+  echo "팀 리드에게 API 키를 요청하세요"
+fi
+
+echo ""
+echo "=== 설정 완료! ==="
+echo "다음 단계:"
+echo "  1. claude 명령으로 Claude Code 실행"
+echo "  2. /init으로 프로젝트 초기화 확인"
+echo "  3. /terminal-setup으로 키바인딩 설정"`}
+  language="bash"
+  filename="scripts/setup-dev-env.sh"
+/>
+
+---
+
+## 워크스페이스 레이아웃 추천
+
+효율적인 개발을 위한 화면 배치 방법입니다.
+
+### 단일 모니터 레이아웃
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph SINGLE["단일 모니터 (분할 화면)"]
+      direction TB
+      subgraph LEFT["좌측 60%"]
+        IDE_EDIT["IDE / 코드 편집기\n(메인 작업 영역)"]
+      end
+      subgraph RIGHT["우측 40%"]
+        CC["Claude Code\n(터미널)"]
+        TERM_SUB["보조 터미널\n(테스트/git)"]
+      end
+    end
+  `}
+  title="단일 모니터: 좌우 분할 레이아웃"
+  caption="코드 편집 60% + Claude Code/터미널 40% 배치가 효율적입니다"
+/>
+
+### 듀얼 모니터 레이아웃
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph MON1["주 모니터"]
+      direction TB
+      EDITOR["IDE / 코드 편집기\n(전체 화면)"]
+    end
+    subgraph MON2["보조 모니터"]
+      direction TB
+      CC2["Claude Code\n(상단 60%)"]
+      TOOLS["브라우저 / 문서 / 터미널\n(하단 40%)"]
+    end
+  `}
+  title="듀얼 모니터: 코드 + Claude Code 분리"
+  caption="주 모니터에서 코딩, 보조 모니터에서 Claude Code와 참고 자료를 확인합니다"
+/>
+
+### VS Code 내부 레이아웃
+
+<CodeBlock
+  code={`# VS Code 내부 레이아웃 추천
+
+# 1. 에디터 그룹 분할
+#    Cmd+\ (Mac) / Ctrl+\ (Windows): 에디터를 좌우로 분할
+#    왼쪽: 작업 중인 파일
+#    오른쪽: 참고 파일 또는 테스트 파일
+
+# 2. 터미널 패널 (하단)
+#    Cmd+\` (Mac) / Ctrl+\` (Windows): 터미널 토글
+#    터미널 분할: 왼쪽에 Claude Code, 오른쪽에 일반 터미널
+
+# 3. 사이드바 활용
+#    Explorer: 파일 탐색
+#    Source Control: Git 변경사항 확인
+#    Extensions: Claude Code 확장 패널
+
+# 4. 추천 비율
+#    에디터: 전체 높이의 65%
+#    터미널 패널: 전체 높이의 35%
+#    사이드바: 너비의 20% (필요 시 토글)`}
+  language="text"
+  filename="VS Code 내부 레이아웃"
+/>
+
+---
+
 ## 플랫폼별 참고사항
 
 <ComparisonTable
@@ -228,15 +1393,73 @@ alias claude-personal='CLAUDE_CONFIG_DIR=~/.claude-personal claude'`}
   상세 설정은 [Claude Code 설치 문서](https://code.claude.com/docs/en/setup)를 참조하세요.
 </Callout>
 
+---
+
 ## 추천 초기 설정 순서
 
-1. **Claude Code CLI 설치** (네이티브 설치 권장)
-2. **IDE 확장 설치** (VS Code 또는 JetBrains)
-3. **`/terminal-setup` 실행** (Shift+Enter 등 키바인딩 설정)
-4. **프로젝트 루트에서 `/init` 실행** (CLAUDE.md 자동 생성)
-5. **`/config`로 권한 및 기본 설정 조정**
-6. **`/theme`로 테마 선택**
-7. **필요 시 `/statusline`으로 상태 줄 설정**
+<Timeline
+  title="Claude Code 개발 환경 구축 순서"
+  events={[
+    {
+      date: 'Step 1',
+      title: 'Claude Code CLI 설치',
+      description: '네이티브 설치 권장. npm install -g @anthropic-ai/claude-code 또는 플랫폼별 설치 스크립트 사용.',
+      highlight: true,
+    },
+    {
+      date: 'Step 2',
+      title: 'IDE 확장/플러그인 설치',
+      description: 'VS Code 또는 JetBrains IDE에 Claude Code 공식 확장을 설치합니다.',
+    },
+    {
+      date: 'Step 3',
+      title: '터미널 키바인딩 설정',
+      description: '/terminal-setup 명령으로 Shift+Enter 등 키바인딩을 자동 구성합니다.',
+    },
+    {
+      date: 'Step 4',
+      title: '프로젝트 초기화',
+      description: '프로젝트 루트에서 /init 실행하여 CLAUDE.md를 자동 생성합니다.',
+      highlight: true,
+    },
+    {
+      date: 'Step 5',
+      title: '권한 및 설정 조정',
+      description: '/config로 자동 승인 도구, 환경 변수, 모델 등을 설정합니다.',
+    },
+    {
+      date: 'Step 6',
+      title: '테마 및 상태 줄 설정',
+      description: '/theme으로 테마를 선택하고, /statusline으로 하단 상태 표시를 구성합니다.',
+    },
+    {
+      date: 'Step 7',
+      title: '팀 설정 표준화',
+      description: '.editorconfig, .tool-versions, .claude/settings.json을 팀과 공유합니다.',
+    },
+  ]}
+/>
+
+---
+
+## 환경 설정 체크리스트
+
+설정을 마친 후 다음 항목을 확인하세요.
+
+| 항목 | 확인 방법 | 기대 결과 |
+|------|-----------|-----------|
+| CLI 설치 | `claude --version` | 버전 번호 출력 |
+| API 키 | `claude "안녕"` | 정상 응답 |
+| Shift+Enter | 터미널에서 Shift+Enter | 줄바꿈 |
+| IDE 확장 | 확장 패널 확인 | Claude Code 활성화 |
+| 설정 파일 | `/config` 실행 | 설정 목록 표시 |
+| .claudeignore | `claude` 실행 시 속도 | node_modules 등 제외 |
+| CLAUDE.md | `/init` 또는 직접 작성 | 프로젝트 규칙 로드 |
+
+<Callout type="info" title="문제 해결">
+  환경 설정 중 문제가 발생하면 [Claude Code 트러블슈팅 문서](https://code.claude.com/docs/en/troubleshooting)를 참조하세요.
+  `claude --verbose` 플래그를 사용하면 상세한 디버그 로그를 확인할 수 있습니다.
+</Callout>
 
 <ChapterNav
   prev={{ title: 'Claude Code란?', path: '/docs/part-1--기초-claude-code란' }}
