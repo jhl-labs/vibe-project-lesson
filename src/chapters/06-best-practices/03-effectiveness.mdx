@@ -380,6 +380,83 @@ AI 도구 도입이 이 지표에 어떤 영향을 미치는지 추적하면, �
   OTel 설정 방법과 대시보드 구성은 **Part 1의 엔터프라이즈 보안 챕터**를 참고하세요.
 </Callout>
 
+---
+
+## API 비용 최적화 (Prompt Caching & Batch API)
+
+Claude Code를 API로 직접 사용하거나 CI/CD에 통합할 때 비용을 크게 절감할 수 있는 기법입니다.
+
+### Prompt Caching — 최대 90% 절감
+
+동일한 시스템 프롬프트나 대규모 컨텍스트를 반복 사용하면 캐시 읽기가 적용되어 **입력 토큰 비용이 90% 절감**됩니다.
+
+<ComparisonTable
+  title="Prompt Caching 비용 구조"
+  headers={['요청 유형', '비용 배율', '설명']}
+  rows={[
+    { feature: '캐시 쓰기 (첫 요청)', values: ['기본 가격 x 1.25', '캐시에 저장하는 초기 비용 (25% 프리미엄)'] },
+    { feature: '캐시 읽기 (후속 요청)', values: ['기본 가격 x 0.10', '캐시에서 읽기 (90% 할인)'] },
+    { feature: '비캐시 입력', values: ['기본 가격 x 1.00', '캐시되지 않은 일반 입력'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`# Prompt Caching 적용 예시
+import anthropic
+
+client = anthropic.Anthropic()
+
+# 50K 토큰의 코드베이스 컨텍스트를 캐싱
+system = [{
+    "type": "text",
+    "text": open("full-codebase-context.txt").read(),  # ~50K 토큰
+    "cache_control": {"type": "ephemeral"}
+}]
+
+# 첫 요청: $0.375 (50K x $5/M x 1.25 + α)
+r1 = client.messages.create(model="claude-opus-4-6", system=system,
+    messages=[{"role": "user", "content": "인증 모듈의 버그를 찾아줘"}])
+
+# 후속 요청: $0.025 (50K x $5/M x 0.10 + α) — 93% 절감!
+r2 = client.messages.create(model="claude-opus-4-6", system=system,
+    messages=[{"role": "user", "content": "결제 모듈의 성능을 분석해줘"}])`}
+  language="python"
+  filename="prompt-caching-example.py"
+/>
+
+### Batch API — 50% 할인
+
+즉시 응답이 필요 없는 대량 작업은 Batch API로 50% 할인을 받을 수 있습니다.
+
+<ComparisonTable
+  title="실시간 API vs Batch API"
+  headers={['특성', '실시간 API', 'Batch API']}
+  rows={[
+    { feature: '비용', values: ['표준 가격', '50% 할인'] },
+    { feature: '응답 시간', values: ['즉시', '최대 24시간 (대부분 1시간 이내)'] },
+    { feature: '적합한 작업', values: ['인터랙티브 개발', '대량 리뷰/테스트/문서화'] },
+  ]}
+/>
+
+### 엔터프라이즈 비용 사례
+
+<ComparisonTable
+  title="실제 기업 비용 절감 사례"
+  headers={['사례', '최적화 전 (월)', '최적화 후 (월)', '절감률']}
+  rows={[
+    { feature: 'Ramp (핀테크)', values: ['측정 안 됨', '인시던트 조사 80% 시간 감소', '80%'] },
+    { feature: 'Anthropic 마케팅팀', values: ['수시간/배치', '수분/배치 (Figma 연동)', '95%+'] },
+    { feature: 'Anthropic 보안팀', values: ['10-15분/이슈', '~5분/이슈', '67%'] },
+  ]}
+/>
+
+<Callout type="info" title="Claude Code 구독 vs API 비용">
+  Claude Code의 평균 일일 비용은 $6이며, 90%의 개발자가 $12/일 이하를 사용합니다 (Anthropic 공식 문서).
+  Max 구독은 API 직접 사용 대비 약 18배 저렴합니다.
+</Callout>
+
+---
+
 <ChapterNav
   prev={{ title: '팀 협업', path: '/docs/part-6--모범-사례-팀-협업' }}
 />
