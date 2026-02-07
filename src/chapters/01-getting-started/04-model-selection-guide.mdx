@@ -1,0 +1,1062 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { Timeline } from '../../components/Timeline';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 1: 시작하기/모델 선택 가이드" />
+
+# Claude 모델 선택 가이드
+
+> 작업 유형에 맞는 최적의 모델을 선택하는 방법
+
+## 왜 모델 선택이 중요한가
+
+Claude Code는 여러 모델을 지원하며, 모델에 따라 **추론 능력, 속도, 비용**이 크게 다릅니다. 올바른 모델 선택은 작업 품질과 비용 효율 모두에 직접적인 영향을 줍니다.
+
+<Callout type="info" title="핵심 원칙">
+  "가장 비싼 모델이 항상 최선은 아닙니다."
+  간단한 리팩토링에 Opus 4.6을 사용하는 것은 비효율적이고,
+  복잡한 아키텍처 설계에 Haiku 4.5를 사용하면 품질이 부족합니다.
+  **작업의 복잡도에 맞는 모델을 선택**하는 것이 진정한 프로 개발자의 역량입니다.
+</Callout>
+
+---
+
+## Claude 모델 패밀리 (2026년 2월 기준)
+
+### 모델 출시 타임라인
+
+Claude 4 시리즈는 2025년 5월부터 순차적으로 공개되었습니다.
+
+<Timeline
+  title="Claude 4 시리즈 출시 타임라인"
+  events={[
+    {
+      date: '2025년 5월',
+      title: 'Claude 4 (Opus / Sonnet) GA',
+      description: 'Claude Code 1.0과 함께 출시. Extended Thinking 도입으로 복잡한 추론 능력 대폭 향상.',
+    },
+    {
+      date: '2025년 9월',
+      title: 'Sonnet 4.5 출시',
+      description: 'SWE-bench 77.2% 달성. 비용 대비 성능의 새로운 기준 수립. Claude Code 기본 모델로 설정.',
+    },
+    {
+      date: '2025년 10월',
+      title: 'Haiku 4.5 출시',
+      description: '경량 모델 대비 높은 코딩 성능(73.3%). 빠른 응답 속도와 낮은 비용으로 보일러플레이트 작업에 최적.',
+    },
+    {
+      date: '2025년 11월',
+      title: 'Opus 4.5 출시',
+      description: 'SWE-bench 80% 임계값을 넘은 최초의 AI 모델(80.9%). 깊은 추론과 아키텍처 설계의 새 지평.',
+      highlight: true,
+    },
+    {
+      date: '2026년 2월',
+      title: 'Opus 4.6 출시',
+      description: 'Agent Teams 네이티브 지원, 1M 컨텍스트(베타), Adaptive Thinking 도입. 128K 출력 토큰.',
+      highlight: true,
+    },
+  ]}
+/>
+
+### 모델별 상세 스펙
+
+<ComparisonTable
+  title="Claude 최신 모델 비교"
+  headers={['항목', 'Opus 4.6', 'Opus 4.5', 'Sonnet 4.5', 'Haiku 4.5']}
+  rows={[
+    { feature: '모델 ID', values: ['claude-opus-4-6', 'claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5'] },
+    { feature: '출시일', values: ['2026년 2월', '2025년 11월', '2025년 9월', '2025년 10월'] },
+    { feature: '컨텍스트 윈도우', values: ['1,000K (1M)', '200K (1M 베타)', '200K (1M 베타)', '200K'] },
+    { feature: '최대 출력', values: ['128,000 토큰', '64,000 토큰', '64,000 토큰', '64,000 토큰'] },
+    { feature: '입력 가격 (/1M 토큰)', values: ['$5', '$5', '$3', '$1'] },
+    { feature: '출력 가격 (/1M 토큰)', values: ['$25', '$25', '$15', '$5'] },
+    { feature: 'Agent Teams', values: ['yes', 'no', 'no', 'no'] },
+    { feature: 'Adaptive Thinking', values: ['yes', 'no', 'no', 'no'] },
+    { feature: 'Extended Thinking', values: ['yes', 'yes', 'yes', 'yes'] },
+    { feature: 'Interleaved Thinking', values: ['yes', 'yes', 'yes', 'yes'] },
+    { feature: '강점', values: ['Agent Teams, 1M 컨텍스트, 적응형 사고', '깊은 추론, 아키텍처', '균형 잡힌 성능', '빠른 속도, 저비용'] },
+  ]}
+/>
+
+<Callout type="tip" title="가격 출처">
+  모든 가격은 [Anthropic 공식 가격 페이지](https://docs.anthropic.com/en/docs/about-claude/pricing) 기준입니다.
+  Opus 4.6은 이전 세대(Claude 3 Opus $15/$75) 대비 **67% 가격 인하**된 가격입니다.
+</Callout>
+
+---
+
+## 각 모델의 아키텍처 특성과 강점
+
+### Opus 4.6 — 에이전트 협업의 정점
+
+Opus 4.6은 Claude 모델 패밀리에서 **가장 강력한 추론 능력**과 함께 멀티 에이전트 아키텍처를 네이티브로 지원하는 플래그십 모델입니다.
+
+**핵심 특성:**
+- **1M 토큰 컨텍스트 (베타, tier 4+)**: 대규모 코드베이스 전체를 한번에 분석 가능
+- **128K 출력 토큰**: 복잡한 코드를 한 번의 응답으로 완성
+- **Agent Teams**: 여러 에이전트가 병렬로 협업하는 네이티브 멀티 에이전트
+- **Adaptive Thinking**: 작업 복잡도에 따라 사고 깊이를 자동 조절
+- **보안 연구 성과**: 오픈소스에서 500개 이상 제로데이 취약점 발견
+
+<Callout type="info" title="Opus 4.6의 진정한 강점">
+  단일 벤치마크에서는 Opus 4.5보다 약간 낮은 점수를 보이지만,
+  **Agent Teams를 통한 병렬 협업 시나리오**에서는 이전 모델을 크게 능가합니다.
+  "팀으로 일하는 AI"가 Opus 4.6의 핵심 철학입니다.
+</Callout>
+
+### Opus 4.5 — 단일 세션 최강의 추론 엔진
+
+Opus 4.5는 SWE-bench에서 80% 임계값을 넘은 최초의 AI 모델로, **단일 세션에서의 깊은 추론**에 최적화되어 있습니다.
+
+**핵심 특성:**
+- **SWE-bench 80.9%**: 역대 최고의 단일 세션 코딩 벤치마크 점수
+- **깊은 추론**: 복잡한 아키텍처 설계와 의존성 분석에 탁월
+- **Extended Thinking**: budget_tokens 파라미터로 사고 깊이 세밀 제어
+- **200K 컨텍스트 (1M 베타)**: 충분한 프로젝트 컨텍스트 처리
+
+**적합한 시나리오:**
+- 레거시 시스템 마이그레이션 계획 수립
+- 복잡한 동시성 버그 디버깅
+- 분산 시스템 아키텍처 설계
+- 성능 최적화를 위한 심층 분석
+
+### Sonnet 4.5 — 균형의 마스터
+
+Sonnet 4.5는 **Claude Code의 기본 모델**입니다. 성능, 속도, 비용의 균형이 탁월하여 대부분의 일상적인 개발 작업에 최적입니다.
+
+**핵심 특성:**
+- **SWE-bench 77.2%**: Opus에 근접한 코딩 성능
+- **비용 효율**: Opus 대비 40% 저렴한 출력 비용
+- **빠른 응답**: Opus 대비 빠른 응답 속도로 개발 흐름 유지
+- **범용성**: 코딩, 리뷰, 문서화, 테스트 등 모든 작업에 적합
+
+<Callout type="tip" title="Sonnet 4.5가 기본 모델인 이유">
+  Anthropic이 Claude Code의 기본 모델로 Sonnet 4.5를 선택한 것은 의미가 있습니다.
+  "80%의 작업에서 Opus와 체감 차이가 미미하면서도, 비용은 40% 절감"되기 때문입니다.
+  모델 선택에 확신이 없다면 Sonnet 4.5로 시작하세요.
+</Callout>
+
+### Haiku 4.5 — 속도와 효율의 전문가
+
+Haiku 4.5는 빠른 응답 속도와 낮은 비용으로 **반복적이고 구조화된 작업**에 최적화된 경량 모델입니다.
+
+**핵심 특성:**
+- **SWE-bench 73.3%**: 경량 모델 대비 높은 코딩 성능
+- **최저 비용**: Opus 대비 80% 저렴 (입력 $1/1M, 출력 $5/1M)
+- **빠른 속도**: 가장 빠른 응답 시간으로 대량 처리에 적합
+- **충분한 성능**: 보일러플레이트, 문서화, 간단한 수정에 과할 정도의 능력
+
+**적합한 시나리오:**
+- CRUD API 보일러플레이트 생성
+- 테스트 코드 초안 작성
+- 문서 번역 및 정리
+- 간단한 리팩토링 (변수명 변경, 포맷팅)
+- 대량 파일 처리 (import 정리, lint 수정)
+
+---
+
+## 벤치마크 성능 상세
+
+### SWE-bench Verified (코딩 벤치마크)
+
+SWE-bench는 실제 GitHub 이슈를 기반으로 한 코딩 능력 벤치마크로, AI 모델의 실질적인 소프트웨어 엔지니어링 능력을 측정합니다.
+
+<ComparisonTable
+  title="SWE-bench Verified 점수 비교"
+  headers={['모델', '점수', '비용(상대)', '설명']}
+  rows={[
+    { feature: 'Opus 4.6 (Thinking)', values: ['80.8%', '높음', 'Agent Teams 지원, 128K 출력. 팀 협업 시 시너지 ([Anthropic](https://www.anthropic.com/news/claude-opus-4-6))'] },
+    { feature: 'Opus 4.5', values: ['80.9%', '높음', '단일 세션 최고. 80% 임계값 돌파'] },
+    { feature: 'Sonnet 4.5', values: ['77.2%', '중간', '비용 대비 최고 효율. 일상 작업 최적'] },
+    { feature: 'Haiku 4.5', values: ['73.3%', '낮음', '경량 모델 중 최고. 대량 처리 적합'] },
+    { feature: 'GPT-4o', values: ['33.2%', '중간', 'OpenAI 범용 모델 (SWE-bench Verified 기준, [OpenAI](https://openai.com/index/introducing-swe-bench-verified/))'] },
+    { feature: 'Gemini 2.5 Pro', values: ['63.8%', '중간', 'Google의 최신 모델'] },
+  ]}
+/>
+
+### 다중 벤치마크 종합 비교
+
+<ComparisonTable
+  title="주요 벤치마크 종합 비교 (2026년 2월 기준)"
+  headers={['벤치마크', 'Opus 4.6', 'Sonnet 4.5', 'Haiku 4.5', '측정 영역']}
+  rows={[
+    { feature: 'SWE-bench Verified', values: ['80.8%', '77.2%', '73.3%', '실제 GitHub 이슈 해결'] },
+    { feature: 'GPQA Diamond', values: ['91.3%', '83.4%', '-', '대학원 수준 과학/수학'] },
+    { feature: 'MMMLU (다국어)', values: ['91.1%', '89.1%', '-', '다국어 다분야 지식'] },
+    { feature: 'tau2-bench Retail', values: ['91.9%', '-', '-', '에이전트 도구 사용 (소매)'] },
+    { feature: 'tau2-bench Telecom', values: ['99.3%', '-', '-', '에이전트 도구 사용 (통신)'] },
+  ]}
+/>
+
+<Callout type="info" title="벤치마크 해석 주의사항">
+  벤치마크 점수는 모델 역량의 한 측면만 보여줍니다. 실제 개발 환경에서는 **컨텍스트 관리, 도구 사용 패턴,
+  응답 일관성** 등이 더 중요할 수 있습니다. Opus 4.6의 Agent Teams 성능이나 Adaptive Thinking의 효과는
+  기존 벤치마크로 측정되지 않습니다.
+</Callout>
+
+---
+
+## Adaptive Thinking (적응형 사고) — Opus 4.6
+
+### Extended Thinking에서 Adaptive Thinking으로
+
+Claude 4 시리즈는 **Extended Thinking** 기능으로 복잡한 문제에서 단계별 사고 과정을 거쳐 정확도를 높였습니다. Opus 4.6은 이를 한 단계 발전시켜 **Adaptive Thinking**을 도입했습니다.
+
+<ComparisonTable
+  title="Extended Thinking vs Adaptive Thinking"
+  headers={['항목', 'Extended Thinking (4.5)', 'Adaptive Thinking (4.6)']}
+  rows={[
+    { feature: '사고 깊이 조절', values: ['수동 (budget_tokens 지정)', '자동 (작업 복잡도 기반)'] },
+    { feature: '컨텍스트 윈도우', values: ['200K (1M 베타)', '1M (기본)'] },
+    { feature: '최대 출력', values: ['64K 토큰', '128K 토큰'] },
+    { feature: 'Effort 파라미터', values: ['미지원', '4단계 (Low/Medium/High/Max)'] },
+    { feature: 'Agent Teams', values: ['미지원', '네이티브 지원'] },
+    { feature: '비용 최적화', values: ['수동 튜닝 필요', '작업에 맞게 자동 최적화'] },
+  ]}
+/>
+
+### Extended Thinking 기본 개념
+
+Extended Thinking은 Claude가 답변 전에 단계별로 사고하는 과정을 거치게 하여 정확도를 높이는 기능입니다.
+
+| 항목 | 설명 |
+|------|------|
+| **budget_tokens** | 사고에 할당할 최대 토큰 수 (최소 1,024) |
+| **Interleaved Thinking** | Claude 4 전용. 에이전트 코딩 시 도구 호출 사이에도 사고를 유지 |
+| **비용** | 사고 토큰도 출력 토큰으로 과금됨 |
+
+<CodeBlock
+  code={`# Claude Code에서는 Extended Thinking이 자동으로 활용됩니다.
+# 복잡한 문제에서 단계적 사고를 유도하는 프롬프트:
+
+"이 문제를 해결하기 전에 가능한 접근 방식들을 나열하고,
+각각의 장단점을 분석한 뒤 최선의 방법을 선택해줘"
+
+# API 직접 사용 시 (참고)
+# thinking: { type: "enabled", budget_tokens: 10000 }`}
+  language="text"
+  filename="Extended Thinking 활용"
+/>
+
+<Callout type="tip" title="Extended Thinking 문서">
+  Extended Thinking에 대한 기술적 세부사항은 [Anthropic 공식 문서](https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking)를 참조하세요.
+</Callout>
+
+### Effort 파라미터 4단계
+
+Opus 4.6의 Adaptive Thinking은 **Effort 파라미터**를 통해 사고 깊이를 4단계로 제어할 수 있습니다. Claude Code에서는 이것이 자동으로 적용되지만, API 사용 시 명시적으로 설정할 수 있습니다.
+
+<ComparisonTable
+  title="Effort 단계별 비교"
+  headers={['단계', '사고 방식', '속도', '비용', '적합한 작업']}
+  rows={[
+    { feature: 'Low', values: ['사고 건너뛰기', '가장 빠름', '최저', '간단한 질문, 분류, 포맷 변환'] },
+    { feature: 'Medium', values: ['선택적 사고', '빠름', '중간', '일반적 코딩, 코드 리뷰, 리팩토링'] },
+    { feature: 'High (기본값)', values: ['거의 항상 사고', '보통', '높음', '복잡한 디버깅, 새 기능 설계'] },
+    { feature: 'Max', values: ['최대 능력 발휘', '느림', '최고', '아키텍처 설계, 보안 분석, 마이그레이션'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`# API에서 Effort 파라미터 설정 예시
+import anthropic
+
+client = anthropic.Anthropic()
+
+# 간단한 작업: Low effort
+response_simple = client.messages.create(
+    model="claude-opus-4-6",
+    max_tokens=16000,
+    thinking={"type": "enabled", "budget_tokens": 5000, "effort": "low"},
+    messages=[{"role": "user", "content": "이 함수의 반환 타입을 string에서 number로 바꿔줘"}]
+)
+
+# 복잡한 작업: Max effort
+response_complex = client.messages.create(
+    model="claude-opus-4-6",
+    max_tokens=128000,
+    thinking={"type": "enabled", "budget_tokens": 50000, "effort": "max"},
+    messages=[{"role": "user", "content": "이 마이크로서비스 아키텍처의 보안 취약점을 분석하고 개선안을 제시해줘"}]
+)`}
+  language="python"
+  filename="Effort 파라미터 사용 예시"
+/>
+
+<Callout type="tip" title="Claude Code의 자동 Effort 조절">
+  Claude Code에서는 Adaptive Thinking이 자동으로 작동합니다. 간단한 파일 수정에는 Low effort,
+  복잡한 아키텍처 설계에는 Max effort가 자동 적용됩니다.
+  개발자가 별도로 설정할 필요 없이 최적의 사고 깊이가 선택됩니다.
+</Callout>
+
+### Interleaved Thinking (인터리브드 사고)
+
+Claude 4 시리즈의 고유 기능으로, **도구 호출 사이에도 사고를 유지**합니다. 이전 모델에서는 도구 호출 후 사고가 리셋되었지만, Interleaved Thinking은 연속적인 사고 흐름을 보장합니다.
+
+<CodeBlock
+  code={`# Interleaved Thinking 작동 방식 (내부 동작)
+#
+# 1. [Thinking] "이 버그를 해결하려면 먼저 관련 파일을 확인해야 한다..."
+# 2. [Tool] Read: src/services/auth.ts
+# 3. [Thinking] "토큰 갱신 로직에 문제가 있다. 만료 체크를 확인하자..."
+# 4. [Tool] Read: src/utils/token.ts
+# 5. [Thinking] "만료 시간을 UTC가 아닌 로컬 시간으로 비교하고 있다!"
+# 6. [Tool] Write: src/utils/token.ts (수정)
+# 7. [Thinking] "수정 후 테스트를 실행해서 확인하자..."
+# 8. [Tool] Bash: npm test
+#
+# 도구 호출 사이에도 사고가 끊기지 않아 일관된 문제 해결이 가능`}
+  language="text"
+  filename="Interleaved Thinking 동작 흐름"
+/>
+
+---
+
+## 작업 유형별 최적 모델 매칭
+
+### 코딩 작업 분류
+
+<ComparisonTable
+  title="작업 유형별 권장 모델"
+  headers={['작업 유형', '권장 모델', '이유']}
+  rows={[
+    { feature: 'Agent Teams (멀티 에이전트)', values: ['Opus 4.6', '네이티브 팀 협업, 1M 컨텍스트'] },
+    { feature: '대규모 코드베이스 분석', values: ['Opus 4.6', '1M 컨텍스트, 적응형 사고'] },
+    { feature: '아키텍처 설계/리팩토링', values: ['Opus 4.6 / 4.5', '깊은 추론 능력, 복잡한 의존성 분석'] },
+    { feature: '디버깅 (복잡한 버그)', values: ['Opus 4.6 / 4.5', '다단계 추론, 근본 원인 분석'] },
+    { feature: '보안 취약점 분석', values: ['Opus 4.6', '500+ 제로데이 발견 실적, 최고 수준의 추론'] },
+    { feature: '새 기능 구현', values: ['Sonnet 4.5', '성능과 비용의 균형'] },
+    { feature: '코드 리뷰', values: ['Sonnet 4.5', '충분한 추론 + 합리적 비용'] },
+    { feature: '테스트 작성', values: ['Sonnet 4.5', '패턴 인식 + 빠른 응답'] },
+    { feature: 'API 엔드포인트 구현', values: ['Sonnet 4.5', '구조화된 코드 생성에 최적'] },
+    { feature: '보일러플레이트 생성', values: ['Haiku 4.5', '빠른 속도, 반복 작업에 최적'] },
+    { feature: '문서 작성/번역', values: ['Haiku 4.5', '텍스트 처리에 충분한 성능'] },
+    { feature: '간단한 수정/리팩토링', values: ['Haiku 4.5', '비용 효율적, 빠른 턴어라운드'] },
+    { feature: 'import 정리/lint 수정', values: ['Haiku 4.5', '단순 패턴 작업에 과할 정도의 능력'] },
+  ]}
+/>
+
+### 모델 선택 의사결정 트리
+
+<MermaidDiagram
+  chart={`flowchart TD
+    Start["새 작업 시작"] --> Q1{"여러 에이전트의\n병렬 협업이 필요한가?"}
+    Q1 -->|Yes| Opus46["Opus 4.6\nAgent Teams"]
+    Q1 -->|No| Q2{"대규모 코드베이스\n100K줄 이상 분석?"}
+    Q2 -->|Yes| Opus46_2["Opus 4.6\n1M 컨텍스트"]
+    Q2 -->|No| Q3{"복잡한 추론이\n필요한 작업인가?"}
+    Q3 -->|Yes| Q4{"보안 분석 또는\n아키텍처 설계인가?"}
+    Q4 -->|Yes| Opus46_3["Opus 4.6\n적응형 사고 Max"]
+    Q4 -->|No| Opus45["Opus 4.5\n깊은 추론"]
+    Q3 -->|No| Q5{"비용과 품질의\n균형이 중요한가?"}
+    Q5 -->|Yes| Sonnet["Sonnet 4.5\n균형 최적"]
+    Q5 -->|No| Q6{"빠른 속도와\n낮은 비용이 우선?"}
+    Q6 -->|Yes| Haiku["Haiku 4.5\n속도 우선"]
+    Q6 -->|No| Sonnet2["Sonnet 4.5\n기본 선택"]
+
+    style Start fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Q1 fill:#faf9f7,stroke:#8c857c,color:#2d2a26
+    style Q2 fill:#faf9f7,stroke:#8c857c,color:#2d2a26
+    style Q3 fill:#faf9f7,stroke:#8c857c,color:#2d2a26
+    style Q4 fill:#faf9f7,stroke:#8c857c,color:#2d2a26
+    style Q5 fill:#faf9f7,stroke:#8c857c,color:#2d2a26
+    style Q6 fill:#faf9f7,stroke:#8c857c,color:#2d2a26
+    style Opus46 fill:#fdf2ee,stroke:#c4613e,color:#2d2a26
+    style Opus46_2 fill:#fdf2ee,stroke:#c4613e,color:#2d2a26
+    style Opus46_3 fill:#fdf2ee,stroke:#c4613e,color:#2d2a26
+    style Opus45 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Sonnet fill:#f0ece5,stroke:#8c857c,color:#2d2a26
+    style Sonnet2 fill:#f0ece5,stroke:#8c857c,color:#2d2a26
+    style Haiku fill:#faf9f7,stroke:#d4cdc4,color:#2d2a26`}
+  title="모델 선택 의사결정 트리"
+  caption="작업의 특성에 따라 최적의 모델을 선택하는 플로우차트"
+/>
+
+### 구체적 시나리오별 가이드
+
+#### 시나리오 1: 새 기능 개발
+
+<CodeBlock
+  code={`# 1단계: 아키텍처 설계 — Opus 4.6 (Max effort)
+claude --model opus
+> "결제 시스템에 구독 관리 기능을 추가하려고 합니다.
+   현재 코드베이스를 분석하고 아키텍처 설계를 제안해줘."
+
+# 2단계: 핵심 로직 구현 — Sonnet 4.5
+/model sonnet
+> "설계에 따라 SubscriptionService를 구현해줘.
+   기존 PaymentService 패턴을 따르고, 에러 처리를 포함해줘."
+
+# 3단계: 테스트 작성 — Sonnet 4.5 (유지)
+> "SubscriptionService의 단위 테스트를 작성해줘.
+   경계값과 에러 케이스를 포함해줘."
+
+# 4단계: 나머지 CRUD 작업 — Haiku 4.5
+/model haiku
+> "구독 관리의 나머지 CRUD API 엔드포인트를 만들어줘.
+   기존 컨트롤러 패턴을 따라줘."`}
+  language="text"
+  filename="새 기능 개발 시 모델 전환 전략"
+/>
+
+#### 시나리오 2: 레거시 코드 리팩토링
+
+<CodeBlock
+  code={`# 1단계: 코드 분석 — Opus 4.6 (대규모 코드베이스)
+claude --model opus
+> "src/legacy/ 디렉토리의 코드를 분석하고,
+   의존성 그래프와 리팩토링 우선순위를 정해줘."
+
+# 2단계: 핵심 모듈 리팩토링 — Opus 4.5 (깊은 추론)
+/model opus
+> "LegacyOrderProcessor를 클린 아키텍처로 리팩토링해줘.
+   기존 API 인터페이스는 유지하면서 내부 구조만 변경해줘."
+
+# 3단계: 마이그레이션 코드 — Sonnet 4.5
+/model sonnet
+> "리팩토링된 OrderProcessor에 맞게 호출하는 코드를 업데이트해줘."
+
+# 4단계: 테스트 및 문서화 — Haiku 4.5
+/model haiku
+> "변경된 모듈의 JSDoc을 업데이트하고 마이그레이션 가이드를 작성해줘."`}
+  language="text"
+  filename="레거시 코드 리팩토링 시 모델 전환 전략"
+/>
+
+#### 시나리오 3: 긴급 버그 수정
+
+<CodeBlock
+  code={`# 긴급 프로덕션 버그 — Opus 4.6 (Max effort)
+claude --model opus
+> "프로덕션에서 간헐적으로 결제가 중복 처리되는 버그가 발생했습니다.
+   관련 코드를 모두 분석하고 근본 원인을 찾아줘.
+   race condition, 동시성 이슈, 재시도 로직을 중점적으로 봐줘."
+
+# Opus의 Adaptive Thinking이 자동으로 Max effort를 적용
+# Interleaved Thinking으로 여러 파일을 탐색하면서도 사고 흐름 유지`}
+  language="text"
+  filename="긴급 버그 수정 시 모델 선택"
+/>
+
+---
+
+## Claude Code에서 모델 변경하기
+
+### 모델 지정 방법
+
+<CodeBlock
+  code={`# 1. 실행 시 모델 지정 (--model 플래그)
+claude --model opus     # Opus 4.6 (최신 Opus)
+claude --model sonnet   # Sonnet 4.5 (최신 Sonnet)
+claude --model haiku    # Haiku 4.5 (최신 Haiku)
+
+# 2. 특정 버전 지정
+claude --model claude-opus-4-6
+claude --model claude-opus-4-5-20251101
+claude --model claude-sonnet-4-5-20250929
+
+# 3. 세션 중 모델 변경 (/model 슬래시 명령어)
+/model opus     # 현재 세션에서 Opus로 전환
+/model sonnet   # 현재 세션에서 Sonnet으로 전환
+/model haiku    # 현재 세션에서 Haiku로 전환
+
+# 4. 환경 변수로 기본 모델 설정
+export ANTHROPIC_MODEL=claude-opus-4-6
+
+# 5. 설정 파일로 기본 모델 설정 (~/.claude/settings.json)
+# { "model": "claude-opus-4-6" }`}
+  language="bash"
+  filename="모델 선택 방법 종합"
+/>
+
+<Callout type="info" title="모델 설정 문서">
+  모델 설정에 대한 자세한 내용은 [Claude Code 공식 문서](https://code.claude.com/docs/en/model-config)를 참조하세요.
+</Callout>
+
+### 세션 내 모델 전환 패턴
+
+세션 중에 `/model` 명령어로 모델을 전환하면, **이전 대화 컨텍스트는 유지**된 채 모델만 변경됩니다. 이를 활용하면 하나의 세션에서 최적의 비용 효율을 달성할 수 있습니다.
+
+<CodeBlock
+  code={`# 하이브리드 모델 전략 실전 예시
+# ============================================
+
+# Phase 1: 탐색 (Haiku로 빠른 스캔)
+/model haiku
+"프로젝트의 디렉토리 구조와 주요 파일을 파악해줘"
+"package.json의 의존성을 분석해줘"
+
+# Phase 2: 계획 (Opus로 심층 분석)
+/model opus
+"분석 결과를 바탕으로 인증 시스템 리팩토링 계획을 수립해줘.
+ 현재 구조의 문제점과 개선 방향을 제시해줘."
+
+# Phase 3: 구현 (Sonnet으로 효율적 코딩)
+/model sonnet
+"계획에 따라 AuthService를 구현해줘"
+"관련 미들웨어와 라우터도 업데이트해줘"
+
+# Phase 4: 검증 (Opus로 최종 리뷰)
+/model opus
+"구현된 코드의 보안 취약점과 에지 케이스를 점검해줘"
+
+# Phase 5: 마무리 (Haiku로 정리)
+/model haiku
+"변경사항을 커밋 메시지와 함께 정리해줘"`}
+  language="text"
+  filename="하이브리드 모델 전략"
+/>
+
+<Callout type="tip" title="세션 컨텍스트 유지">
+  `/model` 명령어로 모델을 전환해도 이전 대화 내용은 유지됩니다.
+  Opus로 설계한 아키텍처를 Sonnet이 기억하고 구현할 수 있습니다.
+  단, 모델 전환 시 이전 모델의 Extended Thinking 결과는 새 모델로 전달되지 않습니다.
+</Callout>
+
+---
+
+## 비용 최적화 전략
+
+### 토큰 비용 이해하기
+
+AI 모델의 비용은 **토큰** 단위로 계산됩니다. 토큰은 대략 영문 기준 4글자, 한글 기준 1-2글자에 해당합니다.
+
+<ComparisonTable
+  title="모델별 토큰 비용 상세"
+  headers={['비용 항목', 'Opus 4.6', 'Sonnet 4.5', 'Haiku 4.5', '비고']}
+  rows={[
+    { feature: '입력 (/1M 토큰)', values: ['$5.00', '$3.00', '$1.00', '프롬프트, 컨텍스트'] },
+    { feature: '출력 (/1M 토큰)', values: ['$25.00', '$15.00', '$5.00', '응답, 코드 생성'] },
+    { feature: '캐시 쓰기 (/1M 토큰)', values: ['$6.25', '$3.75', '$1.25', '입력 비용의 125%'] },
+    { feature: '캐시 읽기 (/1M 토큰)', values: ['$0.50', '$0.30', '$0.10', '입력 비용의 10%'] },
+    { feature: 'Batch API (/1M 출력)', values: ['$12.50', '$7.50', '$2.50', '출력 비용의 50%'] },
+  ]}
+/>
+
+### 실제 작업별 예상 비용
+
+<ComparisonTable
+  title="일반적인 작업별 예상 비용 (API 사용 기준)"
+  headers={['작업', '입력 토큰', '출력 토큰', 'Opus 4.6', 'Sonnet 4.5', 'Haiku 4.5']}
+  rows={[
+    { feature: '보일러플레이트 생성', values: ['2K', '1K', '$0.035', '$0.021', '$0.007'] },
+    { feature: '코드 리뷰 (파일 1개)', values: ['5K', '2K', '$0.075', '$0.045', '$0.015'] },
+    { feature: '새 기능 구현', values: ['10K', '5K', '$0.175', '$0.105', '$0.035'] },
+    { feature: '복잡한 디버깅 세션', values: ['50K', '20K', '$0.750', '$0.450', '$0.150'] },
+    { feature: '아키텍처 설계', values: ['100K', '30K', '$1.250', '$0.750', '$0.250'] },
+    { feature: '대규모 리팩토링', values: ['200K', '50K', '$2.250', '$1.350', '$0.450'] },
+  ]}
+/>
+
+<Callout type="warning" title="Extended Thinking 비용">
+  Extended Thinking(사고 토큰)은 **출력 토큰으로 과금**됩니다.
+  Opus 4.6 + Max effort로 복잡한 아키텍처 분석을 할 경우,
+  사고 토큰만으로 10K-50K 출력 토큰이 추가 소비될 수 있습니다.
+  비용이 예상보다 높다면 사고 토큰을 확인해보세요.
+</Callout>
+
+### 월간 예산 관리
+
+<CodeBlock
+  code={`# 개발자 유형별 월간 API 비용 추정
+# ============================================
+
+# 가벼운 사용자 (하루 10-20회 요청)
+# Sonnet 4.5 기본, 가끔 Opus 사용
+# 예상: $30-80/월 → Pro($20)/Max 5x($100) 추천
+
+# 일반 개발자 (하루 30-50회 요청)
+# Sonnet 4.5 + 주 2-3회 Opus 사용
+# 예상: $100-250/월 → Max 5x($100)/Max 20x($200) 추천
+
+# 헤비 사용자 (하루 50-100회 요청)
+# 모든 모델 활발히 사용
+# 예상: $250-500/월 → Max 20x($200) + API 보조
+
+# 팀 리드/아키텍트 (Opus 위주)
+# 주로 Opus 4.6으로 설계/리뷰
+# 예상: $300-800/월 → API 종량제 + 모니터링 필수`}
+  language="text"
+  filename="개발자 유형별 월간 비용 추정"
+/>
+
+### Prompt Caching으로 비용 절감
+
+동일한 시스템 프롬프트나 코드 컨텍스트를 반복 사용할 때, Prompt Caching으로 최대 90%의 비용을 절감할 수 있습니다.
+
+<CodeBlock
+  code={`# Prompt Caching 예시 — 최대 90% 비용 절감
+import anthropic
+
+client = anthropic.Anthropic()
+
+# 대규모 프로젝트 컨텍스트를 캐싱
+system_prompt = [{
+    "type": "text",
+    "text": "프로젝트 전체 코드 컨텍스트...(50K 토큰)",
+    "cache_control": {"type": "ephemeral"}  # 이 부분을 캐싱
+}]
+
+# 첫 번째 요청: 정상 비용 + 25% (캐시 쓰기)
+# Opus 4.6: 50K 입력 = $0.25 + 캐시 쓰기 $0.0625 = $0.3125
+
+# 후속 요청: 캐시 읽기로 90% 절감
+# Opus 4.6: 50K 캐시 읽기 = $0.025 (기존 $0.25의 10%)
+
+# 10번 요청 시 총 비용 비교:
+# 캐싱 없이: $0.25 x 10 = $2.50
+# 캐싱 사용: $0.3125 + $0.025 x 9 = $0.5375 (78% 절감)`}
+  language="python"
+  filename="Prompt Caching 비용 계산 예시"
+/>
+
+### Batch API로 대량 처리
+
+<CodeBlock
+  code={`# Batch API — 50% 비용 절감 (비동기 처리)
+import anthropic
+
+client = anthropic.Anthropic()
+
+# 여러 파일에 대한 코드 리뷰를 한번에 처리
+requests = []
+for file_path in review_files:
+    requests.append({
+        "custom_id": f"review-{file_path}",
+        "params": {
+            "model": "claude-sonnet-4-5-20250929",
+            "max_tokens": 4096,
+            "messages": [
+                {"role": "user", "content": f"이 코드를 리뷰해줘: {read_file(file_path)}"}
+            ]
+        }
+    })
+
+# 배치 생성 (50% 비용 절감, 결과는 24시간 내 반환)
+batch = client.batches.create(requests=requests)
+
+# 결과 조회
+results = client.batches.results(batch.id)`}
+  language="python"
+  filename="Batch API 활용 예시"
+/>
+
+### 구독 플랜 비교
+
+<ComparisonTable
+  title="구독 플랜 vs API 비용 비교"
+  headers={['사용 방식', '월 비용', '사용량', '적합한 사용자']}
+  rows={[
+    { feature: 'Pro ($20/월)', values: ['$20 고정', 'Sonnet 4.5 기본, 제한적', '가벼운 사용, 개인 프로젝트'] },
+    { feature: 'Max 5x ($100/월)', values: ['$100 고정', 'Opus 포함, 5배 사용량', '일반 개발자, 활발한 사용'] },
+    { feature: 'Max 20x ($200/월)', values: ['$200 고정', '최대 사용량, 20배', '헤비 유저, 팀 리드'] },
+    { feature: 'API 종량제', values: ['사용량 비례', '무제한', '자동화, CI/CD, 팀 인프라'] },
+    { feature: 'Enterprise', values: ['협상', 'SLA 보장', '대기업, 컴플라이언스 필수'] },
+  ]}
+/>
+
+<Callout type="tip" title="구독 vs API, 어떤 것이 유리한가?">
+  월 API 사용량이 $100 이하라면 **Max 5x 구독**이 유리합니다.
+  $200 이상이라면 **Max 20x 구독**이 유리합니다.
+  자동화나 CI/CD에서 사용한다면 **API 종량제**가 유일한 선택입니다.
+  두 가지를 병행하는 것도 좋은 전략입니다.
+</Callout>
+
+---
+
+## 하이브리드 모델 전략
+
+### Haiku로 탐색, Sonnet으로 구현, Opus로 검증
+
+가장 비용 효율적인 개발 패턴은 **모델을 작업 단계에 따라 전환**하는 것입니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    H["Haiku 4.5\n탐색/스캔"] --> S["Sonnet 4.5\n구현/코딩"]
+    S --> O["Opus 4.6\n검증/리뷰"]
+    O --> H2["Haiku 4.5\n정리/문서화"]
+
+    style H fill:#faf9f7,stroke:#d4cdc4,color:#2d2a26
+    style S fill:#f0ece5,stroke:#8c857c,color:#2d2a26
+    style O fill:#fdf2ee,stroke:#c4613e,color:#2d2a26
+    style H2 fill:#faf9f7,stroke:#d4cdc4,color:#2d2a26`}
+  title="하이브리드 모델 전략 흐름"
+  caption="Haiku(탐색) → Sonnet(구현) → Opus(검증) → Haiku(정리)의 4단계 전환"
+/>
+
+### 비용 절감 효과
+
+<ComparisonTable
+  title="올 Opus vs 하이브리드 전략 비용 비교 (일반적 기능 구현)"
+  headers={['단계', 'All Opus 4.6', '하이브리드 전략', '절감률']}
+  rows={[
+    { feature: '탐색 (5K in + 2K out)', values: ['$0.075', '$0.007 (Haiku)', '90%'] },
+    { feature: '설계 (10K in + 5K out)', values: ['$0.175', '$0.175 (Opus)', '0%'] },
+    { feature: '구현 (20K in + 10K out)', values: ['$0.350', '$0.210 (Sonnet)', '40%'] },
+    { feature: '테스트 (10K in + 5K out)', values: ['$0.175', '$0.105 (Sonnet)', '40%'] },
+    { feature: '리뷰 (30K in + 5K out)', values: ['$0.275', '$0.275 (Opus)', '0%'] },
+    { feature: '문서화 (5K in + 3K out)', values: ['$0.100', '$0.020 (Haiku)', '80%'] },
+    { feature: '총 비용', values: ['$1.150', '$0.792', '31%'] },
+  ]}
+/>
+
+### CLAUDE.md에 모델 전략 기록하기
+
+팀에서 일관된 모델 전략을 사용하려면 CLAUDE.md에 가이드라인을 추가하는 것이 효과적입니다.
+
+<CodeBlock
+  code={`# CLAUDE.md에 추가할 모델 가이드라인 예시
+## 모델 사용 가이드
+
+### 기본 모델: Sonnet 4.5
+- 대부분의 코딩, 리뷰, 테스트 작업에 사용
+
+### Opus 4.6 사용 시점
+- 아키텍처 설계 및 대규모 리팩토링
+- 보안 취약점 분석
+- 복잡한 동시성/성능 버그 디버깅
+- Agent Teams가 필요한 대규모 작업
+
+### Haiku 4.5 사용 시점
+- 보일러플레이트 및 CRUD 코드 생성
+- 문서 작성 및 번역
+- import 정리, lint 수정 등 단순 작업
+
+### 주의사항
+- 과도한 엔지니어링을 피하세요
+- 직접 요청되었거나 명확히 필요한 변경만 하세요
+- Opus 사용 시 불필요한 추상화 생성에 주의하세요`}
+  language="markdown"
+  filename="CLAUDE.md 모델 가이드라인 예시"
+/>
+
+---
+
+## 엔터프라이즈 환경에서의 모델 선택
+
+### API 키 관리
+
+엔터프라이즈 환경에서는 API 키를 안전하게 관리하고, 팀별 사용량을 추적하는 것이 중요합니다.
+
+<CodeBlock
+  code={`# 1. 환경 변수로 API 키 설정 (권장)
+export ANTHROPIC_API_KEY=sk-ant-xxxxx
+
+# 2. 팀별 API 키 분리
+# 개발팀: sk-ant-dev-xxxxx
+# QA팀: sk-ant-qa-xxxxx
+# 인프라팀: sk-ant-infra-xxxxx
+
+# 3. AWS Bedrock 사용 시 (API 키 불필요)
+export CLAUDE_CODE_USE_BEDROCK=1
+# AWS IAM 역할 기반 인증 사용
+
+# 4. Google Vertex AI 사용 시
+export CLAUDE_CODE_USE_VERTEX=1
+export CLOUD_ML_REGION=us-east5
+# GCP 서비스 계정 인증 사용
+
+# 5. API 키 로테이션 자동화 (보안 팀 권장)
+# Secrets Manager에서 주기적 로테이션 설정
+# Claude Code는 환경 변수를 통해 자동 반영`}
+  language="bash"
+  filename="엔터프라이즈 API 키 관리"
+/>
+
+### 팀별 모델 정책 설정
+
+Managed Settings를 활용하면 팀별로 사용 가능한 모델을 제한할 수 있습니다.
+
+<CodeBlock
+  code={`// managed-settings.json (관리자 배포)
+{
+  "permissions": {
+    "allowed_tools": ["Read", "Write", "Bash", "Glob", "Grep"],
+    "deny_tools": []
+  },
+  "model_constraints": {
+    // 기본 모델 강제 설정
+    "default_model": "claude-sonnet-4-5-20250929",
+
+    // 허용 모델 목록 (이외 모델 사용 불가)
+    "allowed_models": [
+      "claude-opus-4-6",
+      "claude-sonnet-4-5-20250929",
+      "claude-haiku-4-5"
+    ]
+  },
+  "cost_controls": {
+    // 일일 사용량 상한
+    "daily_token_limit": 1000000,
+    // 단일 요청 최대 출력 토큰
+    "max_output_tokens": 32000
+  }
+}`}
+  language="json"
+  filename="팀 모델 정책 설정 예시"
+/>
+
+### 클라우드 프로바이더 비교
+
+<ComparisonTable
+  title="Claude 접근 경로별 비교"
+  headers={['항목', 'Anthropic API 직접', 'AWS Bedrock', 'Google Vertex AI']}
+  rows={[
+    { feature: '인증 방식', values: ['API 키', 'IAM 역할', '서비스 계정'] },
+    { feature: '데이터 경유', values: ['Anthropic 서버', 'AWS 인프라', 'GCP 인프라'] },
+    { feature: '최신 모델 지원', values: ['출시 즉시', '1-2주 지연', '1-2주 지연'] },
+    { feature: 'ZDR 지원', values: ['가능 (별도 계약)', '기본 적용', '기본 적용'] },
+    { feature: '컴플라이언스', values: ['SOC 2', 'SOC 2, HIPAA, FedRAMP', 'SOC 2, HIPAA'] },
+    { feature: '가격', values: ['표준 가격', '20-30% 추가', '20-30% 추가'] },
+    { feature: '사용량 대시보드', values: ['Anthropic Console', 'AWS CloudWatch', 'GCP Monitoring'] },
+  ]}
+/>
+
+<Callout type="warning" title="엔터프라이즈 모델 선택 시 주의">
+  AWS Bedrock이나 Google Vertex AI를 사용하면 데이터가 Anthropic 서버를 경유하지 않아
+  보안/컴플라이언스 요구사항을 충족하기 쉽습니다. 다만 최신 모델(Opus 4.6 등)의
+  지원이 1-2주 지연될 수 있으므로, 팀에서 최신 기능이 필요한 경우 이를 고려하세요.
+</Callout>
+
+---
+
+## 경쟁 모델과의 비교
+
+### AI 코딩 에이전트 생태계 포지셔닝
+
+<ComparisonTable
+  title="주요 AI 코딩 모델 비교 (2026년 2월 기준)"
+  headers={['모델', 'SWE-bench', '컨텍스트', '강점', '약점']}
+  rows={[
+    { feature: 'Claude Opus 4.6', values: ['80.8%', '1M (베타)', 'Agent Teams, Adaptive Thinking, 보안 분석', '비용이 높음'] },
+    { feature: 'Claude Opus 4.5', values: ['80.9%', '200K', '단일 세션 최고 추론, 아키텍처', '멀티 에이전트 미지원'] },
+    { feature: 'Claude Sonnet 4.5', values: ['77.2%', '200K', '비용 대비 최고 효율', '최상위 추론에는 한계'] },
+    { feature: 'GPT-4o', values: ['33.2%', '128K', '범용 대화, 멀티모달', '코딩 벤치마크 상대적 저조'] },
+    { feature: 'GPT-o3', values: ['71.7%', '200K', '체인 오브 소트, 수학', '고비용, 느린 속도'] },
+    { feature: 'Gemini 2.5 Pro', values: ['63.8%', '1M', '긴 컨텍스트, Google 생태계', '코딩 성능 Claude 대비 낮음'] },
+    { feature: 'DeepSeek V3', values: ['42.0%', '128K', '오픈소스, 셀프 호스팅 가능', '상용 모델 대비 성능 격차'] },
+  ]}
+/>
+
+### Claude가 강한 영역
+
+<CodeBlock
+  code={`# Claude 모델이 특히 강한 영역:
+
+# 1. 코드 이해 및 수정 (SWE-bench 최고 수준)
+# → 실제 GitHub 이슈를 해결하는 능력에서 압도적
+
+# 2. 에이전트 도구 사용 (TAU-bench)
+# → 파일 시스템, CLI, API를 자율적으로 활용하는 능력
+
+# 3. 안전성 및 정렬 (Safety)
+# → 위험한 코드 생성 거부, 보안 취약점 경고
+
+# 4. 긴 컨텍스트 처리 (Opus 4.6: 1M)
+# → 대규모 코드베이스 전체를 한번에 분석
+
+# 5. 멀티 에이전트 협업 (Opus 4.6 Agent Teams)
+# → 복잡한 작업을 여러 에이전트로 분할 처리`}
+  language="text"
+  filename="Claude 모델의 강점 영역"
+/>
+
+### 경쟁 모델이 강한 영역
+
+| 모델 | 강점 영역 | Claude 대비 |
+|------|-----------|-------------|
+| GPT-4o | 멀티모달 (이미지/비디오 이해) | Claude도 Vision 지원하나 GPT가 더 다양 |
+| GPT-o3 | 수학/과학 추론 | MATH에서는 근접하나 AIME에서 o3가 우위 |
+| Gemini 2.5 Pro | Google 서비스 통합 | Google Workspace 연동은 Gemini가 우위 |
+| DeepSeek V3 | 오픈소스/셀프 호스팅 | Claude는 상용 서비스만 가능 |
+
+<Callout type="info" title="모델 비교의 한계">
+  벤치마크 점수만으로 모델을 비교하는 것은 한계가 있습니다.
+  **실제 프로젝트에서의 사용성, 도구 생태계, 안전성 정책** 등을 종합적으로 고려해야 합니다.
+  Claude Code의 강점은 모델 자체의 성능뿐 아니라 **에이전트 아키텍처, CLAUDE.md 시스템,
+  Tool Loop 패턴** 등 통합된 개발 환경에 있습니다.
+</Callout>
+
+---
+
+## 모델 성능 튜닝 팁
+
+### 프롬프트 최적화로 모델 성능 극대화
+
+같은 모델이라도 프롬프트에 따라 성능 차이가 발생합니다. 아래 팁으로 모델의 잠재력을 최대한 끌어낼 수 있습니다.
+
+<CodeBlock
+  code={`# Opus 4.6 성능 최적화 프롬프트 패턴
+# ============================================
+
+# 1. 복잡한 분석 시: 단계적 접근 유도
+"이 시스템의 성능 병목을 분석해줘.
+ 1단계: 현재 아키텍처의 데이터 흐름 파악
+ 2단계: 각 구간의 지연 시간 추정
+ 3단계: 병목 지점 식별 및 근본 원인 분석
+ 4단계: 개선안 제시 (비용-효과 순서로)"
+
+# 2. Sonnet 4.5 최적 프롬프트: 구체적 요구사항 명시
+"UserService에 비밀번호 재설정 기능을 추가해줘.
+ - bcrypt로 해싱 (cost factor 12)
+ - 토큰 유효시간 24시간
+ - 기존 sendEmail 유틸리티 활용
+ - 실패 시 NotFoundError 반환
+ - 단위 테스트 포함"
+
+# 3. Haiku 4.5 최적 프롬프트: 패턴 기반 지시
+"src/controllers/user.controller.ts 패턴을 따라서
+ product, order, payment 컨트롤러를 생성해줘.
+ 같은 구조와 에러 처리 패턴을 사용해줘."`}
+  language="text"
+  filename="모델별 프롬프트 최적화 패턴"
+/>
+
+### 모델별 주의사항
+
+<ComparisonTable
+  title="모델별 흔한 문제와 해결책"
+  headers={['모델', '흔한 문제', '해결책']}
+  rows={[
+    { feature: 'Opus 4.6', values: ['과잉 엔지니어링 (불필요한 추상화, 패턴 추가)', 'CLAUDE.md에 "과도한 엔지니어링 금지" 명시'] },
+    { feature: 'Opus 4.5', values: ['응답이 너무 길어짐 (설명 과다)', '"핵심만 간결하게" 지시 추가'] },
+    { feature: 'Sonnet 4.5', values: ['복잡한 의존성 분석에서 실수', '의존성이 많으면 Opus로 전환'] },
+    { feature: 'Haiku 4.5', values: ['복잡한 비즈니스 로직 누락', '복잡한 로직은 Sonnet 이상 사용'] },
+  ]}
+/>
+
+<Callout type="warning" title="Opus 모델 과잉 설계 주의">
+  Opus 4.5/4.6은 불필요한 추상화나 추가 파일을 생성하는 경향이 있습니다.
+  CLAUDE.md에 "과도한 엔지니어링을 피하세요. 직접 요청되었거나 명확히 필요한 변경만 하세요."를
+  추가하면 이 문제를 완화할 수 있습니다.
+</Callout>
+
+---
+
+## 미래 모델 로드맵과 준비
+
+### 모델 발전 방향
+
+AI 모델은 빠르게 발전하고 있습니다. 다음 트렌드에 대비하여 유연한 모델 전략을 수립하세요.
+
+<Timeline
+  title="AI 모델 발전 방향 (예상)"
+  events={[
+    {
+      date: '현재',
+      title: '모델 선택의 시대',
+      description: '작업에 맞는 모델을 개발자가 수동으로 선택. Opus/Sonnet/Haiku 계층 구조.',
+    },
+    {
+      date: '2026 후반',
+      title: '자동 모델 라우팅',
+      description: '작업 복잡도를 분석하여 최적의 모델을 자동으로 선택하는 라우터 보편화.',
+      highlight: true,
+    },
+    {
+      date: '2027',
+      title: '에이전트 간 협업 고도화',
+      description: '서로 다른 모델의 에이전트가 협업하여 최적의 결과 도출. 모델 선택이 투명해짐.',
+    },
+    {
+      date: '미래',
+      title: '모델 선택의 자동화',
+      description: '개발자는 작업만 정의하면 시스템이 모든 모델 결정을 자동 처리.',
+    },
+  ]}
+/>
+
+### 모델 변경에 대비하는 코드 전략
+
+<CodeBlock
+  code={`# 모델 변경에 유연한 설정 패턴
+
+# 1. 환경 변수로 모델 설정 분리
+# .env.development
+CLAUDE_DEFAULT_MODEL=claude-sonnet-4-5-20250929
+CLAUDE_COMPLEX_MODEL=claude-opus-4-6
+CLAUDE_SIMPLE_MODEL=claude-haiku-4-5
+
+# 2. CI/CD에서 모델 지정
+# .github/workflows/claude-review.yml
+# model: $\{secrets.CLAUDE_REVIEW_MODEL\}
+
+# 3. 모델 별칭 사용 (버전 고정 대신)
+claude --model opus    # 항상 최신 Opus
+claude --model sonnet  # 항상 최신 Sonnet
+
+# 4. 모델 별칭 사용 vs 버전 고정
+# 개발 환경: 별칭 사용 (최신 기능 활용)
+# CI/CD: 버전 고정 (안정성 보장)
+# 프로덕션: 버전 고정 + 테스트 후 업그레이드`}
+  language="bash"
+  filename="모델 변경에 유연한 설정 전략"
+/>
+
+### 모델 마이그레이션 체크리스트
+
+새 모델이 출시될 때 팀에서 점검해야 할 항목입니다.
+
+<CodeBlock
+  code={`# 새 모델 출시 시 마이그레이션 체크리스트
+
+# [ ] 1. 릴리스 노트 확인
+#     - 새로운 기능/변경 사항 파악
+#     - 비용 변경 확인
+
+# [ ] 2. 벤치마크 비교
+#     - 기존 모델과 성능 차이 확인
+#     - 팀의 주요 작업 유형에서 개선 여부
+
+# [ ] 3. 호환성 테스트
+#     - 기존 프롬프트가 새 모델에서 동작하는지
+#     - CLAUDE.md 지시사항 준수 여부
+
+# [ ] 4. 비용 영향 분석
+#     - 토큰 단가 변경 여부
+#     - 예상 월간 비용 변동
+
+# [ ] 5. 점진적 롤아웃
+#     - 개발 환경에서 먼저 테스트
+#     - 팀원 피드백 수집
+#     - CI/CD 모델 업데이트
+
+# [ ] 6. 문서 업데이트
+#     - CLAUDE.md 모델 가이드 갱신
+#     - 팀 위키 업데이트`}
+  language="text"
+  filename="모델 마이그레이션 체크리스트"
+/>
+
+---
+
+## 요약: 모델 선택 실전 가이드
+
+### 빠른 의사결정 요약
+
+| 상황 | 모델 | 근거 |
+|------|------|------|
+| "잘 모르겠다" | Sonnet 4.5 | 기본값, 80%의 작업에서 최적 |
+| "이건 정말 복잡하다" | Opus 4.6 / 4.5 | 깊은 추론, 복잡한 의존성 분석 |
+| "여러 에이전트가 필요하다" | Opus 4.6 | Agent Teams 네이티브 지원 |
+| "빠르게 많이 처리해야 한다" | Haiku 4.5 | 최저 비용, 최고 속도 |
+| "보안 분석이 필요하다" | Opus 4.6 | 500+ 제로데이 발견 실적 |
+| "비용을 최소화하고 싶다" | 하이브리드 전략 | 단계별 모델 전환 |
+
+### 모델 선택의 황금 규칙
+
+<Callout type="tip" title="세 가지 황금 규칙">
+  1. **의심스러우면 Sonnet 4.5**: 대부분의 작업에서 최적의 선택입니다.
+  2. **복잡한 추론은 Opus**: 아키텍처 설계, 보안 분석, 복잡한 디버깅에는 Opus를 사용하세요.
+  3. **반복 작업은 Haiku**: 보일러플레이트, 문서화, 간단한 수정에는 Haiku로 비용을 절감하세요.
+</Callout>
+
+<ChapterNav
+  prev={{ title: '개발 환경 설정', path: '/docs/part-1--시작하기-개발-환경-설정' }}
+  next={{ title: 'CLAUDE.md 딥다이브', path: '/docs/part-2--프로젝트-설정-claude-md-딥다이브' }}
+/>
