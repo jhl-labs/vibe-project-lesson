@@ -776,11 +776,10 @@ export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 
 # 방법 2: settings.json
 {
-  "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": true
-}
-
-# 방법 3: Claude Code 실행 시
-claude --experimental-agent-teams`}
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}`}
   language="bash"
   filename="Agent Teams 활성화"
 />

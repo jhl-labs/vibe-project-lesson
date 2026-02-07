@@ -358,9 +358,9 @@ Agent SDK는 Python과 TypeScript 패키지로 제공되며, Claude Code를 프�
 
 <CodeBlock
   code={`// TypeScript Agent SDK 설치
-// npm install @anthropic-ai/claude-code
+// npm install @anthropic-ai/claude-agent-sdk
 
-import { query, type ToolUseBlock } from "@anthropic-ai/claude-code";
+import { query, type ToolUseBlock } from "@anthropic-ai/claude-agent-sdk";
 
 // --- 기본 사용법 ---
 async function basicUsage() {
@@ -487,16 +487,16 @@ async function toolApprovalCallback() {
 
 <CodeBlock
   code={`# Python Agent SDK 설치
-# pip install claude-code-sdk
+# pip install claude-agent-sdk
 
 import asyncio
-from claude_code_sdk import query, ClaudeCodeOptions, Message
+from claude_agent_sdk import query, ClaudeAgentOptions, Message
 
 # --- 기본 사용법 ---
 async def basic_usage():
     response = await query(
         prompt="src/auth.py 파일을 분석해줘",
-        options=ClaudeCodeOptions(
+        options=ClaudeAgentOptions(
             max_turns=5,
             allowed_tools=["Read", "Glob", "Grep"],
         ),
@@ -517,7 +517,7 @@ async def streaming_usage():
     """실시간으로 응답을 받아 처리합니다"""
     async for event in query(
         prompt="전체 코드베이스를 분석해줘",
-        options=ClaudeCodeOptions(
+        options=ClaudeAgentOptions(
             max_turns=10,
             allowed_tools=["Read", "Glob", "Grep"],
             output_format="stream-json",
@@ -566,7 +566,7 @@ async def structured_analysis():
 
     response = await query(
         prompt="프로젝트에서 잠재적 버그를 찾아줘",
-        options=ClaudeCodeOptions(
+        options=ClaudeAgentOptions(
             max_turns=15,
             allowed_tools=["Read", "Glob", "Grep"],
             json_schema=schema,
@@ -631,7 +631,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+        run: npm install -g @anthropic-ai/claude-agent-sdk
 
       - name: Analyze PR Changes
         env:
@@ -694,7 +694,7 @@ claude-review:
   stage: review
   image: node:20
   before_script:
-    - npm install -g @anthropic-ai/claude-code
+    - npm install -g @anthropic-ai/claude-agent-sdk
   script:
     # 변경사항 분석
     - |
@@ -724,7 +724,7 @@ claude-test-fix:
   stage: test
   image: node:20
   before_script:
-    - npm install -g @anthropic-ai/claude-code
+    - npm install -g @anthropic-ai/claude-agent-sdk
     - npm ci
   script:
     # 테스트 실행 후 실패 시 자동 수정 시도
@@ -985,7 +985,7 @@ done`}
 
 <CodeBlock
   code={`// scripts/pr-reviewer.ts — Agent SDK 기반 PR 리뷰 자동화
-import { query } from "@anthropic-ai/claude-code";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import { Octokit } from "@octokit/rest";
 
 interface ReviewResult {
@@ -1395,7 +1395,7 @@ echo "=== 모든 마이그레이션 검증 통과 ==="
 
 <CodeBlock
   code={`// scripts/health-report.ts — Agent SDK 기반 코드 건강도 리포트
-import { query } from "@anthropic-ai/claude-code";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import * as fs from "fs";
 
 interface HealthReport {
@@ -1564,7 +1564,7 @@ generateHealthReport();`}
 
 <CodeBlock
   code={`// scripts/multi-agent-pipeline.ts — 멀티 에이전트 파이프라인
-import { query } from "@anthropic-ai/claude-code";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 
 async function multiAgentPipeline(task: string) {
   console.log("=== 멀티 에이전트 파이프라인 시작 ===");
@@ -1692,7 +1692,7 @@ Agent SDK의 도구 승인 콜백을 활용하여 상황에 따라 동적으로 
 
 <CodeBlock
   code={`// scripts/conditional-approval.ts
-import { query, type ToolUseBlock } from "@anthropic-ai/claude-code";
+import { query, type ToolUseBlock } from "@anthropic-ai/claude-agent-sdk";
 
 // 프로덕션 안전 모드 — 위험한 작업을 점진적으로 제어
 async function productionSafeMode() {
@@ -1825,7 +1825,7 @@ docker run --rm \\
   --read-only \\
   --tmpfs /tmp \\
   node:20 bash -c "
-    npm install -g @anthropic-ai/claude-code &&
+    npm install -g @anthropic-ai/claude-agent-sdk &&
     claude -p '코드를 분석해줘' \\
       --allowedTools 'Read,Glob,Grep' \\
       --max-turns 5
