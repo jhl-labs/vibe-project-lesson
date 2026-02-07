@@ -110,6 +110,77 @@ MCP 서버 설정은 프로젝트 루트의 `.mcp.json` 파일에서 관리합�
 | **puppeteer** | 브라우저 자동화 | 없음 |
 | **slack** | Slack 연동 | `SLACK_BOT_TOKEN` |
 
+---
+
+## Tool Search Tool — 토큰 85% 절감 (2025년 하반기~)
+
+MCP 서버가 50개 이상의 도구를 노출할 수 있고, 사용자가 7개 이상의 서버를 동시에 실행하면 67,000+ 토큰이 도구 정의에만 소비됩니다. **Tool Search Tool**은 이 문제를 해결합니다.
+
+### 작동 방식
+
+도구 설명이 사용 가능한 컨텍스트의 10%를 초과하면 자동으로 **검색 인덱스 모드**로 전환합니다:
+
+<CodeBlock
+  code={`[기존 방식] 모든 도구 정의 미리 로드
+→ 134,000 토큰 소비, 정확도 49% (Opus 4)
+
+[Tool Search] 필요한 도구만 동적 검색
+→ ~5,000 토큰 소비, 정확도 74% (Opus 4)
+→ 토큰 85% 감소 + 정확도 51% 향상`}
+  language="text"
+  filename="Tool Search 성능 비교"
+/>
+
+### 성능 개선 데이터
+
+<ComparisonTable
+  title="Tool Search 사용 전후 비교"
+  headers={['모델', 'Tool Search 미사용', 'Tool Search 사용', '정확도 향상']}
+  rows={[
+    { model: 'Opus 4', values: ['49%', '74%', '+25%p'] },
+    { model: 'Opus 4.5', values: ['79.5%', '88.1%', '+8.6%p'] },
+  ]}
+/>
+
+<Callout type="info" title="자동 활성화">
+  Tool Search는 Claude Code에서 자동으로 활성화됩니다. MCP 서버가 많아질수록 효과가 커지며, API에서는 defer_loading 옵션으로 도구별 지연 로딩을 설정할 수 있습니다.
+</Callout>
+
+### 코드 실행 샌드박스
+
+Anthropic은 MCP 서버의 코드 실행을 안전하게 격리하기 위한 **sandbox-runtime**을 오픈소스로 공개했습니다.
+
+<CodeBlock
+  code={`# 네이티브 OS 샌드박싱 사용
+# macOS: sandbox-exec, Linux: bubblewrap
+# 컨테이너 없이 파일 시스템 및 네트워크 접근 제어
+
+# 오픈소스: github.com/anthropic-experimental/sandbox-runtime`}
+  language="bash"
+  filename="Sandbox Runtime"
+/>
+
+## Agentic AI Foundation (AAIF)
+
+2025년 12월 9일, Anthropic은 MCP를 Linux Foundation 산하 **Agentic AI Foundation**에 기부했습니다.
+
+<ComparisonTable
+  title="MCP 거버넌스 변화"
+  headers={['항목', '이전 (2024.11~2025.12)', '이후 (2025.12~)']}
+  rows={[
+    { item: '관리 주체', values: ['Anthropic 단독', 'Agentic AI Foundation (Linux Foundation)'] },
+    { item: '거버넌스', values: ['Anthropic 결정', '오픈 거버넌스 (다수 기업 참여)'] },
+    { item: '참여 기업', values: ['Anthropic', 'Anthropic + OpenAI + Google + Microsoft + Block 등'] },
+    { item: '라이선스', values: ['MIT', 'MIT (변경 없음)'] },
+  ]}
+/>
+
+<Callout type="tip" title="업계 표준으로 자리잡는 MCP">
+  MCP가 Linux Foundation으로 이관됨에 따라, AI 에이전트의 도구 통합이 업계 표준으로 자리잡고 있습니다. OpenAI와 Google도 MCP 지원을 발표했습니다.
+</Callout>
+
+---
+
 ## 보안 고려사항
 
 <Callout type="warning" title="MCP 보안 주의사항">
