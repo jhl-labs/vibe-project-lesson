@@ -2,201 +2,1055 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import { Callout } from '../../components/Callout';
 import { ComparisonTable } from '../../components/ComparisonTable';
 import { CodeBlock } from '../../components/CodeBlock';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { ChapterNav } from '../../components/ChapterNav';
 
 <Meta title="Part 2: 프로젝트 템플릿 구조/문서 템플릿" />
 
-# 문서 템플릿 (FRD, TRD, ADR 등)
+# 문서 템플릿 (FRD, TRD, ADR, ICD, Test Plan)
 
 > Claude Code와 함께 자주 작성하는 핵심 산출물을 표준화합니다.
 
-아래 템플릿을 사용하면 AI에게도 일관된 요구사항을 전달할 수 있고, 팀 간 문서 품질을 맞출 수 있습니다.
+소프트웨어 프로젝트에서 문서는 "작성하고 잊어버리는 것"이 아니라, **의사결정의 근거**이자 **팀 간 합의의 매개체**입니다.
+AI 에이전트를 활용하면 문서 초안 작성 속도를 극적으로 높일 수 있지만, 무작정 생성하면 품질이 들쭉날쭉해집니다.
 
-## 문서 유형별 가이드
+이 챕터에서는 5가지 핵심 산출물(FRD, TRD, ADR, ICD, Test Plan/RTM)의 **작성법을 심화**하고,
+Claude Code로 문서를 자동 생성하는 **프롬프트 패턴**, **커스텀 슬래시 커맨드**, **품질 체크리스트**까지 다룹니다.
+
+---
+
+## 문서 유형 총 비교
 
 <ComparisonTable
   title="주요 산출물 요약"
   headers={['문서', '목적', '작성 시점', '필수 섹션', 'Claude 프롬프트 팁']}
   rows={[
-    { feature: 'FRD (Functional Requirements Doc)', values: ['사용자·비즈니스 요구 정의', '기획 확정 직후', '배경, 목표, 사용자 스토리, 비기능 제약, 수용 기준', '“각 요구사항에 ID(FR-001)와 수용 기준(Given-When-Then) 넣어줘”'] },
-    { feature: 'TRD (Technical Requirements Doc)', values: ['시스템·품질 요구 정의', 'FRD 승인 후 설계 전', '아키텍처 개요, 품질 속성(성능·보안·확장성), 제약, 인터페이스, 데이터 모델', '“성능/보안 목표를 정량 수치로 채워줘 (예: p95 300ms)”'] },
-    { feature: 'ADR (Architecture Decision Record)', values: ['중요 설계 의사결정 기록', '의사결정 시점마다', '상황, 문제, 대안, 결정, 근거, 트레이드오프, 상태', '“ADR 마크다운 포맷으로 대안 3개를 장단점 비교해줘”'] },
-    { feature: 'ICD (Interface Control Doc)', values: ['서비스 간 계약 정의', 'API 설계/변경 시', '엔드포인트/메시지 스키마, 버전, 에러 계약, 타임아웃/재시도, 보안', '“Request/Response를 표로, 에러는 RFC7807 포맷으로 정리해줘”'] },
-    { feature: 'Test Plan / RTM', values: ['테스트 범위·책임·일정 정의', '개발 착수 시', '범위/아웃오브스코프, 테스트 유형별 책임, 환경, 일정, RTM(요구↔테스트 매핑)', '“FRD ID와 테스트 케이스를 RTM 표로 매핑해줘”'] },
+    { feature: 'FRD', values: ['사용자/비즈니스 요구 정의', '기획 확정 직후', '배경, 목표, 사용자 스토리, 비기능 제약, 수용 기준', '"각 요구사항에 ID(FR-001)와 수용 기준(Given-When-Then) 넣어줘"'] },
+    { feature: 'TRD', values: ['시스템/품질 요구 정의', 'FRD 승인 후 설계 전', '아키텍처 개요, 품질 속성, 제약, 인터페이스, 데이터 모델', '"성능/보안 목표를 정량 수치로 채워줘 (예: p95 300ms)"'] },
+    { feature: 'ADR', values: ['중요 설계 의사결정 기록', '의사결정 시점마다', '상황, 문제, 대안, 결정, 근거, 트레이드오프, 상태', '"ADR 마크다운 포맷으로 대안 3개를 장단점 비교해줘"'] },
+    { feature: 'ICD', values: ['서비스 간 계약 정의', 'API 설계/변경 시', '엔드포인트/메시지 스키마, 버전, 에러 계약, 타임아웃/재시도, 보안', '"Request/Response를 표로, 에러는 RFC7807 포맷으로 정리해줘"'] },
+    { feature: 'Test Plan / RTM', values: ['테스트 범위/책임/일정 정의', '개발 착수 시', '범위, 테스트 유형별 책임, 환경, 일정, RTM', '"FRD ID와 테스트 케이스를 RTM 표로 매핑해줘"'] },
   ]}
 />
 
-## FRD — Functional Requirements Doc
+## 문서 작성 워크플로우
 
-**목적**: 사용자 시나리오와 비즈니스 기대치를 기능 단위로 정의. 개발·QA·Biz가 동일한 언어로 합의하는 문서.
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Phase1["1단계: 요구사항 수집"]
+      A1["이해관계자 인터뷰"]
+      A2["기존 문서 분석"]
+      A3["컨텍스트 파일 준비"]
+    end
+    subgraph Phase2["2단계: AI 초안 생성"]
+      B1["프롬프트 작성"]
+      B2["Claude Code 실행"]
+      B3["초안 검토"]
+    end
+    subgraph Phase3["3단계: 검증 및 승인"]
+      C1["팀 리뷰"]
+      C2["품질 체크리스트"]
+      C3["승인 및 버전 관리"]
+    end
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+    C3 -->|변경 발생| Phase2
+    style Phase1 fill:#fdf2ee,stroke:#16a34a,color:#2d2a26
+    style Phase2 fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
+    style Phase3 fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
+  title="문서 작성 3단계 워크플로우"
+  caption="요구사항 수집 -> AI 초안 생성 -> 검증 및 승인의 반복 사이클로 문서 품질을 높입니다."
+/>
 
-**추천 아웃라인**
+---
 
-- Overview: 배경, 목표, 스코프/아웃오브스코프
-- Personas & User Stories: 역할별 스토리(US-001 등)
-- Functional Requirements: FR-###, 우선순위(MoSCoW), 수용 기준(Given-When-Then)
-- Non-Functional Constraints: 보안, 성능, 가용성, 규제
-- Dependencies & Assumptions
-- Open Questions
+## FRD -- Functional Requirements Doc
+
+**목적**: 사용자 시나리오와 비즈니스 기대치를 기능 단위로 정의합니다. 개발, QA, 비즈니스 팀이 동일한 언어로 합의하는 문서입니다.
+
+### FRD 추천 아웃라인
+
+- **Overview**: 배경, 목표, 스코프/아웃오브스코프
+- **Personas & User Stories**: 역할별 스토리(US-001 등)
+- **Functional Requirements**: FR-###, 우선순위(MoSCoW), 수용 기준(Given-When-Then)
+- **Non-Functional Constraints**: 보안, 성능, 가용성, 규제
+- **Dependencies & Assumptions**
+- **Open Questions**
+
+### Given-When-Then 심화
+
+수용 기준은 **Gherkin 문법**으로 작성하면 QA 자동화와 직결됩니다.
+단순한 성공 시나리오 뿐 아니라, **실패 경로(Sad Path)**와 **경계값(Boundary)**까지 포함해야 완전합니다.
 
 <CodeBlock
   code={`### FR-003: 알림 설정 변경
 Priority: Must | Owner: FE/BE
-Description: 사용자가 이메일/푸시 알림 on/off를 설정한다.
+
+Description:
+사용자가 이메일/푸시 알림 on/off를 설정한다.
+
 Acceptance Criteria:
+
+Scenario 1: 정상 변경 (Happy Path)
 - Given 로그인 사용자가 설정 페이지에 있고
 - When 이메일 알림 토글을 OFF로 전환하면
 - Then 서버에 PATCH /api/v1/notifications/settings 로 저장되고
-- And 재접속 후에도 OFF 상태가 유지된다`}
+- And 재접속 후에도 OFF 상태가 유지된다
+
+Scenario 2: 미인증 사용자 (Sad Path)
+- Given 로그아웃 상태의 사용자가
+- When 설정 API를 직접 호출하면
+- Then 401 Unauthorized가 반환되고
+- And 설정은 변경되지 않는다
+
+Scenario 3: 동시 수정 (Edge Case)
+- Given 사용자가 두 개의 브라우저 탭에서 설정 페이지를 열어두고
+- When 양쪽에서 거의 동시에 서로 다른 값을 저장하면
+- Then 마지막 요청이 반영되고 (Last Write Wins)
+- And 다른 탭에서 새로고침 시 최신 상태가 표시된다`}
   language="markdown"
-  filename="FRD 요구사항 예시"
+  filename="FRD 요구사항 예시 (Happy/Sad/Edge)"
 />
 
-## TRD — Technical Requirements Doc
+<Callout type="tip" title="Given-When-Then 작성 체크포인트">
+  - **Given**: 사전 조건은 구체적으로 (로그인 상태, 권한, 데이터 존재 여부 등)
+  - **When**: 트리거 동작은 하나만 (두 개 이상이면 시나리오를 분리)
+  - **Then**: 검증 가능한 결과 (API 응답 코드, UI 상태, DB 변경 등)
+  - 시나리오당 최대 5-7줄을 넘기지 않기
+</Callout>
 
-**목적**: 품질 속성(성능/보안/확장성)과 기술 제약을 정량화해 설계 기준으로 삼음.
+### 사용자 스토리 작성법
 
-**추천 아웃라인**
-
-- System Context & Diagrams (텍스트/ASCII)
-- Quality Attributes: 성능(p95 300ms), 가용성(99.9%), 보안(OWASP Top10 대응), 관찰성(SLO)
-- Constraints: 기술 스택, 표준, 네트워크/규제 제약
-- Interfaces: 내부/외부 API, 스키마, 타임아웃·재시도
-- Data Model: 핵심 테이블/인덱스, 저장소 선택 근거
-- Risks & Mitigations
+사용자 스토리는 **역할(Role)**, **목표(Goal)**, **이유(Benefit)**의 3요소로 구성됩니다.
+팀에서는 INVEST 원칙(Independent, Negotiable, Valuable, Estimable, Small, Testable)을 적용합니다.
 
 <CodeBlock
-  code={`성능 목표
-- p95 응답시간: 300ms 이하 (API Gateway 로그 기준)
-- 스파이크: 분당 3K RPS까지 오토스케일 60초 내 대응
-보안 목표
-- 인증: OAuth2 + PKCE, mTLS(서버간)
-- 데이터: PII at-rest AES-256, in-transit TLS1.2+`}
+  code={`### US-005: 주문 상태 실시간 알림
+As a 구매 고객
+I want to 주문 상태가 변경될 때 실시간 알림을 받고 싶다
+So that 배송 현황을 앱을 열지 않고도 즉시 확인할 수 있다
+
+Related Requirements: FR-011, FR-012
+Priority: Should
+Story Points: 5
+Dependencies: 알림 인프라(US-003) 완료 필요
+
+Notes:
+- 알림 채널: 푸시, 이메일, SMS 중 사용자 선택
+- 상태 변경: 결제완료, 상품준비, 배송시작, 배송완료
+- 야간 시간(22:00-08:00)에는 푸시 알림 자동 보류`}
   language="markdown"
-  filename="TRD 품질 목표 예시"
+  filename="사용자 스토리 예시"
 />
 
-## ADR — Architecture Decision Record
+### MoSCoW 우선순위 매트릭스
 
-**목적**: 중요한 설계 결정을 간결히 기록해 히스토리와 근거를 남김.
+<ComparisonTable
+  title="MoSCoW 우선순위 정의"
+  headers={['등급', '의미', '비율 가이드', '예시']}
+  rows={[
+    { feature: 'Must', values: ['반드시 포함 (출시 차단)', '전체의 60% 이하', '사용자 인증, 핵심 CRUD'] },
+    { feature: 'Should', values: ['매우 중요하지만 대안 존재', '전체의 20%', '실시간 알림, 검색 필터'] },
+    { feature: 'Could', values: ['있으면 좋지만 없어도 가능', '전체의 15%', '다크모드, CSV 내보내기'] },
+    { feature: 'Won\'t', values: ['이번 스코프에서 제외', '나머지', 'AI 추천, 소셜 기능'] },
+  ]}
+/>
 
-**추천 포맷** (1–2 페이지, 단일 주제)
+### 실전 FRD 예시: 결제 시스템
 
-- Title / Status(Draft|Accepted|Rejected)
-- Context
-- Decision
-- Alternatives & Trade-offs
-- Consequences (Positive/Negative)
-- Date / Owner / Links
+<CodeBlock
+  code={`# FRD: 결제 시스템 v2.0
+
+## 1. Overview
+### 1.1 배경
+현재 단일 PG(결제대행사) 의존으로 장애 시 전체 결제가 중단됨.
+멀티 PG 체계를 도입하여 가용성을 높이고 수수료를 최적화한다.
+
+### 1.2 목표
+- 결제 가용성 99.95% 달성
+- PG 장애 시 30초 이내 자동 페일오버
+- 월 평균 수수료율 0.3%p 절감
+
+### 1.3 스코프
+In Scope: 카드결제, 간편결제(카카오/네이버/토스)
+Out of Scope: 해외결제, 가상계좌, 정기결제(Phase 2)
+
+## 2. Personas
+| 페르소나 | 설명 | 핵심 니즈 |
+|---------|------|----------|
+| 구매자 | 상품 구매 고객 | 빠르고 안정적인 결제 |
+| 판매자 | 입점 셀러 | 정산 투명성, 수수료 최소화 |
+| 운영자 | 플랫폼 운영팀 | PG 장애 모니터링, 자동 전환 |
+
+## 3. Functional Requirements
+
+### FR-001: 멀티 PG 라우팅
+Priority: Must | Owner: BE
+- Given 결제 요청이 들어오면
+- When 시스템이 PG 상태와 수수료를 평가하고
+- Then 최적의 PG로 결제를 라우팅한다
+
+### FR-002: PG 자동 페일오버
+Priority: Must | Owner: BE/Infra
+- Given 주(Primary) PG의 응답시간이 5초를 초과하거나 에러율이 10%를 넘으면
+- When 서킷브레이커가 Open 상태로 전환되면
+- Then 자동으로 부(Secondary) PG로 전환되고
+- And 운영팀에 Slack 알림이 발송된다
+
+### FR-003: 결제 수단 선택 UI
+Priority: Must | Owner: FE
+- Given 사용자가 결제 화면에 도착하면
+- When 사용 가능한 결제 수단 목록을 조회하고
+- Then 최근 사용 수단이 기본 선택된 상태로 표시된다
+
+## 4. Non-Functional Constraints
+- 보안: PCI DSS Level 1 준수, 카드번호 토큰화 필수
+- 성능: 결제 API p95 응답시간 2초 이내
+- 가용성: 99.95% (연간 다운타임 4시간 26분 이하)
+
+## 5. Dependencies & Assumptions
+- 가정: PG사 API 연동 계약 2주 내 완료
+- 의존: 회원 서비스 v3.0 API, 주문 서비스 이벤트 발행
+
+## 6. Open Questions
+- [ ] PG 라우팅 가중치를 실시간으로 조절할 수 있는 어드민 필요?
+- [ ] 정기결제 Phase 2의 시작 시점은?`}
+  language="markdown"
+  filename="실전 FRD 예시: 결제 시스템"
+/>
+
+---
+
+## TRD -- Technical Requirements Doc
+
+**목적**: 품질 속성(성능/보안/확장성)과 기술 제약을 **정량화**해 설계 기준으로 삼습니다. FRD가 "무엇을"이라면, TRD는 "어떤 수준으로"를 정의합니다.
+
+### TRD 추천 아웃라인
+
+- **System Context & Diagrams**: 시스템 경계와 외부 연동
+- **Quality Attributes**: 성능(p95), 가용성(99.9%), 보안(OWASP Top10), 관찰성(SLO)
+- **Constraints**: 기술 스택, 표준, 네트워크/규제 제약
+- **Interfaces**: 내부/외부 API, 스키마, 타임아웃/재시도
+- **Data Model**: 핵심 테이블/인덱스, 저장소 선택 근거
+- **Risks & Mitigations**
+
+### 품질 속성 정의 심화
+
+품질 속성은 **측정 가능한 수치**로 정의해야 합니다. "빨라야 한다"가 아니라 "p95 300ms 이하"처럼 구체적이어야 합니다.
+
+<ComparisonTable
+  title="품질 속성 정량 기준 예시"
+  headers={['속성', '지표', '목표치', '측정 방법', 'SLI/SLO']}
+  rows={[
+    { feature: '성능', values: ['API 응답시간', 'p95 < 300ms, p99 < 1s', 'APM(Datadog/Grafana)', 'SLO: 월간 99.5% 요청이 목표 충족'] },
+    { feature: '가용성', values: ['업타임', '99.9% (연 8.76h 다운)', '헬스체크 + 신세틱 모니터링', 'SLO: 30일 롤링 윈도우'] },
+    { feature: '확장성', values: ['동시 처리량', '3,000 RPS, 60초 내 오토스케일', 'Load Balancer 메트릭', 'SLI: 스케일 아웃 트리거~안정 시간'] },
+    { feature: '보안', values: ['취약점 등급', 'Critical 0, High 48h 내 패치', 'SAST/DAST 정기 스캔', 'SLO: MTTR(평균복구시간) < 4h'] },
+    { feature: '관찰성', values: ['로그/메트릭/트레이스', '분산 트레이싱 100% 커버리지', 'OpenTelemetry', 'SLI: 알림 발생~인지 시간 < 5분'] },
+  ]}
+/>
+
+### 비기능 요구사항(NFR) 분류 체계
+
+<CodeBlock
+  code={`## Non-Functional Requirements
+
+### NFR-001: 성능
+- API 응답시간: p50 < 100ms, p95 < 300ms, p99 < 1s
+- 스파이크 대응: 분당 3,000 RPS까지 60초 내 오토스케일
+- DB 쿼리: 단일 쿼리 100ms 이하, N+1 쿼리 금지
+- 배치 처리: 일일 정산 30분 이내 완료
+
+### NFR-002: 보안
+- 인증: OAuth2 + PKCE (모바일), mTLS (서버 간)
+- 데이터 암호화: at-rest AES-256, in-transit TLS 1.2+
+- PII 처리: 마스킹 필수, 보관 기한 준수 (개인정보보호법)
+- OWASP Top 10 전 항목 대응
+
+### NFR-003: 가용성
+- SLA: 99.9% (월간 43분 이하 다운타임)
+- RTO: 15분, RPO: 5분
+- 멀티 AZ 배포, DB 리드레플리카 2개
+
+### NFR-004: 확장성
+- 수평 확장: 무상태(Stateless) 서비스 설계
+- DB: 읽기 전용 레플리카, 향후 샤딩 대비 테넌트 키 설계
+- 캐시: Redis Cluster, TTL 전략 문서화
+
+### NFR-005: 관찰성
+- 로깅: 구조화 로그(JSON), 상관관계 ID 필수
+- 메트릭: RED(Rate/Error/Duration) + USE(Utilization/Saturation/Errors)
+- 트레이싱: OpenTelemetry, 100% 샘플링(스테이징), 10% 샘플링(프로덕션)
+- 알림: PagerDuty 연동, Severity 1은 5분 내 알림`}
+  language="markdown"
+  filename="TRD 비기능 요구사항 예시"
+/>
+
+### 실전 TRD 예시: 결제 시스템
+
+<CodeBlock
+  code={`# TRD: 결제 시스템 v2.0
+
+## 1. System Context
+
+외부 연동:
+- PG-A (NICE페이먼츠): 카드결제 주 라우팅
+- PG-B (토스페이먼츠): 카드결제 부 라우팅 + 간편결제
+- 알림 서비스: Kafka 이벤트 기반 연동
+- 정산 시스템: 일일 배치 (새벽 3시)
+
+내부 연동:
+- 주문 서비스: gRPC (주문 상태 조회)
+- 회원 서비스: REST (결제 수단 토큰 조회)
+
+## 2. Quality Attributes
+
+| 속성 | 지표 | 목표 | 비고 |
+|------|------|------|------|
+| 성능 | 결제 API p95 | < 2s | PG 응답 포함 |
+| 가용성 | 업타임 | 99.95% | 멀티 PG 페일오버 |
+| 보안 | PCI DSS | Level 1 | 연 1회 외부감사 |
+| 확장성 | 피크 TPS | 500 TPS | 블랙프라이데이 기준 |
+
+## 3. Constraints
+
+기술 스택:
+- Language: TypeScript (Node.js 20 LTS)
+- Framework: NestJS 10
+- DB: PostgreSQL 16 (RDS Multi-AZ)
+- Cache: Redis 7 Cluster
+- Queue: Kafka 3.6 (MSK)
+- Infra: AWS EKS, Terraform
+
+규제:
+- PCI DSS Level 1 준수
+- 전자금융거래법 제21조 (기록 보관 5년)
+- 개인정보보호법 (카드번호 토큰화 필수)
+
+## 4. Data Model (핵심)
+
+payments:
+  - id (UUID PK)
+  - order_id (FK, INDEX)
+  - pg_provider (ENUM: NICE, TOSS)
+  - amount (BIGINT, 원 단위)
+  - status (ENUM: PENDING, SUCCESS, FAILED, REFUNDED)
+  - pg_transaction_id (VARCHAR, UNIQUE INDEX)
+  - created_at (TIMESTAMPTZ, INDEX)
+  - updated_at (TIMESTAMPTZ)
+
+payment_events: (이벤트 소싱)
+  - id (UUID PK)
+  - payment_id (FK, INDEX)
+  - event_type (VARCHAR)
+  - payload (JSONB)
+  - created_at (TIMESTAMPTZ)
+
+## 5. Risks & Mitigations
+
+| 리스크 | 영향 | 확률 | 완화 전략 |
+|--------|------|------|----------|
+| 주 PG 장애 | 결제 불가 | 중 | 멀티 PG + 서킷브레이커 |
+| 결제-주문 정합성 깨짐 | 데이터 불일치 | 중 | Saga 패턴 + 보상 트랜잭션 |
+| PCI DSS 감사 실패 | 사업 중단 | 하 | 분기별 내부 감사, 연 1회 외부 감사 |`}
+  language="markdown"
+  filename="실전 TRD 예시: 결제 시스템"
+/>
+
+---
+
+## ADR -- Architecture Decision Record
+
+**목적**: 중요한 설계 결정을 간결히 기록해 **히스토리와 근거**를 남깁니다. 6개월 후 "왜 이렇게 했지?"라는 질문에 답하는 문서입니다.
+
+### ADR 추천 포맷
+
+1페이지 이내, 단일 주제로 작성합니다:
+
+- **Title / Status** (Proposed | Accepted | Deprecated | Superseded)
+- **Context**: 현재 상황과 해결해야 할 문제
+- **Decision**: 선택한 방안
+- **Alternatives & Trade-offs**: 검토한 대안과 비교
+- **Consequences**: 긍정적/부정적 결과
+- **Date / Owner / Links**
+
+### 대안 분석 매트릭스
+
+ADR의 핵심은 **왜 다른 대안이 아닌 이 결정을 했는가**를 명확히 보여주는 것입니다. 가중 점수 매트릭스를 사용하면 객관적인 의사결정 근거를 남길 수 있습니다.
 
 <CodeBlock
   code={`# ADR-012: 메시징 브로커 선택
-Status: Accepted | Date: 2026-02-02
-Context: 주문 이벤트 5K RPS, 정확히 한 번 처리 필요
-Decision: Kafka + exactly-once semantics 사용
-Alternatives: RabbitMQ, SQS
-Trade-offs:
-- (+) 대량 처리, EO 지원
-- (-) 운영 복잡도, 클러스터 관리 필요
-Consequences: DevOps에 Kafka 운영 플레이북 추가, DLQ 모니터링 대시보드 생성`}
+
+## Status: Accepted
+## Date: 2026-02-02
+## Owner: 백엔드 아키텍트 팀
+
+## Context
+주문 이벤트를 5,000 RPS로 처리해야 하며, 정확히 한 번(Exactly-Once)
+전달이 필요하다. 현재 동기 HTTP 호출로 인한 결합도와 장애 전파가 문제.
+
+## Decision
+Apache Kafka (MSK) + Exactly-Once Semantics 사용
+
+## Alternatives Analysis
+
+평가 기준 (가중치):
+- 처리량 (30%): 대량 이벤트 처리 능력
+- 정확성 (25%): Exactly-Once 지원 수준
+- 운영성 (20%): 모니터링, 디버깅 용이성
+- 비용 (15%): 인프라 + 운영 인력
+- 생태계 (10%): 커뮤니티, 도구, 인력 풀
+
+| 기준(가중치) | Kafka | RabbitMQ | AWS SQS |
+|-------------|-------|----------|---------|
+| 처리량(30%) | 9 | 6 | 7 |
+| 정확성(25%) | 9 | 7 | 6 |
+| 운영성(20%) | 5 | 8 | 9 |
+| 비용(15%)   | 6 | 7 | 8 |
+| 생태계(10%) | 9 | 7 | 8 |
+| 가중 총점   | 7.8 | 6.9 | 7.3 |
+
+## Trade-offs
+Positive:
+- 대량 이벤트 처리에 최적화 (파티션 기반 병렬 처리)
+- Exactly-Once 시맨틱 네이티브 지원
+- Kafka Connect로 DB CDC 연동 용이
+
+Negative:
+- 운영 복잡도 높음 (Zookeeper/KRaft 클러스터 관리)
+- DevOps 팀 Kafka 운영 경험 부족 -> MSK(매니지드) 선택으로 완화
+- 로컬 개발 환경 구성이 복잡 -> Docker Compose 템플릿 제공
+
+## Consequences
+- DevOps팀에 Kafka 운영 플레이북 추가 (2주 내)
+- DLQ(Dead Letter Queue) 모니터링 대시보드 생성
+- 개발팀 Kafka 프로듀서/컨슈머 가이드 작성
+- ADR-013으로 Consumer Group 전략 별도 결정 예정
+
+## Links
+- FRD: FR-015 (비동기 주문 처리)
+- TRD: NFR-001 (5K RPS 처리량)
+- 참고: Confluent Exactly-Once 문서`}
   language="markdown"
-  filename="ADR 예시"
+  filename="ADR 예시: 대안 분석 매트릭스 포함"
 />
 
-## ICD — Interface Control Doc
+### ADR 상태 관리
 
-**목적**: 서비스 간 계약(API·이벤트·파일)의 스키마와 오류 규칙을 명시해 통합 리스크를 줄임.
+<ComparisonTable
+  title="ADR 상태별 의미"
+  headers={['상태', '의미', '전환 조건', '다음 액션']}
+  rows={[
+    { feature: 'Proposed', values: ['검토 대기 중', '초안 작성 완료', '아키텍처 리뷰 미팅에서 논의'] },
+    { feature: 'Accepted', values: ['팀 합의로 확정', '리뷰 통과 + 이해관계자 동의', '구현 착수'] },
+    { feature: 'Deprecated', values: ['더 이상 유효하지 않음', '기술 변경 또는 비즈니스 변화', '대체 ADR 참조 추가'] },
+    { feature: 'Superseded', values: ['새 ADR로 대체됨', '개선된 결정 등장', '"Superseded by ADR-XXX" 명시'] },
+  ]}
+/>
 
-**필수 요소**
-- Endpoint/Event 목록(버전 포함)
-- Request/Response 스키마, 예제 페이로드
-- 에러 모델(RFC 7807), 타임아웃/재시도, Idempotency 규칙
-- 보안/권한, 레이트리밋, 호환성 정책(버전 업그레이드 규칙)
+<Callout type="info" title="ADR 번호 관리 팁">
+  ADR 번호는 순차적으로 부여하고, 삭제하지 않습니다.
+  `docs/adr/` 디렉토리에 `0012-messaging-broker-selection.md` 형식으로 저장하면 Git 히스토리와 함께 변경 추적이 가능합니다.
+</Callout>
+
+---
+
+## ICD -- Interface Control Doc
+
+**목적**: 서비스 간 계약(API, 이벤트, 파일)의 스키마와 오류 규칙을 명시해 **통합 리스크**를 줄입니다. 마이크로서비스 환경에서 ICD는 팀 간 커뮤니케이션 비용을 크게 줄여줍니다.
+
+### ICD 필수 요소
+
+- **Endpoint/Event 목록** (버전 포함)
+- **Request/Response 스키마**, 예제 페이로드
+- **에러 모델** (RFC 7807), 타임아웃/재시도, Idempotency 규칙
+- **보안/권한**, 레이트리밋, 호환성 정책
+
+### API 계약 상세 예시
 
 <CodeBlock
-  code={`POST /v1/payments
-Headers: Authorization: Bearer <JWT>
-Request:
+  code={`# ICD: Payment Service API v1
+
+## Base URL
+Production: https://api.example.com/v1
+Staging: https://api-staging.example.com/v1
+
+## Authentication
+- Type: Bearer Token (JWT)
+- Header: Authorization: Bearer <token>
+- Token 만료: 1시간, Refresh Token으로 갱신
+- 서비스 간: mTLS + Service Account JWT
+
+## Rate Limiting
+- 일반 사용자: 100 req/min
+- 인증된 서비스: 1,000 req/min
+- 초과 시: 429 Too Many Requests + Retry-After 헤더
+
+---
+
+## POST /v1/payments
+
+### Description
+새로운 결제를 생성합니다.
+
+### Headers
+| Header | Required | Description |
+|--------|----------|-------------|
+| Authorization | Yes | Bearer <JWT> |
+| Idempotency-Key | Yes | UUID v4, 24시간 유효 |
+| Content-Type | Yes | application/json |
+
+### Request Body
+| Field | Type | Required | Validation | Description |
+|-------|------|----------|------------|-------------|
+| orderId | string | Yes | ^ord_[a-z0-9]{12}$ | 주문 고유 ID |
+| amount | integer | Yes | 100 <= x <= 10000000 | 결제 금액 (원) |
+| currency | string | Yes | KRW only | 통화 코드 |
+| method | string | Yes | CARD, KAKAO, NAVER, TOSS | 결제 수단 |
+| returnUrl | string | Yes | HTTPS URL | 결제 완료 후 리디렉션 |
+
+### Request Example
 {
-  "orderId": "ord_123",
+  "orderId": "ord_abc123def456",
   "amount": 19900,
-  "currency": "KRW"
+  "currency": "KRW",
+  "method": "CARD",
+  "returnUrl": "https://shop.example.com/orders/complete"
 }
-Errors (RFC7807):
-- 401 unauthorized
-- 409 conflict (이미 결제됨)
-Timeout: 3s | Retry: 2회 exponential backoff`}
-  language="json"
-  filename="ICD 조각 예시"
+
+### Response (201 Created)
+{
+  "paymentId": "pay_xyz789",
+  "status": "PENDING",
+  "pgRedirectUrl": "https://pg.example.com/pay/...",
+  "expiresAt": "2026-02-07T12:30:00Z"
+}
+
+### Timeout & Retry Policy
+- Client Timeout: 5초
+- Retry: 최대 2회, Exponential Backoff (1s, 2s)
+- Idempotency-Key 동일 시 중복 결제 방지`}
+  language="markdown"
+  filename="ICD API 계약 상세 예시"
 />
+
+### 에러 코드 체계 (RFC 7807)
+
+에러 응답은 RFC 7807(Problem Details) 형식으로 표준화하면 클라이언트 측 에러 처리가 일관됩니다.
+
+<CodeBlock
+  code={`## Error Response Format (RFC 7807)
+
+### 공통 구조
+{
+  "type": "https://api.example.com/errors/payment-failed",
+  "title": "Payment Failed",
+  "status": 402,
+  "detail": "카드 잔액이 부족합니다.",
+  "instance": "/v1/payments/pay_xyz789",
+  "traceId": "trace-abc-123-def"
+}
+
+### 에러 코드 카탈로그
+| HTTP Status | Error Type | Title | 재시도 | 클라이언트 액션 |
+|-------------|-----------|-------|--------|---------------|
+| 400 | /errors/validation | Validation Error | No | 입력값 수정 후 재요청 |
+| 401 | /errors/unauthorized | Unauthorized | No | 토큰 갱신 후 재요청 |
+| 402 | /errors/payment-failed | Payment Failed | No | 다른 결제 수단 안내 |
+| 404 | /errors/not-found | Resource Not Found | No | 리소스 ID 확인 |
+| 409 | /errors/duplicate | Duplicate Payment | No | 기존 결제 결과 조회 |
+| 422 | /errors/business-rule | Business Rule Violation | No | 비즈니스 규칙 확인 |
+| 429 | /errors/rate-limit | Rate Limit Exceeded | Yes | Retry-After 헤더 대기 |
+| 500 | /errors/internal | Internal Server Error | Yes | 지수 백오프 재시도 |
+| 502 | /errors/pg-error | PG Gateway Error | Yes | 자동 페일오버 대기 |
+| 503 | /errors/unavailable | Service Unavailable | Yes | 잠시 후 재시도 |`}
+  language="markdown"
+  filename="ICD 에러 코드 카탈로그"
+/>
+
+<Callout type="warning" title="Idempotency Key 필수">
+  결제 API처럼 부수 효과가 있는 엔드포인트는 반드시 Idempotency Key를 요구해야 합니다.
+  네트워크 타임아웃으로 클라이언트가 재시도할 때 중복 결제를 방지할 수 있습니다.
+  키는 UUID v4로 생성하고, 서버 측에서 24시간 동안 보관합니다.
+</Callout>
+
+---
 
 ## Test Plan & RTM
 
-**목적**: 테스트 범위·책임·일정을 명확히 하고 요구사항과 테스트 케이스를 매핑.
+**목적**: 테스트 범위, 책임, 일정을 명확히 하고, 요구사항과 테스트 케이스를 **추적 가능하게 매핑**합니다.
 
-**구성**
-- Scope / Out of Scope
-- Test Types & Owners (Unit/Integration/E2E/Performance/Security)
-- Environments & Data
-- Schedule & Entry/Exit Criteria
-- RTM (Requirement ↔ Test Case 매핑)
+### 테스트 계획 구성
 
-<CodeBlock
-  code={`RTM 예시
-| Req ID | Test ID | 유형 | 상태 |
-| FR-003 | TC-012  | E2E  | Ready |
-| NFR-005 (p95 300ms) | PT-004 | Perf | Ready |`}
-  language="markdown"
-  filename="RTM 스니펫"
+- **Scope / Out of Scope**: 이번 릴리스에서 테스트할 범위
+- **Test Types & Owners**: 단위/통합/E2E/성능/보안별 책임자
+- **Environments & Data**: 테스트 환경과 데이터 전략
+- **Schedule & Entry/Exit Criteria**: 일정과 완료 기준
+- **RTM**: 요구사항 - 테스트 케이스 매핑
+
+### 테스트 유형별 전략
+
+<ComparisonTable
+  title="테스트 유형별 전략"
+  headers={['유형', '범위', '담당', '도구', '자동화율 목표', '실행 시점']}
+  rows={[
+    { feature: 'Unit Test', values: ['함수/메서드 단위', '개발자', 'Jest, Vitest', '90%+', '커밋 시 (Pre-commit)'] },
+    { feature: 'Integration Test', values: ['모듈 간 연동', '개발자', 'Supertest, Testcontainers', '80%+', 'PR 생성 시 (CI)'] },
+    { feature: 'E2E Test', values: ['사용자 시나리오', 'QA', 'Playwright, Cypress', '70%+', '일일 빌드'] },
+    { feature: 'Performance Test', values: ['응답시간/처리량', 'SRE', 'k6, Locust', '100%', '릴리스 전'] },
+    { feature: 'Security Test', values: ['취약점 스캔', '보안팀', 'OWASP ZAP, Snyk', '100%', '주간 스캔'] },
+  ]}
 />
 
-## Claude 프롬프트 예시
+### RTM (Requirements Traceability Matrix) 상세
+
+<CodeBlock
+  code={`# RTM: 결제 시스템 v2.0
+
+## 추적 매트릭스
+
+| Req ID | 요구사항 | Test ID | 테스트 유형 | 테스트 설명 | 상태 | 우선순위 |
+|--------|---------|---------|-----------|-----------|------|---------|
+| FR-001 | 멀티 PG 라우팅 | TC-001 | Unit | PG 선택 알고리즘 단위 테스트 | Pass | Must |
+| FR-001 | 멀티 PG 라우팅 | TC-002 | Integration | 실제 PG API Mock 연동 테스트 | Pass | Must |
+| FR-002 | PG 자동 페일오버 | TC-003 | Integration | 주 PG 타임아웃 시 부 PG 전환 | Pass | Must |
+| FR-002 | PG 자동 페일오버 | TC-004 | E2E | 장애 주입 후 결제 완료 시나리오 | Ready | Must |
+| FR-003 | 결제 수단 선택 UI | TC-005 | E2E | 결제 수단 선택~결제 완료 플로우 | Ready | Must |
+| NFR-001 | 성능 p95 < 2s | PT-001 | Performance | 500 TPS 부하 테스트 (k6) | Ready | Must |
+| NFR-002 | PCI DSS 준수 | ST-001 | Security | 카드번호 토큰화 검증 | Ready | Must |
+| NFR-003 | 가용성 99.95% | PT-002 | Performance | 카오스 엔지니어링 (PG 장애) | Ready | Should |
+
+## Coverage Summary
+- 전체 요구사항: 8개 (Must: 6, Should: 2)
+- 매핑된 테스트: 10개
+- 커버리지: 100% (모든 요구사항에 최소 1개 테스트)
+- 자동화율: 80% (8/10)
+
+## Entry/Exit Criteria
+
+Entry (테스트 시작 조건):
+- [ ] 코드 프리즈 완료
+- [ ] 스테이징 환경 배포 완료
+- [ ] 테스트 데이터 준비 완료
+
+Exit (테스트 완료 조건):
+- [ ] Must 요구사항 테스트 100% Pass
+- [ ] Critical/High 버그 0건
+- [ ] 성능 테스트 목표 달성
+- [ ] 보안 스캔 Critical 0건`}
+  language="markdown"
+  filename="RTM 상세 예시"
+/>
+
+<Callout type="tip" title="RTM 자동화 팁">
+  RTM을 수동으로 유지하면 빠르게 낡아집니다.
+  테스트 코드에 요구사항 ID를 태그로 넣고, CI에서 자동 추출하면 항상 최신 상태를 유지할 수 있습니다.
+  예: `describe('FR-001: 멀티 PG 라우팅', () => { ... })`
+</Callout>
+
+---
+
+## Claude Code로 문서 자동 생성
+
+### 프롬프트 패턴
+
+효과적인 문서 생성 프롬프트의 핵심은 **컨텍스트 + 포맷 + 제약조건**을 명시하는 것입니다.
+
+#### FRD 생성 프롬프트
 
 <CodeBlock
   code={`@docs/context.md @docs/architecture.md
 FRD 템플릿을 채워줘. 규칙:
 - 요구사항 ID는 FR-### 형식
-- 수용 기준은 Gherkin (Given-When-Then)
+- 각 요구사항에 Priority(MoSCoW)와 Owner 명시
+- 수용 기준은 Gherkin (Given-When-Then)으로 작성
+  - Happy Path + Sad Path + Edge Case 최소 1개씩
+- 사용자 스토리는 "As a [역할] I want to [목표] So that [이유]" 형식
 - 비기능 요구는 보안/성능/가용성/확장성/관찰성으로 구분
-- 마지막에 요약 표로 전체 요구사항 목록 정리`}
+- 마지막에 요약 표로 전체 요구사항 목록 정리
+- Open Questions 섹션에 미확정 사항 3개 이상 포함`}
   language="text"
   filename="FRD 생성 프롬프트"
 />
 
+#### TRD 생성 프롬프트
+
 <CodeBlock
-  code={`@docs/context.md
+  code={`@docs/context.md @docs/frd.md
 TRD를 작성해줘. 포함:
-- 시스템 다이어그램(텍스트)
-- 품질 속성 목표: 성능 p95 300ms, 가용성 99.9%, 보안 OWASP Top 10 대응
-- 기술 제약: DB는 PostgreSQL 15, 메시징은 Kafka
-- 인터페이스: 내부 API/외부 API, 페이로드 스키마, 타임아웃/재시도 정책
-- 데이터 모델: 핵심 테이블/컬럼/인덱스 요약
-- 리스크 & 완화책: 3개 이상`}
+- 시스템 컨텍스트 다이어그램 (Mermaid 형식)
+- 품질 속성 목표 표:
+  - 성능: p50/p95/p99 각각, 측정 방법
+  - 가용성: SLA %, RTO/RPO
+  - 보안: OWASP Top 10 대응, 인증 방식, 암호화 수준
+  - 확장성: 최대 RPS, 오토스케일 정책
+  - 관찰성: 로그/메트릭/트레이스 전략
+- 기술 제약: 언어, 프레임워크, DB, 인프라 버전
+- 데이터 모델: 핵심 테이블/컬럼/인덱스 + ERD (Mermaid)
+- 인터페이스: 내부/외부 API 목록, 타임아웃/재시도 정책
+- 리스크 & 완화책: 최소 5개, 영향도/확률/완화전략 표`}
   language="text"
   filename="TRD 생성 프롬프트"
 />
+
+#### ADR 생성 프롬프트
 
 <CodeBlock
   code={`ADR 포맷으로 작성:
 - Title: API 인증 방식 선택
 - Status: Proposed
 - Context: B2B 멀티테넌트, 모바일 클라이언트 존재
-- Alternatives: OAuth2, JWT + RTA, mTLS
-- Criteria: 보안, 구현 난이도, 운영비, 개발자 경험
-- Decision: TBD
-- Consequences: 장단점 서술`}
+- Alternatives: 최소 3개 (OAuth2, JWT + Refresh Token Rotation, mTLS)
+- 평가 기준별 가중 점수 매트릭스:
+  - 보안 (30%), 구현 난이도 (25%), 운영비 (20%), 개발자 경험 (15%), 생태계 (10%)
+  - 각 대안별 1-10 점수와 가중 총점
+- Decision: 가중 총점 기반 선택 + 정성적 판단 보완
+- Consequences: 긍정/부정 각 3개 이상
+- Links: 관련 FRD/TRD 참조`}
   language="text"
   filename="ADR 작성 프롬프트"
 />
 
-## 활용 팁
+#### ICD 생성 프롬프트
 
-<Callout type="tip" title="문서 품질을 높이는 요청 패턴">
-  - **컨텍스트 먼저 제공**: `@docs/context.md`, `@docs/architecture.md` 등 배경 파일을 함께 건넵니다.  
-  - **포맷 고정**: “마크다운 표”, “ADR 템플릿”, “RST 헤더”처럼 원하는 출력 형식을 명시합니다.  
-  - **식별자/상태 필수**: FR-001, TR-002처럼 ID와 상태(Draft/Accepted/Rejected)를 요구하면 추적성이 높아집니다.  
-  - **수치로 요구**: 성능·보안 목표는 정량 수치(p95, TPS, MTTR, CVSS)를 넣어달라고 요청합니다.  
-  - **검증 섹션 추가**: “리스크 & 완화책”이나 “수용 기준”을 반드시 포함시키면 리뷰가 빨라집니다.
+<CodeBlock
+  code={`@src/controllers/ @src/dto/
+ICD를 작성해줘. 규칙:
+- 각 엔드포인트별 Request/Response 스키마를 표로 정리
+  - Field, Type, Required, Validation, Description 컬럼
+- 에러 응답은 RFC 7807 형식
+- 에러 코드 카탈로그: HTTP Status별 에러 유형, 재시도 여부, 클라이언트 액션
+- 타임아웃/재시도 정책: 엔드포인트별 차등 설정
+- Idempotency 규칙: POST/PUT 요청에 Idempotency-Key 요구
+- 인증/권한: 엔드포인트별 필요 권한 매트릭스
+- 버전 관리: 하위 호환성 규칙, 지원 중단 절차`}
+  language="text"
+  filename="ICD 작성 프롬프트"
+/>
+
+#### RTM 생성 프롬프트
+
+<CodeBlock
+  code={`@docs/frd.md @src/tests/
+FRD의 모든 요구사항을 테스트 케이스와 매핑한 RTM을 만들어줘:
+- 컬럼: Req ID, 요구사항 요약, Test ID, 테스트 유형, 테스트 설명, 상태, 우선순위
+- 각 요구사항에 최소 2개 테스트 (Unit + Integration 또는 E2E)
+- NFR은 반드시 성능/보안 테스트 매핑
+- Coverage Summary: 전체 요구사항 수, 매핑된 테스트 수, 커버리지 %
+- Entry/Exit Criteria 포함
+- 미매핑 요구사항이 있으면 별도 표시`}
+  language="text"
+  filename="RTM 생성 프롬프트"
+/>
+
+---
+
+## 문서 템플릿 자동화 (커스텀 슬래시 커맨드)
+
+Claude Code의 Skills 시스템을 활용하면 `/frd`, `/trd`, `/adr` 같은 커스텀 커맨드로 문서를 즉시 생성할 수 있습니다.
+
+### FRD 생성 Skill
+
+<CodeBlock
+  code={`---
+name: frd
+description: FRD(기능 요구사항 문서) 템플릿 생성
+argument-hint: [기능명 또는 프로젝트 설명]
+allowed-tools: Read, Grep, Glob, Write
+---
+
+다음 규칙에 따라 FRD를 작성하세요:
+
+## 컨텍스트 수집
+1. @docs/context.md 와 @docs/architecture.md 를 참고
+2. 기존 FRD가 있으면 @docs/frd/ 디렉토리 확인
+
+## FRD 작성 규칙
+- 파일 위치: docs/frd/FRD-[번호]-[제목].md
+- 요구사항 ID: FR-### 형식 (기존 번호 이어서)
+- 우선순위: MoSCoW (Must/Should/Could/Won't)
+- 수용 기준: Gherkin (Given-When-Then)
+  - 시나리오별: Happy Path, Sad Path, Edge Case
+- 사용자 스토리: "As a [역할] I want to [목표] So that [이유]"
+- 비기능 요구: 보안/성능/가용성/확장성/관찰성으로 분류
+- 마지막에 요약 표 추가
+
+## 대상 기능
+$ARGUMENTS`}
+  language="yaml"
+  filename=".claude/skills/frd/SKILL.md"
+/>
+
+### ADR 생성 Skill
+
+<CodeBlock
+  code={`---
+name: adr
+description: ADR(아키텍처 결정 기록) 작성
+argument-hint: [결정 주제]
+allowed-tools: Read, Grep, Glob, Write
+---
+
+다음 규칙에 따라 ADR을 작성하세요:
+
+## 컨텍스트 수집
+1. docs/adr/ 디렉토리에서 기존 ADR 번호 확인
+2. 관련 FRD/TRD 참조
+
+## ADR 작성 규칙
+- 파일: docs/adr/[번호]-[kebab-case-제목].md
+- 번호: 기존 ADR 다음 번호 (4자리 zero-pad)
+- 포맷:
+  - Title, Status(Proposed), Date
+  - Context: 현재 상황과 문제
+  - Decision: 선택한 방안
+  - Alternatives: 최소 3개 대안
+  - 가중 점수 매트릭스 (기준별 1-10점)
+  - Trade-offs: 선택 방안의 장단점
+  - Consequences: 긍정/부정 결과
+  - Links: 관련 문서 참조
+
+## 결정 주제
+$ARGUMENTS`}
+  language="yaml"
+  filename=".claude/skills/adr/SKILL.md"
+/>
+
+### ICD 생성 Skill
+
+<CodeBlock
+  code={`---
+name: icd
+description: ICD(인터페이스 제어 문서) 자동 생성
+argument-hint: [서비스명 또는 API 경로]
+allowed-tools: Read, Grep, Glob, Write
+---
+
+소스 코드에서 API 스펙을 자동 추출하여 ICD를 작성하세요:
+
+## 소스 분석
+1. src/controllers/ 와 src/dto/ 디렉토리 스캔
+2. 라우터/컨트롤러에서 엔드포인트 추출
+3. DTO/스키마에서 Request/Response 구조 추출
+
+## ICD 작성 규칙
+- 파일: docs/icd/ICD-[서비스명].md
+- 각 엔드포인트별:
+  - HTTP Method + Path + Description
+  - Headers (인증, Content-Type, Idempotency-Key)
+  - Request Body (Field/Type/Required/Validation/Description 표)
+  - Response (성공 + 에러 케이스)
+  - 에러: RFC 7807 형식
+  - Timeout/Retry 정책
+- 에러 코드 카탈로그
+- Rate Limit 정책
+- 버전 관리 규칙
+
+## 대상
+$ARGUMENTS`}
+  language="yaml"
+  filename=".claude/skills/icd/SKILL.md"
+/>
+
+---
+
+## 문서 품질 체크리스트
+
+### 공통 체크리스트
+
+모든 문서 유형에 적용되는 기본 품질 기준입니다.
+
+<CodeBlock
+  code={`## 문서 품질 체크리스트 (공통)
+
+### 구조
+- [ ] 문서 제목과 버전이 명시되어 있는가?
+- [ ] 작성자, 작성일, 최종 수정일이 기록되어 있는가?
+- [ ] 목차(ToC)가 제공되는가? (3페이지 이상 시)
+- [ ] 약어와 용어 정의가 포함되어 있는가?
+
+### 내용
+- [ ] 배경(Context)이 충분히 설명되어 있는가?
+- [ ] 스코프(In Scope / Out of Scope)가 명확한가?
+- [ ] 식별자(ID)가 일관된 체계로 부여되어 있는가?
+- [ ] 수치 목표가 정량적으로 표현되어 있는가?
+- [ ] 가정(Assumptions)과 제약(Constraints)이 명시되어 있는가?
+
+### 추적성
+- [ ] 관련 문서 간 참조(Cross-reference)가 있는가?
+- [ ] 변경 이력(Changelog)이 관리되고 있는가?
+- [ ] Open Questions이 목록화되어 있는가?
+
+### 검증
+- [ ] 이해관계자 리뷰를 받았는가?
+- [ ] 기술적 실현 가능성이 검증되었는가?
+- [ ] 상태(Draft/Review/Approved)가 표시되어 있는가?`}
+  language="markdown"
+  filename="공통 문서 품질 체크리스트"
+/>
+
+### 유형별 추가 체크리스트
+
+<ComparisonTable
+  title="문서 유형별 추가 검증 항목"
+  headers={['문서', '필수 검증 항목']}
+  rows={[
+    { feature: 'FRD', values: ['모든 요구사항에 수용 기준 존재, MoSCoW 우선순위 배정, 사용자 스토리 형식 준수, 비기능 제약 포함'] },
+    { feature: 'TRD', values: ['품질 속성이 정량 수치로 정의, 기술 제약이 버전까지 명시, 데이터 모델 포함, 리스크 3개 이상'] },
+    { feature: 'ADR', values: ['대안 3개 이상, 가중 점수 매트릭스, 트레이드오프 명시, Consequences(긍정/부정)'] },
+    { feature: 'ICD', values: ['모든 엔드포인트에 스키마와 예제, RFC 7807 에러 형식, Idempotency 규칙, 타임아웃/재시도 정책'] },
+    { feature: 'Test Plan/RTM', values: ['모든 Must 요구사항에 테스트 매핑, Entry/Exit Criteria, 커버리지 요약, 환경 정보'] },
+  ]}
+/>
+
+---
+
+## 문서 간 관계와 추적성
+
+소프트웨어 산출물은 독립적으로 존재하는 것이 아니라, 서로 참조하며 **추적성(Traceability)**을 형성합니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    FRD["FRD<br/>기능 요구사항"] -->|설계 기준| TRD["TRD<br/>기술 요구사항"]
+    FRD -->|테스트 근거| RTM["Test Plan<br/>& RTM"]
+    TRD -->|설계 결정| ADR["ADR<br/>아키텍처 결정"]
+    TRD -->|API 계약| ICD["ICD<br/>인터페이스 제어"]
+    ADR -->|구현 반영| ICD
+    RTM -->|검증| FRD
+    RTM -->|검증| TRD
+    style FRD fill:#fdf2ee,stroke:#16a34a,color:#2d2a26
+    style TRD fill:#fdf2ee,stroke:#9333ea,color:#2d2a26
+    style ADR fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style ICD fill:#fdf2ee,stroke:#16a34a,color:#2d2a26
+    style RTM fill:#fdf2ee,stroke:#9333ea,color:#2d2a26`}
+  title="문서 간 추적성 관계"
+  caption="FRD에서 시작해 TRD, ADR, ICD로 분화되고, RTM이 전체를 검증하는 구조입니다."
+/>
+
+### 추적성 매트릭스 예시
+
+<CodeBlock
+  code={`## Cross-Document Traceability
+
+| FRD | TRD | ADR | ICD | Test Plan |
+|-----|-----|-----|-----|-----------|
+| FR-001 (멀티PG 라우팅) | NFR-001 (500 TPS) | ADR-012 (Kafka) | POST /v1/payments | TC-001, TC-002 |
+| FR-002 (PG 페일오버) | NFR-003 (99.95%) | ADR-013 (서킷브레이커) | - | TC-003, TC-004, PT-002 |
+| FR-003 (결제수단 UI) | NFR-001 (p95 <2s) | - | GET /v1/payment-methods | TC-005 |
+
+미매핑 경고:
+- FR-004 (환불 처리): 테스트 케이스 미작성 -> TC-006 생성 필요
+- NFR-002 (PCI DSS): 보안 테스트 일정 미확정`}
+  language="markdown"
+  filename="문서 간 추적성 매트릭스"
+/>
+
+---
+
+## 실전 팁 모음
+
+### 문서 작성 시 흔한 실수
+
+<ComparisonTable
+  title="문서 작성 안티패턴과 개선 방법"
+  headers={['안티패턴', '문제점', '개선 방법']}
+  rows={[
+    { feature: '"빨라야 한다"', values: ['측정 불가, 합의 불가', '"p95 응답시간 300ms 이하"로 정량화'] },
+    { feature: '수용 기준 없는 요구사항', values: ['완료 판단 불가, QA 불가', 'Given-When-Then으로 검증 기준 명시'] },
+    { feature: '대안 없는 ADR', values: ['왜 이 결정인지 근거 부족', '최소 3개 대안 + 가중 점수 비교'] },
+    { feature: '에러 케이스 누락 ICD', values: ['클라이언트 에러 처리 불가', 'RFC 7807 에러 카탈로그 작성'] },
+    { feature: 'RTM 없는 테스트 계획', values: ['요구사항 누락 테스트 발생', '요구사항 ID별 테스트 매핑 필수'] },
+    { feature: '한번 쓰고 방치', values: ['문서와 코드 불일치', 'PR 리뷰 시 문서 업데이트 체크'] },
+  ]}
+/>
+
+### 문서 품질을 높이는 요청 패턴
+
+<Callout type="tip" title="Claude Code 문서 생성 베스트 프랙티스">
+  - **컨텍스트 먼저 제공**: `@docs/context.md`, `@docs/architecture.md` 등 배경 파일을 함께 건넵니다.
+  - **포맷 고정**: "마크다운 표", "ADR 템플릿", "Gherkin 수용 기준"처럼 원하는 출력 형식을 명시합니다.
+  - **식별자/상태 필수**: FR-001, TR-002처럼 ID와 상태(Draft/Accepted/Rejected)를 요구하면 추적성이 높아집니다.
+  - **수치로 요구**: 성능/보안 목표는 정량 수치(p95, TPS, MTTR, CVSS)를 넣어달라고 요청합니다.
+  - **검증 섹션 추가**: "리스크 & 완화책"이나 "수용 기준"을 반드시 포함시키면 리뷰가 빨라집니다.
+  - **기존 문서 참조**: 이미 작성된 FRD/TRD를 컨텍스트로 제공하면 일관성이 유지됩니다.
+  - **반복 개선**: 첫 초안 후 "수용 기준을 더 구체적으로", "리스크를 3개 더 추가해줘"처럼 점진적으로 개선합니다.
+</Callout>
+
+### 문서 디렉토리 구조 권장안
+
+<CodeBlock
+  code={`docs/
+├── context.md              # 프로젝트 전체 컨텍스트
+├── architecture.md         # 아키텍처 개요
+├── frd/
+│   ├── FRD-001-user-auth.md
+│   ├── FRD-002-payment.md
+│   └── FRD-003-notification.md
+├── trd/
+│   ├── TRD-001-user-auth.md
+│   └── TRD-002-payment.md
+├── adr/
+│   ├── 0001-database-selection.md
+│   ├── 0002-auth-strategy.md
+│   └── 0012-messaging-broker.md
+├── icd/
+│   ├── ICD-payment-service.md
+│   ├── ICD-user-service.md
+│   └── ICD-notification-service.md
+└── test/
+    ├── test-plan-v2.0.md
+    └── rtm-v2.0.md`}
+  language="text"
+  filename="문서 디렉토리 구조 권장안"
+/>
+
+### 문서 검토 자동화 Hook
+
+문서 변경 시 자동으로 품질을 검증하는 Hook을 설정할 수 있습니다.
+
+<CodeBlock
+  code={`{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "이 문서 변경이 다음 품질 기준을 충족하는지 확인하세요: 1) 식별자 체계 일관성 2) 정량 수치 포함 여부 3) 상호 참조 유효성. 문제가 있으면 지적하세요.",
+            "model": "haiku"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename=".claude/settings.json 문서 품질 Hook"
+/>
+
+---
+
+## 요약
+
+이 챕터에서 다룬 5가지 문서 유형의 핵심을 정리합니다:
+
+<ComparisonTable
+  title="문서별 핵심 포인트 요약"
+  headers={['문서', '핵심 질문', '가장 중요한 요소', 'Claude 활용 포인트']}
+  rows={[
+    { feature: 'FRD', values: ['사용자가 무엇을 원하는가?', 'Given-When-Then 수용 기준', 'Happy/Sad/Edge 시나리오 자동 생성'] },
+    { feature: 'TRD', values: ['어떤 수준으로 구현하는가?', '정량화된 품질 속성 목표', 'NFR 항목별 수치 자동 채우기'] },
+    { feature: 'ADR', values: ['왜 이 결정을 했는가?', '가중 점수 대안 분석', '대안 3개 장단점 자동 비교'] },
+    { feature: 'ICD', values: ['서비스 간 계약은 무엇인가?', 'RFC 7807 에러 체계', '소스 코드에서 API 스펙 자동 추출'] },
+    { feature: 'RTM', values: ['모든 요구사항이 검증되는가?', '요구사항-테스트 매핑 100%', 'FRD ID 기반 테스트 매핑 자동 생성'] },
+  ]}
+/>
+
+<Callout type="info" title="기억할 원칙">
+  문서는 "작성하고 잊어버리는 것"이 아니라, **코드와 함께 진화하는 살아있는 산출물**입니다.
+  AI로 초안을 빠르게 만들되, 반드시 사람이 검토하고 팀이 합의해야 합니다.
+  가장 좋은 문서는 가장 짧으면서도 필요한 정보를 모두 담은 문서입니다.
 </Callout>
 
 <ChapterNav
