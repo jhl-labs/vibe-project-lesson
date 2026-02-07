@@ -569,6 +569,103 @@ app.get('/api/orders/:id', authenticate, async (req, res) => {
 
 ---
 
+## SKILL.md 프론트매터 전체 옵션
+
+SKILL.md 파일의 YAML 프론트매터에서 사용 가능한 전체 옵션입니다.
+
+<CodeBlock
+  code={`---
+name: my-skill                      # 스킬 식별자 (필수)
+description: 스킬 설명               # Claude 자동 매칭에 사용 (필수)
+context: fork                       # fork: 독립 서브에이전트로 실행 (선택)
+model: sonnet                       # 사용할 모델 (opus, sonnet, haiku)
+tools: Read, Glob, Grep, Bash       # 사용 가능한 도구 목록
+disable-model-invocation: true      # Claude 자동 호출 차단
+user-invocable: false               # 사용자 수동 호출 차단
+allowed-tools: Bash, Read           # 허용 도구 제한
+max-turns: 10                       # 최대 에이전트 턴 수
+---`}
+  language="yaml"
+  filename="SKILL.md 프론트매터 전체 옵션"
+/>
+
+<ComparisonTable
+  headers={['옵션', '타입', '기본값', '설명']}
+  data={[
+    ['name', 'string', '(필수)', '스킬 식별자. /name으로 호출'],
+    ['description', 'string', '(필수)', 'Claude 자동 매칭에 사용되는 설명'],
+    ['context', '"fork" | 없음', '없음', 'fork 시 독립 서브에이전트로 실행'],
+    ['model', 'string', '(상속)', '사용할 모델 (opus/sonnet/haiku)'],
+    ['tools', 'string[]', '모든 도구', '스킬에서 사용 가능한 도구 제한'],
+    ['disable-model-invocation', 'boolean', 'false', 'true면 사용자만 호출 가능'],
+    ['user-invocable', 'boolean', 'true', 'false면 Claude만 자동 호출 가능'],
+    ['max-turns', 'number', '제한 없음', '에이전트 최대 턴 수'],
+  ]}
+/>
+
+## context: fork — 서브에이전트 격리 실행
+
+`context: fork`를 설정하면 스킬이 **독립된 서브에이전트**로 실행됩니다. 메인 세션의 컨텍스트를 보존하면서 무거운 작업을 분리 실행할 수 있습니다.
+
+<CodeBlock
+  code={`---
+name: deep-review
+description: 전체 코드베이스 심층 리뷰
+context: fork
+model: opus
+max-turns: 20
+---
+
+# Deep Code Review
+
+전체 코드베이스를 분석하고 아키텍처, 보안, 성능 관점에서 종합 리포트를 생성합니다.
+
+## 수행 절차
+1. 프로젝트 구조 분석
+2. 각 모듈별 코드 품질 평가
+3. 보안 취약점 스캔
+4. 성능 병목 식별
+5. 종합 리포트 생성`}
+  language="markdown"
+  filename=".claude/skills/deep-review/SKILL.md"
+/>
+
+<Callout type="tip" title="context: fork를 사용하면">
+  메인 세션의 컨텍스트 윈도우를 소비하지 않습니다. 대규모 분석 작업에서 특히 유용합니다.
+</Callout>
+
+## Lifecycle Hooks (스킬 내 Hook 정의)
+
+스킬 내부에서 Lifecycle Hook을 정의하여 스킬 실행 전후에 자동 작업을 수행할 수 있습니다.
+
+<CodeBlock
+  code={`---
+name: deploy
+description: 프로덕션 배포
+disable-model-invocation: true
+hooks:
+  pre:
+    - command: "npm test"
+      timeout: 120
+    - command: "npm run lint"
+      timeout: 30
+  post:
+    - command: "echo 'Deploy completed at $(date)' >> deploy.log"
+---
+
+# Production Deploy
+
+배포 전 테스트와 린트를 자동 실행하고, 배포 완료 후 로그를 기록합니다.`}
+  language="yaml"
+  filename=".claude/skills/deploy/SKILL.md"
+/>
+
+<Callout type="warning" title="위험한 스킬은 disable-model-invocation: true 필수">
+  deploy 같은 위험한 스킬은 반드시 disable-model-invocation: true를 설정하여 사용자가 명시적으로만 호출할 수 있도록 하세요.
+</Callout>
+
+---
+
 ## 스킬 호출 제어
 
 스킬의 프론트매터로 누가 호출할 수 있는지 제어합니다:
