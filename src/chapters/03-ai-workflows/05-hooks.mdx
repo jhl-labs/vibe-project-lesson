@@ -1226,7 +1226,7 @@ ELAPSED=$(( (END_TIME - START_TIME) / 1000000 ))
 
 # 100ms 이상이면 경고 로그
 if [ "$ELAPSED" -gt 100 ]; then
-  echo "[PERF] Hook took ${ELAPSED}ms for $FILE_PATH" >> /tmp/claude-hook-perf.log
+  echo "[PERF] Hook took \${ELAPSED}ms for $FILE_PATH" >> /tmp/claude-hook-perf.log
 fi
 
 exit 0`}

@@ -395,8 +395,8 @@ MAX_LINES=500
 CHANGED_LINES=$(git diff --stat HEAD~1 | tail -1 | awk '{print $4+$6}')
 
 if [ "$CHANGED_LINES" -gt "$MAX_LINES" ]; then
-  echo "WARNING: 이 커밋의 변경 라인 수가 ${CHANGED_LINES}줄입니다."
-  echo "PR 크기를 ${MAX_LINES}줄 이하로 유지하는 것을 권장합니다."
+  echo "WARNING: 이 커밋의 변경 라인 수가 \${CHANGED_LINES}줄입니다."
+  echo "PR 크기를 \${MAX_LINES}줄 이하로 유지하는 것을 권장합니다."
   echo ""
   echo "해결 방법:"
   echo "  1. 작업을 더 작은 단위로 분할하세요"
@@ -497,7 +497,7 @@ echo "AI 지원 커밋: $AI_COMMITS"
 # AI 커밋 비율
 if [ "$TOTAL" -gt 0 ]; then
   RATIO=$((AI_COMMITS * 100 / TOTAL))
-  echo "AI 커밋 비율: ${RATIO}%"
+  echo "AI 커밋 비율: \${RATIO}%"
 fi
 
 echo ""

@@ -371,14 +371,14 @@ AI 도구 도입이 이 지표에 어떤 영향을 미치는지 추적하면, �
 REPO="owner/repo"
 PERIOD_DAYS=30
 SINCE=$(date -d "$PERIOD_DAYS days ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || \
-        date -v-${PERIOD_DAYS}d +%Y-%m-%dT%H:%M:%SZ)
+        date -v-\${PERIOD_DAYS}d +%Y-%m-%dT%H:%M:%SZ)
 
 echo "=== DORA 메트릭 ($SINCE ~ 현재) ==="
 
 # 1. 배포 빈도 (Deployment Frequency)
 DEPLOYS=$(gh release list --repo "$REPO" --limit 500 \\
   | awk -v since="$SINCE" '$NF >= since' | wc -l)
-echo "배포 빈도: $DEPLOYS 회 / ${PERIOD_DAYS}일"
+echo "배포 빈도: $DEPLOYS 회 / \${PERIOD_DAYS}일"
 echo "  일 평균: $(echo "scale=1; $DEPLOYS / $PERIOD_DAYS" | bc) 회"
 
 # 2. 변경 리드타임 (Lead Time for Changes)
