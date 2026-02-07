@@ -58,7 +58,7 @@ Claude 4 시리즈는 2025년 5월부터 순차적으로 공개되었습니다.
     {
       date: '2026년 2월',
       title: 'Opus 4.6 출시',
-      description: 'Agent Teams 네이티브 지원, 1M 기본 컨텍스트, Adaptive Thinking 도입. 128K 출력 토큰.',
+      description: 'Agent Teams 네이티브 지원, 1M 컨텍스트(베타), Adaptive Thinking 도입. 128K 출력 토큰.',
       highlight: true,
     },
   ]}
@@ -98,7 +98,7 @@ Claude 4 시리즈는 2025년 5월부터 순차적으로 공개되었습니다.
 Opus 4.6은 Claude 모델 패밀리에서 **가장 강력한 추론 능력**과 함께 멀티 에이전트 아키텍처를 네이티브로 지원하는 플래그십 모델입니다.
 
 **핵심 특성:**
-- **1M 토큰 기본 컨텍스트**: 대규모 코드베이스 전체를 한번에 분석 가능
+- **1M 토큰 컨텍스트 (베타, tier 4+)**: 대규모 코드베이스 전체를 한번에 분석 가능
 - **128K 출력 토큰**: 복잡한 코드를 한 번의 응답으로 완성
 - **Agent Teams**: 여러 에이전트가 병렬로 협업하는 네이티브 멀티 에이전트
 - **Adaptive Thinking**: 작업 복잡도에 따라 사고 깊이를 자동 조절
@@ -171,11 +171,11 @@ SWE-bench는 실제 GitHub 이슈를 기반으로 한 코딩 능력 벤치마크
   title="SWE-bench Verified 점수 비교"
   headers={['모델', '점수', '비용(상대)', '설명']}
   rows={[
-    { feature: 'Opus 4.6 (Thinking)', values: ['79.2%', '높음', 'Agent Teams 지원, 128K 출력. 팀 협업 시 시너지'] },
+    { feature: 'Opus 4.6 (Thinking)', values: ['80.8%', '높음', 'Agent Teams 지원, 128K 출력. 팀 협업 시 시너지 ([Anthropic](https://www.anthropic.com/news/claude-opus-4-6))'] },
     { feature: 'Opus 4.5', values: ['80.9%', '높음', '단일 세션 최고. 80% 임계값 돌파'] },
     { feature: 'Sonnet 4.5', values: ['77.2%', '중간', '비용 대비 최고 효율. 일상 작업 최적'] },
     { feature: 'Haiku 4.5', values: ['73.3%', '낮음', '경량 모델 중 최고. 대량 처리 적합'] },
-    { feature: 'GPT-4o', values: ['38.4%', '중간', 'OpenAI 범용 모델'] },
+    { feature: 'GPT-4o', values: ['33.2%', '중간', 'OpenAI 범용 모델 (SWE-bench Verified 기준, [OpenAI](https://openai.com/index/introducing-swe-bench-verified/))'] },
     { feature: 'Gemini 2.5 Pro', values: ['63.8%', '중간', 'Google의 최신 모델'] },
   ]}
 />
@@ -186,7 +186,7 @@ SWE-bench는 실제 GitHub 이슈를 기반으로 한 코딩 능력 벤치마크
   title="주요 벤치마크 종합 비교 (2026년 2월 기준)"
   headers={['벤치마크', 'Opus 4.6', 'Sonnet 4.5', 'Haiku 4.5', '측정 영역']}
   rows={[
-    { feature: 'SWE-bench Verified', values: ['79.2%', '77.2%', '73.3%', '실제 GitHub 이슈 해결'] },
+    { feature: 'SWE-bench Verified', values: ['80.8%', '77.2%', '73.3%', '실제 GitHub 이슈 해결'] },
     { feature: 'GPQA Diamond', values: ['84.2%', '65.0%', '56.8%', '대학원 수준 과학/수학'] },
     { feature: 'MATH 500', values: ['96.4%', '88.0%', '82.8%', '수학 문제 해결'] },
     { feature: 'HumanEval', values: ['95.5%', '93.7%', '90.6%', '코드 생성 기본'] },
@@ -834,10 +834,10 @@ Managed Settings를 활용하면 팀별로 사용 가능한 모델을 제한할 
   title="주요 AI 코딩 모델 비교 (2026년 2월 기준)"
   headers={['모델', 'SWE-bench', '컨텍스트', '강점', '약점']}
   rows={[
-    { feature: 'Claude Opus 4.6', values: ['79.2%', '1M', 'Agent Teams, Adaptive Thinking, 보안 분석', '단일 벤치마크는 4.5보다 약간 낮음'] },
+    { feature: 'Claude Opus 4.6', values: ['80.8%', '1M (베타)', 'Agent Teams, Adaptive Thinking, 보안 분석', '비용이 높음'] },
     { feature: 'Claude Opus 4.5', values: ['80.9%', '200K', '단일 세션 최고 추론, 아키텍처', '멀티 에이전트 미지원'] },
     { feature: 'Claude Sonnet 4.5', values: ['77.2%', '200K', '비용 대비 최고 효율', '최상위 추론에는 한계'] },
-    { feature: 'GPT-4o', values: ['38.4%', '128K', '범용 대화, 멀티모달', '코딩 벤치마크 상대적 저조'] },
+    { feature: 'GPT-4o', values: ['33.2%', '128K', '범용 대화, 멀티모달', '코딩 벤치마크 상대적 저조'] },
     { feature: 'GPT-o3', values: ['71.7%', '200K', '체인 오브 소트, 수학', '고비용, 느린 속도'] },
     { feature: 'Gemini 2.5 Pro', values: ['63.8%', '1M', '긴 컨텍스트, Google 생태계', '코딩 성능 Claude 대비 낮음'] },
     { feature: 'DeepSeek V3', values: ['42.0%', '128K', '오픈소스, 셀프 호스팅 가능', '상용 모델 대비 성능 격차'] },

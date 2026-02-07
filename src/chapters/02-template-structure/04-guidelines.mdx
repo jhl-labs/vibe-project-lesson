@@ -836,12 +836,12 @@ jobs:
       # 3. AI 생성 코드 표기 확인
       - name: Check AI Attribution
         run: |
-          PR_BODY=$(gh pr view ${{ github.event.pull_request.number }} --json body -q '.body')
+          PR_BODY=$(gh pr view \${{ github.event.pull_request.number }} --json body -q '.body')
           if ! echo "$PR_BODY" | grep -qi "ai\|claude\|copilot\|agent"; then
             echo "::notice::AI 사용 여부가 PR 설명에 명시되지 않았습니다"
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`}
+          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}`}
   language="yaml"
   filename=".github/workflows/ai-code-review.yml"
 />
@@ -925,12 +925,12 @@ jobs:
           # 심각한 이슈가 있으면 PR에 코멘트
           if jq -e '.result | test("CRITICAL|HIGH")' review.json; then
             REVIEW=$(jq -r '.result' review.json)
-            gh pr comment ${{ github.event.pull_request.number }} \\
+            gh pr comment \${{ github.event.pull_request.number }} \\
               --body "## AI 보안 리뷰 결과\\n\\n$REVIEW"
           fi
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`}
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}`}
   language="yaml"
   filename="Claude Code Headless Mode CI/CD 연동"
 />
