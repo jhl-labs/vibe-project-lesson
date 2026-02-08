@@ -336,7 +336,8 @@ export COLORTERM=truecolor
 export TERM=xterm-256color
 
 # 3. Shift+Enter 키바인딩 (Claude Code 멀티라인)
-#    Preferences → Keys → Key Bindings
+#    iTerm2는 Shift+Enter를 기본 지원합니다 (별도 설정 불필요).
+#    동작하지 않을 경우: Preferences → Keys → Key Bindings
 #    + 버튼 → Shift+Enter → Send Hex Codes: 0x1b 0x0a
 
 # 4. 핫키로 빠른 접근
@@ -470,14 +471,14 @@ Claude Code의 주요 키바인딩입니다.
 | 키 | 기능 | 비고 |
 |-----|------|------|
 | **Enter** | 메시지 전송 | |
-| **Shift+Enter** | 줄바꿈 (멀티라인) | `/terminal-setup` 실행 필요 |
+| **Shift+Enter** | 줄바꿈 (멀티라인) | iTerm2, WezTerm, Ghostty, Kitty는 기본 지원. 그 외 `/terminal-setup` 실행 필요 |
 | **Escape (2회)** | 이전 메시지로 되돌리기 (rewind) | |
 | **Shift+Tab (2회)** | Plan Mode 전환 | 파일 수정 없이 탐색/계획만 |
 | **Tab** | 파일/경로 자동완성 | |
 
 <Callout type="warning" title="Shift+Enter 설정 필요">
-  Shift+Enter 줄바꿈은 기본적으로 작동하지 않을 수 있습니다.
-  `/terminal-setup` 명령을 실행하면 현재 터미널(VS Code, iTerm2, WezTerm 등)에 맞게 자동으로 설정됩니다.
+  Shift+Enter 줄바꿈은 iTerm2, WezTerm, Ghostty, Kitty에서는 기본 지원됩니다.
+  VS Code, Alacritty, Zed, Warp 등 다른 터미널에서는 `/terminal-setup` 명령을 실행하여 자동 설정하세요.
   수동 대안으로 `\` + Enter를 사용할 수도 있습니다.
   키바인딩 커스터마이징은 [공식 문서](https://code.claude.com/docs/en/keybindings)를 참조하세요.
 </Callout>
@@ -524,8 +525,9 @@ Claude Code의 주요 키바인딩입니다.
 # Claude Code 환경 변수
 # ──────────────────────────────
 export ANTHROPIC_API_KEY="sk-ant-..."  # 실제 키는 비밀 관리자 사용
-export CLAUDE_CODE_USE_BEDROCK=0       # AWS Bedrock 사용 시 1
-export CLAUDE_CODE_USE_VERTEX=0        # Google Vertex 사용 시 1
+# export CLAUDE_CODE_USE_BEDROCK=1     # AWS Bedrock 사용 시 설정
+# export CLAUDE_CODE_USE_VERTEX=1      # Google Vertex 사용 시 설정
+# 주의: 사용하지 않을 때는 변수 자체를 설정하지 마세요 (0으로 설정해도 감지될 수 있음)
 
 # ──────────────────────────────
 # Claude Code 별칭 (Aliases)
@@ -592,10 +594,9 @@ alias cc='claude'
 alias ccc='claude --continue'
 alias ccr='claude --resume'
 
-# Bash 자동완성 (claude CLI가 지원하는 경우)
-if command -v claude &> /dev/null; then
-  eval "$(claude completion bash 2>/dev/null)" || true
-fi
+# Bash 자동완성 (별도 플러그인 설치 필요)
+# https://github.com/cldotdev/claude-bash-completion 참조
+# Claude Code CLI 내부에서는 Tab 자동완성이 기본 지원됩니다
 
 # 프롬프트에 현재 프로젝트 표시
 parse_git_branch() {
@@ -654,7 +655,7 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
     ]
   },
   "env": {
-    "CLAUDE_CODE_MAX_TOKENS": "8192",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16384",
     "ANTHROPIC_MODEL": "claude-sonnet-4-20250514"
   },
   "preferredNotifChannel": "terminal_bell"
@@ -794,7 +795,7 @@ export PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # ~/projects/critical-service/.envrc
 export ANTHROPIC_MODEL="claude-opus-4-5-20251101"
-export CLAUDE_CODE_MAX_TURNS=50
+# --max-turns는 CLI 플래그로 사용: claude --max-turns 50
 
 # direnv 설치 및 활성화
 # macOS: brew install direnv
@@ -848,6 +849,7 @@ claude config set --global preferredNotifChannel terminal_bell
 <CodeBlock
   code={`# macOS 알림 (osascript 사용)
 # .claude/settings.json에 Hook으로 등록
+# Notification 훅은 stdin으로 JSON을 받습니다 (message 필드 포함)
 {
   "hooks": {
     "Notification": [
@@ -856,7 +858,7 @@ claude config set --global preferredNotifChannel terminal_bell
         "hooks": [
           {
             "type": "command",
-            "command": "osascript -e 'display notification \"$CLAUDE_NOTIFICATION_MESSAGE\" with title \"Claude Code\"'"
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify.sh"
           }
         ]
       }
@@ -864,18 +866,20 @@ claude config set --global preferredNotifChannel terminal_bell
   }
 }
 
-# Linux 알림 (notify-send 사용)
-# command: "notify-send 'Claude Code' '$CLAUDE_NOTIFICATION_MESSAGE'"
+# .claude/hooks/notify.sh 스크립트 예시:
+# #!/bin/bash
+# MESSAGE=$(cat | jq -r '.message // \"Claude Code 알림\"')
+# osascript -e "display notification \\"$MESSAGE\\" with title \\"Claude Code\\""
 
-# Windows 알림 (PowerShell)
-# command: "powershell -Command \\"[System.Windows.Forms.MessageBox]::Show('$CLAUDE_NOTIFICATION_MESSAGE', 'Claude Code')\\""
+# Linux: MESSAGE=$(cat | jq -r '.message'); notify-send 'Claude Code' "$MESSAGE"
+# Windows: PowerShell로 유사하게 stdin에서 JSON 파싱
 `}
   language="json"
   filename="플랫폼별 알림 Hook 설정"
 />
 
 <Callout type="info" title="알림 설정 문서">
-  Hooks를 활용한 알림 설정은 [Claude Code Hooks 문서](https://code.claude.com/docs/en/hooks-guide)를 참조하세요.
+  Hooks를 활용한 알림 설정은 [Claude Code Hooks 가이드](https://code.claude.com/docs/en/hooks-guide) 및 [Hooks 레퍼런스](https://code.claude.com/docs/en/hooks)를 참조하세요.
 </Callout>
 
 ---
@@ -1178,7 +1182,7 @@ data/raw/
     { feature: '서브트리 CLAUDE.md', values: ['불필요', '선택', '강력 권장'] },
     { feature: '.claude/rules/', values: ['불필요', '선택', '필수'] },
     { feature: '모델 선택', values: ['Sonnet', 'Sonnet', 'Sonnet (Opus는 복잡한 작업만)'] },
-    { feature: 'max_tokens', values: ['기본값', '기본값', '필요 시 조정'] },
+    { feature: 'max_output_tokens', values: ['기본값', '기본값', '필요 시 조정'] },
     { feature: '워크스페이스 분리', values: ['불필요', '선택', '모노레포 시 권장'] },
   ]}
 />
@@ -1283,7 +1287,7 @@ echo "Claude Code에서 /terminal-setup을 실행해주세요"
 
 # 5. Git hooks 설정
 echo "[5/6] Git hooks 설정..."
-npx husky install 2>/dev/null || true
+npx husky init 2>/dev/null || npx husky install 2>/dev/null || true
 
 # 6. 환경 변수 확인
 echo "[6/6] 환경 변수 확인..."
@@ -1382,13 +1386,13 @@ echo "  3. /terminal-setup으로 키바인딩 설정"`}
   rows={[
     { feature: 'macOS', values: ['13.0 (Ventura) 이상', '네이티브 설치 권장'] },
     { feature: 'Linux', values: ['Ubuntu 20.04+ / Debian 10+', '네이티브 설치 권장'] },
-    { feature: 'Windows', values: ['Windows 10 1809+', 'WSL 불필요, 네이티브 실행'] },
+    { feature: 'Windows', values: ['Windows 10 1809+', 'Git Bash 필요, 네이티브 또는 WSL 실행'] },
   ]}
 />
 
 <Callout type="tip" title="Windows 네이티브 지원">
-  Windows는 PowerShell/CMD에서 직접 실행됩니다. WSL이 필요하지 않습니다.
-  Git for Windows가 설치되어 있어야 합니다.
+  Windows에서는 네이티브 실행(Git Bash 필요) 또는 WSL 내 실행을 지원합니다.
+  네이티브 실행에는 [Git for Windows](https://git-scm.com/downloads/win)가 설치되어 있어야 합니다.
   설치 방법: `irm https://claude.ai/install.ps1 | iex`
   상세 설정은 [Claude Code 설치 문서](https://code.claude.com/docs/en/setup)를 참조하세요.
 </Callout>
