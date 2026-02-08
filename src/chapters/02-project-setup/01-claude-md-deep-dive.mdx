@@ -70,7 +70,7 @@ Claude Code는 여러 수준의 메모리 파일을 계층적으로 로드합니
     {
       name: 'Enterprise 정책',
       type: 'folder',
-      description: '조직 전체 (macOS: /Library/Application Support/ClaudeCode/)',
+      description: '조직 전체 (macOS: /Library/Application Support/ClaudeCode/, Linux: /etc/claude-code/)',
       children: [
         { name: 'CLAUDE.md', type: 'file', description: '회사 전체 보안 정책, 표준', highlight: true },
       ],
@@ -768,7 +768,7 @@ Claude Code는 `~/.claude/projects/` 디렉토리에 **영구적인 자동 메�
 
 ## Project Overview
 - Storybook 기반 MDX 교육 자료
-- 29개 챕터, 6개 파트 구성
+- 27개 챕터, 6개 파트 구성
 - 빌드: npm run build-storybook, 개발: npm run dev
 
 ## Key Patterns
@@ -1105,7 +1105,7 @@ project/
     { feature: '계층 구조', values: ['yes', 'partial', 'yes', 'no'] },
     { feature: '글로벌 설정', values: ['~/.claude/CLAUDE.md', 'VS Code settings', '~/.cursor/rules/', 'no'] },
     { feature: '조건부 적용', values: ['paths 프론트매터', '.instructions.md (applyTo)', 'globs 패턴', 'no'] },
-    { feature: '임포트 구문', values: ['@path/to/file', 'no', 'no', 'no'] },
+    { feature: '임포트 구문', values: ['@path/to/file', 'no', '@file 구문', 'no'] },
     { feature: '개인 설정 분리', values: ['CLAUDE.local.md', 'no', 'no', 'no'] },
     { feature: '자동 메모리', values: ['MEMORY.md', 'no', 'no', 'no'] },
     { feature: '서브트리 설정', values: ['하위 디렉토리 CLAUDE.md', 'no', 'no', 'no'] },
