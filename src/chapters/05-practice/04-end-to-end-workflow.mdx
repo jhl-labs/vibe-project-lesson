@@ -547,7 +547,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Claude Code
-        run: curl -fsSL https://claude.ai/install.sh | sh
+        run: curl -fsSL https://claude.ai/install.sh | bash
 
       - name: Run Claude Review
         env:
@@ -585,7 +585,7 @@ RUN apt-get update && apt-get install -y git curl && \\
     rm -rf /var/lib/apt/lists/*
 
 # Claude Code 설치 (네이티브 바이너리 권장)
-RUN curl -fsSL https://claude.ai/install.sh | sh
+RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # 프로젝트 설정
 WORKDIR /app
@@ -1025,7 +1025,7 @@ Anthropic과 기업들이 공개한 Agent Teams / 병렬 Claude Code 활용 사�
   headers={['사례', '규모', '성과']}
   rows={[
     { feature: 'C 컴파일러 구축 (Anthropic)', values: ['16 에이전트, 2,000 세션, $20K 비용', '100K줄 Rust 코드, Linux 6.9 컴파일, GCC torture test 99.1% 통과'] },
-    { feature: 'Ramp (핀테크 유니콘)', values: ['30일간 전사 적용, 50% 주간 채택', '100만줄+ AI 코드, 인시던트 응답 시간 80% 단축'] },
+    { feature: 'Ramp (핀테크 유니콘)', values: ['30일간 전사 적용, 50% 주간 채택', '100만줄+ AI 코드, 인시던트 분류 시간 최대 80% 단축'] },
     { feature: 'Anthropic 보안팀 내부', values: ['일상 업무 적용', '스택 트레이스 분석 + 런북 자동 생성으로 인시던트 대응 가속'] },
     { feature: 'Anthropic 마케팅팀', values: ['광고 자동화', '수백 개 광고 변형 생성 수시간 → 수분 (서브에이전트 파이프라인)'] },
   ]}
