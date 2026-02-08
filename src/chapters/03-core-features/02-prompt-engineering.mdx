@@ -658,34 +658,36 @@ Claude Code에서 특별한 의미를 가지는 키워드와 패턴들이 있습
   title="사고 깊이 제어 키워드"
   headers={['키워드/패턴', '효과', '사용 시점']}
   rows={[
-    { feature: '/effort max (또는 high/medium/low)', values: ['사고 깊이를 세밀하게 제어', '작업 복잡도에 따라 사고 수준 조정'] },
+    { feature: 'Effort Level (/model에서 좌우 화살표 또는 환경변수)', values: ['사고 깊이를 세밀하게 제어 (low/medium/high)', '작업 복잡도에 따라 사고 수준 조정'] },
     { feature: '"ultrathink" (스킬 내 사용)', values: ['스킬 내에서 extended thinking 활성화', '스킬 본문에 포함하여 깊은 사고 유도'] },
     { feature: '"think harder"', values: ['더 깊은 사고 유도', '첫 답변이 불충분했을 때 재사고 요청'] },
     { feature: '"간단하게"', values: ['최소 사고로 빠른 응답', '단순한 수정, 보일러플레이트 생성'] },
-    { feature: 'Plan Mode (Shift+Tab 2회)', values: ['코드 수정 없이 분석/계획만', '구현 전 전략 수립, 코드베이스 탐색'] },
+    { feature: 'Plan Mode (Shift+Tab 2회 또는 /plan)', values: ['코드 수정 없이 분석/계획만', '구현 전 전략 수립, 코드베이스 탐색'] },
   ]}
 />
 
 <Callout type="info" title="ultrathink/megathink 키워드 변경 사항">
   초기 Claude Code에서는 "think", "megathink", "ultrathink" 키워드로 사고 깊이를 제어했습니다.
-  현재는 extended thinking이 기본 활성화되어 있으며, `/effort` 커맨드(low/medium/high/max)로
-  세밀한 제어가 가능합니다. 다만, 스킬(SKILL.md) 본문에 "ultrathink"을 포함하면 해당 스킬에서
+  현재는 extended thinking이 기본 활성화되어 있으며, `/model`에서 좌우 화살표로 effort level(low/medium/high)을
+  조정하거나 환경변수 `CLAUDE_CODE_EFFORT_LEVEL`로 설정할 수 있습니다. (API에서는 `max` 레벨도 지원)
+  다만, 스킬(SKILL.md) 본문에 "ultrathink"을 포함하면 해당 스킬에서
   extended thinking이 활성화되는 기능은 여전히 공식 지원됩니다.
 </Callout>
 
 <CodeBlock
-  code={`# 사고 깊이 제어 (/effort 커맨드)
-/effort max
+  code={`# 사고 깊이 제어 (effort level)
+# /model 실행 후 좌우 화살표로 effort를 high로 설정
+# 또는 환경변수: CLAUDE_CODE_EFFORT_LEVEL=high
 "이 마이크로서비스 간 순환 의존성 문제를 분석하고
 해결 방안을 제시해줘. 서비스 A→B→C→A 순환이 발생하고 있어"
 
 # Plan Mode 활용 (분석만, 수정 없음)
-# Shift+Tab 2회로 Plan Mode 진입 후:
+# Shift+Tab 2회 또는 /plan 으로 Plan Mode 진입 후:
 "이 프로젝트의 인증 시스템 전체 흐름을 분석해줘.
 로그인부터 토큰 갱신, 로그아웃까지의 플로우를 파악해줘"
 
 # 간단한 작업 (빠른 처리)
-/effort low
+# /model 실행 후 좌우 화살표로 effort를 low로 설정
 "이 변수명을 userName에서 currentUserName으로 바꿔줘"`}
   language="text"
   filename="사고 깊이 제어 예시"
@@ -833,7 +835,7 @@ Opus 4.5는 불필요한 추상화나 추가 파일을 생성하는 경향이 �
 "이 문제를 해결하기 전에 먼저 가능한 접근 방식들을 나열하고,
 각각의 장단점을 평가한 뒤 최선의 방법을 선택해줘"
 
-# Plan Mode 활용 (Shift+Tab)
+# Plan Mode 활용 (Shift+Tab 2회 또는 /plan)
 # Plan Mode에서는 Claude가 코드를 수정하지 않고
 # 탐색과 계획만 수행합니다`}
   language="text"

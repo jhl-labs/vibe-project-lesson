@@ -29,7 +29,7 @@ Claude Code의 슬래시 커맨드는 크게 **내장 커맨드**와 **커스텀
     { feature: '설정 파일', values: ['없음 (내장)', '.claude/commands/*.md'] },
     { feature: '커스터마이징', values: ['no', 'yes'] },
     { feature: '인자 지원', values: ['커맨드별 상이', '$ARGUMENTS로 자유롭게'] },
-    { feature: '프론트매터', values: ['해당 없음', 'context, description, allowed-tools 등'] },
+    { feature: '프론트매터', values: ['해당 없음', 'description, allowed-tools, argument-hint, model 등'] },
     { feature: '예시', values: ['/init, /clear, /help', '/commit, /pr, /review'] },
   ]}
 />
@@ -50,7 +50,9 @@ Claude Code의 슬래시 커맨드는 크게 **내장 커맨드**와 **커스텀
 | `/compact` | 컨텍스트 압축 (긴 세션에서 메모리 효율화) | 토큰 한도 접근 시, 긴 대화 후 |
 | `/cost` | 현재 세션의 토큰 사용량 및 비용 확인 | 비용 모니터링 시 |
 | `/status` | 현재 git 상태 및 세션 정보 확인 | 작업 상태 점검 시 |
+| `/context` | 컨텍스트 윈도우 사용량 시각화 | 컨텍스트 사용 현황 확인 시 |
 | `/model` | 사용할 AI 모델 변경 | 모델 전환 시 (Sonnet, Opus 등) |
+| `/resume` | 이전 세션 이어서 진행 | 세션 복원 시 |
 | `/login` | Anthropic 계정 로그인 | 최초 설정 시 |
 | `/logout` | Anthropic 계정 로그아웃 | 계정 전환 시 |
 
@@ -67,6 +69,8 @@ Claude Code의 슬래시 커맨드는 크게 **내장 커맨드**와 **커스텀
 | `/vim` | Vim 키 바인딩 모드 전환 | 에디터 키바인딩 변경 시 |
 | `/terminal-setup` | 터미널 통합 설정 | 터미널 최초 설정 시 |
 | `/install-github-app` | GitHub App 설치 (PR 자동 리뷰 등) | CI/CD 연동 시 |
+| `/add-dir` | 추가 작업 디렉토리 등록 | 다중 디렉토리 작업 시 |
+| `/agents` | 서브에이전트 관리 | 에이전트 생성/편집 시 |
 
 ### 개발 지원
 
@@ -74,6 +78,7 @@ Claude Code의 슬래시 커맨드는 크게 **내장 커맨드**와 **커스텀
 |--------|------|---------------|
 | `/review` | 코드 리뷰 (내장) | 코드 검토 시 |
 | `/bug` | 버그 리포트 제출 | Claude Code 버그 발견 시 |
+| `/export` | 대화 내용 내보내기 | 대화 저장 시 |
 
 ### 주요 내장 커맨드 상세
 
@@ -196,8 +201,9 @@ context:
 |------|------|------|
 | `description` | string | 커맨드 설명. `/` 입력 시 목록에 표시됨. Claude가 자동 매칭에도 활용 |
 | `allowed-tools` | string (쉼표 구분) | 커맨드 실행 중 사용할 수 있는 도구 제한. 미지정 시 모든 도구 허용 |
-| `context` | array | 커맨드 실행 전에 자동으로 로드할 컨텍스트 (파일, URL, 디렉토리) |
-| `context: fork` | string | "fork" 지정 시 독립된 서브에이전트에서 실행 (메인 컨텍스트 오염 방지) |
+| `model` | string | 커맨드 실행 시 사용할 모델 지정 (opus, sonnet, haiku) |
+| `argument-hint` | string | 자동완성 시 인자 형식 힌트 (예: `[issue-number]`) |
+| `context` | string | `"fork"` 지정 시 독립된 서브에이전트에서 실행 (메인 컨텍스트 오염 방지) |
 
 ### $ARGUMENTS — 커맨드 인자 활용
 
@@ -230,40 +236,34 @@ $ARGUMENTS 파일에 대한 테스트 코드를 생성합니다.
   filename="$ARGUMENTS 활용 예시"
 />
 
-<Callout type="info" title="인덱스 접근">
-  Claude Code v2.1+에서는 `$ARGUMENTS`에 대한 인덱스 접근도 지원합니다.
-  `$ARGUMENTS[0]`은 첫 번째 인자, `$ARGUMENTS[1]`은 두 번째 인자를 참조합니다.
-  `$0`, `$1` 등의 축약형도 사용할 수 있습니다.
+<Callout type="info" title="위치 인자 접근">
+  Claude Code에서는 `$ARGUMENTS`로 전체 인자 문자열을 참조하고,
+  `$1`, `$2`, `$3` 등으로 개별 위치 인자에 접근할 수 있습니다.
+  예를 들어 `/fix-issue 123 high` 실행 시 `$1`은 "123", `$2`는 "high"를 참조합니다.
 </Callout>
 
-### context 옵션 — 자동 컨텍스트 로드
+### 파일 참조와 명령 실행 — 자동 컨텍스트 로드
 
-커맨드 실행 시 자동으로 참조할 파일이나 URL을 지정합니다. 커맨드가 항상 동일한 규칙이나 참조 문서를 필요로 할 때 유용합니다.
+커맨드 본문에서 `@파일명`으로 파일 내용을 참조하고, `` !`명령어` ``로 셸 명령 결과를 포함할 수 있습니다. 커맨드가 항상 동일한 규칙이나 참조 문서를 필요로 할 때 유용합니다.
 
 <CodeBlock
   code={`---
 description: "코드 리뷰 수행"
-context:
-  # 로컬 파일 참조
-  - type: file
-    path: .claude/rules/conventions.md
-
-  # 디렉토리 내 모든 파일 참조
-  - type: directory
-    path: src/domain/
-
-  # 외부 URL 참조
-  - type: url
-    url: https://owasp.org/www-project-top-ten/
-
-  # 현재 git diff 참조
-  - type: command
-    command: git diff --staged
+allowed-tools: Read, Grep, Glob, Bash(git diff:*)
 ---
 
-위 컨텍스트를 기반으로 코드 리뷰를 수행합니다.`}
+## 컨텍스트
+
+- 코딩 컨벤션: @.claude/rules/conventions.md
+- 현재 변경사항: !\`git diff --staged\`
+- 변경된 파일 목록: !\`git diff --name-only HEAD~1\`
+
+## 리뷰 규칙
+
+위 컨텍스트를 기반으로 코드 리뷰를 수행합니다.
+보안 취약점, 코드 품질, 컨벤션 준수 여부를 확인합니다.`}
   language="markdown"
-  filename="context 옵션 예시"
+  filename="파일 참조 및 명령 실행 예시"
 />
 
 ### allowed-tools — 도구 제한
@@ -1110,11 +1110,10 @@ allowed-tools: Read, Glob, Grep
   `.claude/skills/` 디렉토리의 해당 스킬 파일도 함께 조정하세요.
 </Callout>
 
-<Callout type="info" title="Claude Code v2.1+ 커맨드/스킬 통합 (2026.01 출시)">
-  Claude Code v2.1부터 `.claude/commands/`와 `.claude/skills/` 디렉토리가 통합되었습니다.
-  마크다운 파일을 `.claude/commands/` 디렉토리에 두면 `/파일명`으로 호출할 수 있습니다.
-  `$ARGUMENTS` 변수로 인자를 받을 수 있고, `context: fork` 프론트매터로 독립된 서브에이전트로 실행할 수 있습니다.
-  인덱스 접근도 가능합니다: `$ARGUMENTS[0]` (첫 번째 인자), `$0`, `$1` 등의 축약형도 지원됩니다.
+<Callout type="info" title="Claude Code v2.1.3 커맨드/스킬 통합">
+  Claude Code v2.1.3에서 슬래시 커맨드와 스킬이 통합되었습니다. `.claude/commands/`와 `.claude/skills/` 디렉토리 모두에서 마크다운 파일을 정의하면 `/파일명`으로 호출할 수 있습니다.
+  `$ARGUMENTS` 변수로 전체 인자를 받을 수 있고, `$1`, `$2` 등으로 개별 위치 인자에 접근할 수 있습니다.
+  `context: fork` 프론트매터를 추가하면 독립된 서브에이전트에서 실행됩니다.
 </Callout>
 
 ---
@@ -1608,16 +1607,16 @@ OWASP Top 10 기반으로 6가지 주요 취약점 패턴을 탐지합니다. �
 
 | 순위 | 취약점 (OWASP 2025) | 검사 내용 |
 |------|--------|----------|
-| A01 | 접근 제어 취약점 | 권한 검증, 직접 객체 참조 |
-| A02 | 보안 설정 오류 | 기본 설정, 불필요한 기능 |
-| A03 | 소프트웨어 공급망 취약점 | 의존성 스캔, lock 파일, 서드파티 검증 |
-| A04 | 암호화 실패 | 평문 저장, 약한 알고리즘 |
-| A05 | 인젝션 | SQL, NoSQL, OS, LDAP 인젝션 |
-| A06 | 불안전한 설계 | 위협 모델링, 보안 패턴 |
-| A07 | 인증 실패 | 세션 관리, 비밀번호 정책 |
-| A08 | 무결성 실패 | 서명 검증, 데이터 무결성 |
-| A09 | 로깅 및 알림 실패 | 감사 로그, 알림 |
-| A10 | 예외 처리 미흡 | 에러 핸들링, fail-open 방지 |
+| A01 | 접근 제어 취약점 (Broken Access Control) | 권한 검증, 직접 객체 참조 |
+| A02 | 보안 설정 오류 (Security Misconfiguration) | 기본 설정, 불필요한 기능 |
+| A03 | 소프트웨어 공급망 취약점 (Supply Chain Failures) | 의존성 스캔, lock 파일, 서드파티 검증 |
+| A04 | 암호화 실패 (Cryptographic Failures) | 평문 저장, 약한 알고리즘 |
+| A05 | 인젝션 (Injection) | SQL, NoSQL, OS, LDAP 인젝션 |
+| A06 | 불안전한 설계 (Insecure Design) | 위협 모델링, 보안 패턴 |
+| A07 | 인증 실패 (Authentication Failures) | 세션 관리, 비밀번호 정책 |
+| A08 | 소프트웨어/데이터 무결성 실패 (Integrity Failures) | 서명 검증, 데이터 무결성 |
+| A09 | 로깅 및 알림 실패 (Logging & Alerting Failures) | 감사 로그, 알림 |
+| A10 | 예외 처리 미흡 (Mishandling Exceptional Conditions) | 에러 핸들링, fail-open 방지 |
 
 ### 취약한 코드 vs 안전한 코드
 
@@ -1683,7 +1682,6 @@ SKILL.md 파일의 YAML 프론트매터에서 사용 가능한 전체 옵션입�
 name: my-skill                      # 스킬 식별자 (선택, 미지정 시 디렉토리명 사용)
 description: 스킬 설명               # Claude 자동 매칭에 사용 (권장)
 context: fork                       # fork: 독립 서브에이전트로 실행 (선택)
-agent: Explore                      # 서브에이전트 타입 (context: fork 시 사용)
 model: sonnet                       # 사용할 모델 (opus, sonnet, haiku)
 allowed-tools: Bash, Read           # 허용 도구 제한
 disable-model-invocation: true      # Claude 자동 호출 차단
@@ -1696,17 +1694,15 @@ argument-hint: "[issue-number]"     # 자동완성 시 인자 힌트
 
 <ComparisonTable
   headers={['옵션', '타입', '기본값', '설명']}
-  data={[
-    ['name', 'string', '(선택)', '스킬 식별자. 미지정 시 디렉토리명 사용. /name으로 호출'],
-    ['description', 'string', '(권장)', 'Claude 자동 매칭에 사용되는 설명. 미지정 시 본문 첫 단락 사용'],
-    ['argument-hint', 'string', '없음', '자동완성 시 인자 형식 힌트 (예: [issue-number])'],
-    ['context', '"fork" | 없음', '없음', 'fork 시 독립 서브에이전트로 실행'],
-    ['agent', 'string', 'general-purpose', 'context: fork 시 사용할 서브에이전트 타입'],
-    ['model', 'string', '(상속)', '사용할 모델 (opus/sonnet/haiku)'],
-    ['allowed-tools', 'string', '모든 도구', '스킬 활성 시 허용할 도구 제한'],
-    ['disable-model-invocation', 'boolean', 'false', 'true면 사용자만 호출 가능'],
-    ['user-invocable', 'boolean', 'true', 'false면 Claude만 자동 호출 가능'],
-    ['hooks', 'object', '없음', '스킬 라이프사이클에 스코프된 Hook 정의'],
+  rows={[
+    { feature: 'name', values: ['string', '(선택)', '스킬 식별자. 미지정 시 디렉토리명 사용. /name으로 호출'] },
+    { feature: 'description', values: ['string', '(권장)', 'Claude 자동 매칭에 사용되는 설명. 미지정 시 본문 첫 단락 사용'] },
+    { feature: 'argument-hint', values: ['string', '없음', '자동완성 시 인자 형식 힌트 (예: [issue-number])'] },
+    { feature: 'context', values: ['"fork" | 없음', '없음', 'fork 시 독립 서브에이전트로 실행'] },
+    { feature: 'model', values: ['string', '(상속)', '사용할 모델 (opus/sonnet/haiku)'] },
+    { feature: 'allowed-tools', values: ['string', '모든 도구', '스킬 활성 시 허용할 도구 제한'] },
+    { feature: 'disable-model-invocation', values: ['boolean', 'false', 'true면 사용자만 호출 가능'] },
+    { feature: 'user-invocable', values: ['boolean', 'true', 'false면 Claude만 자동 호출 가능'] },
   ]}
 />
 
@@ -1720,7 +1716,6 @@ name: deep-review
 description: 전체 코드베이스 심층 리뷰
 context: fork
 model: opus
-max-turns: 20
 ---
 
 # Deep Code Review
@@ -1751,18 +1746,21 @@ name: deploy
 description: 프로덕션 배포
 disable-model-invocation: true
 hooks:
-  pre:
-    - command: "npm test"
-      timeout: 120
-    - command: "npm run lint"
-      timeout: 30
-  post:
-    - command: "echo 'Deploy completed at $(date)' >> deploy.log"
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "./scripts/pre-deploy-check.sh"
+  Stop:
+    - hooks:
+        - type: command
+          command: "echo 'Deploy completed at $(date)' >> deploy.log"
 ---
 
 # Production Deploy
 
-배포 전 테스트와 린트를 자동 실행하고, 배포 완료 후 로그를 기록합니다.`}
+배포 전 셸 명령 실행 시 자동으로 사전 점검을 수행하고,
+스킬 종료 시 배포 로그를 기록합니다.`}
   language="yaml"
   filename=".claude/skills/deploy/SKILL.md"
 />
@@ -1815,8 +1813,9 @@ Claude가 임의로 실행하지 않습니다.`}
 />
 
 <Callout type="tip" title="Claude Code에서 스킬 실행">
-  Claude Code v2.1+에서는 `.claude/commands/` 또는 `.claude/skills/` 디렉토리에 마크다운 파일을 두면
-  `/파일명`으로 호출할 수 있습니다. 프론트매터에 `context: fork`를 추가하면 독립된 서브에이전트로 실행됩니다.
+  Claude Code v2.1.3 이후 `.claude/commands/`와 `.claude/skills/` 디렉토리가 통합되어,
+  어느 디렉토리든 마크다운 파일을 두면 `/파일명`으로 호출할 수 있습니다.
+  프론트매터에 `context: fork`를 추가하면 독립된 서브에이전트로 실행됩니다.
 </Callout>
 
 <ChapterNav
