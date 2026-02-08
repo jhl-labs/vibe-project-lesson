@@ -1,0 +1,1095 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { FileTree } from '../../components/FileTree';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 5: 실전 예제/TypeScript API" />
+
+# TypeScript API 예제
+
+> Claude Code에 프롬프트를 입력하여 Clean Architecture API를 처음부터 만들어보기
+
+이 챕터에서는 코드를 직접 작성하지 않습니다. **Claude Code에 프롬프트를 입력**하고, 생성된 결과를 확인하며, 각 단계에서 **어떤 아키텍처 개념이 적용되었는지** 학습합니다. 프로젝트 초기화부터 JWT 인증, 데이터베이스 연동, 테스트, API 문서화까지 전체 과정을 다룹니다.
+
+## 완성 목표
+
+<MermaidDiagram
+  chart={`flowchart TB
+    A["HTTP Request"] --> B["Presentation Layer\n(Controller + Middleware)"]
+    B --> C["Application Layer\n(Use Case)"]
+    C --> D["Domain Layer\n(Entity + Value Object)"]
+    C --> E["Infrastructure Layer\n(Repository + Auth)"]
+    E --> F["Database / External Service"]
+    B --> G["Swagger/OpenAPI Docs"]
+    style D fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style E fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style G fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26`}
+  title="Clean Architecture 레이어 구조"
+  caption="의존성 방향: Presentation -> Application -> Domain <- Infrastructure"
+/>
+
+10개의 실습을 순서대로 진행하면 위 구조의 API가 완성됩니다. 각 실습은 **하나의 프롬프트**로 이루어지며, `npm install && npm run dev`만으로 실행 가능합니다.
+
+## 최종 프로젝트 구조
+
+<FileTree
+  title="examples/typescript-api/"
+  data={[
+    {
+      name: 'src/',
+      type: 'folder',
+      children: [
+        {
+          name: 'domain/',
+          type: 'folder',
+          description: '비즈니스 로직 (순수, 의존성 없음)',
+          highlight: true,
+          children: [
+            {
+              name: 'user/',
+              type: 'folder',
+              children: [
+                { name: 'entity.ts', type: 'file', description: 'User 엔터티' },
+                { name: 'repository.ts', type: 'file', description: 'Repository 인터페이스' },
+                { name: 'value-objects.ts', type: 'file', description: '값 객체 (Email, Password)' },
+              ],
+            },
+            {
+              name: 'shared/',
+              type: 'folder',
+              children: [
+                { name: 'result.ts', type: 'file', description: 'Result 패턴 (Either 모나드)' },
+                { name: 'errors.ts', type: 'file', description: '도메인 에러 클래스' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'application/',
+          type: 'folder',
+          description: '유스케이스 (비즈니스 흐름 조율)',
+          highlight: true,
+          children: [
+            {
+              name: 'user/',
+              type: 'folder',
+              children: [
+                { name: 'create-user.ts', type: 'file', description: '사용자 생성 유스케이스' },
+                { name: 'get-user.ts', type: 'file', description: '사용자 조회 유스케이스' },
+                { name: 'authenticate-user.ts', type: 'file', description: '로그인 유스케이스' },
+                { name: 'dtos.ts', type: 'file', description: 'DTO 정의' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'infrastructure/',
+          type: 'folder',
+          description: '저장소 구현체 + 외부 서비스',
+          children: [
+            {
+              name: 'persistence/',
+              type: 'folder',
+              children: [
+                { name: 'in-memory-user-repository.ts', type: 'file', description: 'InMemory 구현체' },
+                { name: 'prisma-user-repository.ts', type: 'file', description: 'Prisma 구현체' },
+              ],
+            },
+            {
+              name: 'auth/',
+              type: 'folder',
+              children: [
+                { name: 'jwt-service.ts', type: 'file', description: 'JWT 토큰 서비스' },
+              ],
+            },
+            {
+              name: 'di/',
+              type: 'folder',
+              children: [
+                { name: 'container.ts', type: 'file', description: '의존성 주입 컨테이너' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'presentation/',
+          type: 'folder',
+          description: 'HTTP 컨트롤러',
+          children: [
+            {
+              name: 'http/',
+              type: 'folder',
+              children: [
+                { name: 'user-controller.ts', type: 'file', description: 'REST API' },
+                { name: 'auth-controller.ts', type: 'file', description: '인증 API' },
+              ],
+            },
+            {
+              name: 'middleware/',
+              type: 'folder',
+              children: [
+                { name: 'error-handler.ts', type: 'file', description: '에러 처리' },
+                { name: 'auth-middleware.ts', type: 'file', description: 'JWT 인증 미들웨어' },
+                { name: 'request-logger.ts', type: 'file', description: '요청 로깅' },
+              ],
+            },
+            {
+              name: 'docs/',
+              type: 'folder',
+              children: [
+                { name: 'swagger.ts', type: 'file', description: 'OpenAPI 설정' },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'tests/',
+      type: 'folder',
+      children: [
+        { name: 'unit/', type: 'folder', children: [
+          { name: 'user-entity.test.ts', type: 'file', description: '엔터티 단위 테스트' },
+          { name: 'create-user.test.ts', type: 'file', description: '유스케이스 단위 테스트' },
+          { name: 'result.test.ts', type: 'file', description: 'Result 패턴 테스트' },
+        ]},
+        { name: 'integration/', type: 'folder', children: [
+          { name: 'user-api.test.ts', type: 'file', description: 'API 통합 테스트' },
+          { name: 'auth-api.test.ts', type: 'file', description: '인증 통합 테스트' },
+        ]},
+      ],
+    },
+    { name: 'prisma/', type: 'folder', children: [
+      { name: 'schema.prisma', type: 'file', description: 'Prisma 스키마' },
+    ]},
+    { name: 'package.json', type: 'file' },
+    { name: 'tsconfig.json', type: 'file' },
+  ]}
+/>
+
+---
+
+## 실습 1: CLAUDE.md 작성 + 프로젝트 초기화
+
+첫 번째 단계는 **CLAUDE.md를 먼저 작성**한 뒤, 프로젝트를 초기화하는 것입니다.
+
+<CodeBlock
+  code={`CLAUDE.md를 생성해줘. 내용은 다음과 같아:
+- 프로젝트: Express + Jest 기반 Clean Architecture API
+- 저장소: InMemoryRepository (Map 기반, DB 없음) + Prisma(선택)
+- 아키텍처: domain/ -> application/ -> infrastructure/ -> presentation/
+- domain은 외부 의존성 금지, application은 domain 인터페이스만 의존
+- 파일명 kebab-case, 클래스 PascalCase, Conventional Commits
+- 테스트: jest.Mocked로 Repository mock, supertest로 통합 테스트
+- 에러 처리: Result 패턴 사용 (throw 대신 Result<T, E> 반환)
+- 인증: JWT (Access Token + Refresh Token)`}
+  language="text"
+  filename="프롬프트 1-1: CLAUDE.md 생성"
+/>
+
+<CodeBlock
+  code={`Express + Jest + TypeScript 프로젝트를 초기화해줘.
+Clean Architecture 구조로 다음 디렉토리를 생성해:
+- src/domain/user/
+- src/domain/shared/
+- src/application/user/
+- src/infrastructure/persistence/
+- src/infrastructure/auth/
+- src/infrastructure/di/
+- src/presentation/http/
+- src/presentation/middleware/
+- src/presentation/docs/
+- tests/unit/
+- tests/integration/
+
+tsconfig.json은 strict 모드 + paths alias 설정하고,
+Jest는 ts-jest로 TypeScript를 지원하게 해줘.
+ESLint + Prettier도 설정해줘.`}
+  language="text"
+  filename="프롬프트 1-2: 프로젝트 초기화"
+/>
+
+### Claude가 생성하는 것
+
+- `package.json` -- Express, Jest, TypeScript, bcrypt, jsonwebtoken 등 의존성이 설정된 파일
+- `tsconfig.json` -- strict 모드 + `@/domain/*`, `@/application/*` 등 경로 별칭 설정
+- `jest.config.js` -- ts-jest 프리셋 + 경로 매핑이 적용된 Jest 설정
+- `.eslintrc.js` / `.prettierrc` -- 코드 품질 도구 설정
+- 위 FileTree에 표시된 디렉토리 구조
+
+### 여기서 배우는 것
+
+<Callout type="info" title="CLAUDE.md를 먼저 만드는 이유">
+  Claude Code는 세션 시작 시 **CLAUDE.md를 자동으로 읽습니다**. 아키텍처 규칙과 컨벤션을 여기에 명시하면, 이후 모든 프롬프트에서 "Clean Architecture를 따라줘", "kebab-case로 해줘" 같은 반복 지시가 필요 없습니다. **한 번 정의하면 전체 세션에서 일관성이 유지됩니다.**
+</Callout>
+
+<Callout type="tip" title="tsconfig paths의 효과">
+  경로 별칭을 설정하면 `import { User } from '../../../domain/user/entity'` 대신 `import { User } from '@/domain/user/entity'`로 간결하게 작성할 수 있습니다. Claude Code도 이 별칭을 인식하여 일관된 import를 생성합니다.
+</Callout>
+
+---
+
+## 실습 2: Domain Layer -- 비즈니스 규칙의 핵심
+
+<CodeBlock
+  code={`src/domain/user/ 아래에 다음 파일을 구현해줘:
+1. value-objects.ts: Email 값 객체 (정규식 검증, 소문자 변환, equals 비교)
+2. entity.ts: User 엔터티
+   - private constructor + create() 팩토리 메서드
+   - reconstitute()로 저장소에서 복원
+   - activate/deactivate 상태 전이 (pending->active->inactive)
+3. repository.ts: IUserRepository 인터페이스 (findById, findByEmail, save)
+
+Domain Layer는 외부 의존성 없이 순수 TypeScript로만 작성해.`}
+  language="text"
+  filename="프롬프트 2: Domain Layer"
+/>
+
+### Claude가 생성하는 것
+
+- **`value-objects.ts`** -- `Email` 클래스. `new Email()`이 아닌 `Email.create()`로만 생성 가능하며, 잘못된 이메일 형식은 생성 시점에 거부됨
+- **`entity.ts`** -- `User` 클래스. 상태 전이 규칙이 메서드 안에 캡슐화됨 (`pending`에서만 `activate()` 가능)
+- **`repository.ts`** -- `IUserRepository` 인터페이스. **구현이 아닌 계약**만 정의
+
+### 여기서 배우는 것
+
+<Callout type="info" title="Domain Layer의 핵심 원칙 3가지">
+  **1. 외부 의존성 제로** -- 생성된 코드에서 `import`를 확인해보세요. Express, DB 라이브러리 등 외부 패키지가 하나도 없습니다. 순수 TypeScript만으로 작성됩니다.
+
+  **2. 자기 검증(Self-validating)** -- `Email.create("invalid")`를 호출하면 즉시 에러가 발생합니다. 잘못된 데이터가 시스템에 유입되는 것을 **타입 레벨에서 차단**합니다.
+
+  **3. 인터페이스로 경계 정의** -- `IUserRepository`는 "데이터를 어디에 저장할지"를 Domain이 결정하지 않겠다는 선언입니다. 이 인터페이스 덕분에 나중에 InMemory든 PostgreSQL이든 자유롭게 교체할 수 있습니다.
+</Callout>
+
+<Callout type="tip" title="확인 포인트">
+  생성된 `entity.ts`를 열어보세요. `activate()` 메서드 안에 `if (this._status !== 'pending')` 조건이 있나요? 이것이 **비즈니스 규칙의 캡슐화**입니다 -- 상태 전이 규칙이 컨트롤러나 서비스가 아닌 엔터티 자체에 존재합니다.
+</Callout>
+
+---
+
+## 실습 3: TypeScript 타입 시스템 심화 -- Result 패턴
+
+에러 처리를 `throw`가 아닌 **타입 안전한 Result 패턴**으로 구현합니다.
+
+<CodeBlock
+  code={`src/domain/shared/ 아래에 다음을 구현해줘:
+
+1. result.ts: Result<T, E> 타입
+   - Success<T>와 Failure<E> 두 가지 상태
+   - map, flatMap, getOrElse, getOrThrow 메서드
+   - Generic + Conditional Types 활용
+   - 함수 체이닝으로 파이프라인 구성 가능하게
+
+2. errors.ts: 도메인 에러 클래스
+   - DomainError 기본 클래스
+   - ValidationError, NotFoundError, DuplicateError, AuthenticationError
+   - 각 에러에 code, message, statusCode 속성
+
+타입 안전성을 최대한 활용해서, throw 대신 Result를 반환하는 패턴으로 만들어줘.`}
+  language="text"
+  filename="프롬프트 3: Result 패턴 + 에러 클래스"
+/>
+
+### Claude가 생성하는 코드 예시
+
+<CodeBlock
+  code={`// src/domain/shared/result.ts
+type Result<T, E = Error> = Success<T> | Failure<E>;
+
+class Success<T> {
+  readonly _tag = 'success' as const;
+  constructor(readonly value: T) {}
+
+  isSuccess(): this is Success<T> { return true; }
+  isFailure(): this is Failure<never> { return false; }
+
+  map<U>(fn: (value: T) => U): Result<U, never> {
+    return new Success(fn(this.value));
+  }
+
+  flatMap<U, E2>(fn: (value: T) => Result<U, E2>): Result<U, E2> {
+    return fn(this.value);
+  }
+
+  getOrElse(_defaultValue: T): T {
+    return this.value;
+  }
+}
+
+class Failure<E> {
+  readonly _tag = 'failure' as const;
+  constructor(readonly error: E) {}
+
+  isSuccess(): this is Success<never> { return false; }
+  isFailure(): this is Failure<E> { return true; }
+
+  map<U>(_fn: (value: never) => U): Result<U, E> {
+    return this as unknown as Result<U, E>;
+  }
+
+  flatMap<U, E2>(_fn: (value: never) => Result<U, E2>): Result<never, E | E2> {
+    return this as unknown as Result<never, E | E2>;
+  }
+
+  getOrElse<T>(defaultValue: T): T {
+    return defaultValue;
+  }
+}
+
+// 팩토리 함수
+const ok = <T>(value: T): Result<T, never> => new Success(value);
+const fail = <E>(error: E): Result<never, E> => new Failure(error);
+
+export { Result, Success, Failure, ok, fail };`}
+  language="typescript"
+  filename="src/domain/shared/result.ts (생성 예시)"
+/>
+
+### 여기서 배우는 것
+
+<Callout type="info" title="Result 패턴 vs throw의 차이">
+  `throw`를 사용하면 함수 시그니처만으로는 어떤 에러가 발생할 수 있는지 알 수 없습니다. 호출자는 코드를 읽거나 문서를 확인해야 합니다.
+
+  `Result<User, ValidationError | DuplicateError>`를 반환하면 **타입 시스템이 에러 처리를 강제**합니다. `isFailure()` 체크 없이 값을 사용하면 컴파일 에러가 발생합니다.
+
+  이 패턴은 함수형 프로그래밍의 **Either 모나드**에서 유래했으며, Rust의 `Result<T, E>`와 동일한 개념입니다.
+</Callout>
+
+<CodeBlock
+  code={`// Result 패턴 사용 예시 (유스케이스에서)
+async execute(dto: CreateUserDto): Promise<Result<UserResponseDto, DomainError>> {
+  const existing = await this.userRepo.findByEmail(dto.email);
+  if (existing) {
+    return fail(new DuplicateError('User', dto.email));
+  }
+
+  const emailResult = Email.create(dto.email);
+  if (emailResult.isFailure()) {
+    return fail(emailResult.error);
+  }
+
+  const user = User.create({
+    email: emailResult.value,
+    name: dto.name,
+  });
+
+  await this.userRepo.save(user);
+  return ok(UserResponseDto.from(user));
+}`}
+  language="typescript"
+  filename="Result 패턴 사용 예시"
+/>
+
+---
+
+## 실습 4: Application Layer -- 유스케이스 흐름
+
+<CodeBlock
+  code={`src/application/user/ 아래에 유스케이스를 구현해줘:
+1. dtos.ts: CreateUserDto (입력), UserResponseDto (출력, 엔터티->DTO 변환 메서드 포함)
+2. create-user.ts: 이메일 중복 체크 -> User.create() -> save -> Result로 반환
+3. get-user.ts: ID로 조회 -> 없으면 NotFoundError -> Result로 반환
+
+IUserRepository를 생성자 주입으로 받아서 의존성 역전을 적용해.
+에러는 throw 대신 Result<T, DomainError>를 반환해.`}
+  language="text"
+  filename="프롬프트 4: Application Layer"
+/>
+
+### Claude가 생성하는 것
+
+- **`dtos.ts`** -- 입력(`CreateUserDto`)과 출력(`UserResponseDto`)을 분리하는 데이터 전송 객체
+- **`create-user.ts`** -- "사용자 생성"이라는 비즈니스 흐름을 조율하는 유스케이스. 중복 검사 -> 엔터티 생성 -> 저장 -> 응답 변환의 4단계
+- **`get-user.ts`** -- "사용자 조회" 유스케이스
+
+### 여기서 배우는 것
+
+<Callout type="info" title="Application Layer가 하는 일과 하지 않는 일">
+  생성된 `create-user.ts`를 보면, 유스케이스는 **흐름을 조율**할 뿐 직접 검증하지 않습니다:
+
+  - 이메일 형식 검증? -> `User.create()` 안에서 값 객체가 처리 (Domain의 책임)
+  - 데이터 저장? -> `this.userRepository.save()` 호출만 (Infrastructure의 책임)
+  - HTTP 상태 코드? -> 여기서는 모름 (Presentation의 책임)
+
+  유스케이스는 **"이메일이 중복인지 확인하고, 사용자를 만들어서 저장한다"**라는 비즈니스 흐름만 표현합니다.
+</Callout>
+
+<Callout type="tip" title="확인 포인트">
+  생성된 코드에서 `constructor(private userRepository: IUserRepository)`를 찾아보세요. **구체적인 클래스가 아닌 인터페이스**를 받고 있습니다. 이것이 의존성 역전(DIP)의 실제 적용입니다.
+</Callout>
+
+---
+
+## 실습 5: Infrastructure Layer -- 저장소 구현과 DI 컨테이너
+
+<CodeBlock
+  code={`Infrastructure Layer를 구현해줘:
+
+1. src/infrastructure/persistence/in-memory-user-repository.ts
+   - IUserRepository 인터페이스를 구현
+   - Map<string, User>으로 메모리에 저장
+   - findById, findByEmail, save 메서드 구현
+
+2. src/infrastructure/di/container.ts
+   - 수동 DI 컨테이너 (클래스 기반)
+   - Repository, UseCase, Controller를 한 곳에서 생성하고 연결
+   - getController(), getUseCase() 등 접근 메서드 제공
+
+DI 프레임워크(tsyringe, inversify) 없이 수동으로 구현해줘.`}
+  language="text"
+  filename="프롬프트 5: Infrastructure Layer + DI"
+/>
+
+### Claude가 생성하는 것
+
+- **`in-memory-user-repository.ts`** -- `Map`을 사용한 간결한 저장소 구현체
+- **`container.ts`** -- 모든 의존성을 조립하는 DI 컨테이너
+
+### 여기서 배우는 것
+
+<Callout type="info" title="의존성 역전의 실제 효과">
+  이 파일이 전체 프로젝트에서 **유일하게 "데이터를 어디에 저장할지" 결정하는 곳**입니다. Application Layer의 `create-user.ts`는 이 파일의 존재를 모릅니다 -- 오직 `IUserRepository` 인터페이스만 알고 있을 뿐입니다.
+
+  이것이 의미하는 바: 나중에 이 파일 하나만 `PrismaUserRepository`로 교체하면, 나머지 코드는 **한 줄도 바꾸지 않고** 실제 DB를 사용할 수 있습니다.
+</Callout>
+
+### DI 프레임워크 비교
+
+<ComparisonTable
+  title="TypeScript DI 프레임워크 비교"
+  headers={['항목', '수동 DI', 'tsyringe', 'inversify']}
+  rows={[
+    { feature: '설정 복잡도', values: ['낮음 (코드만)', '중간 (데코레이터)', '높음 (바인딩 설정)'] },
+    { feature: '런타임 의존성', values: ['없음', 'reflect-metadata', 'reflect-metadata'] },
+    { feature: '타입 안전성', values: ['완전함', '부분적', '부분적'] },
+    { feature: '학습 곡선', values: ['낮음', '중간', '높음'] },
+    { feature: '프로젝트 규모', values: ['소-중규모', '중규모', '대규모'] },
+    { feature: '테스트 용이성', values: ['쉬움 (직접 주입)', '쉬움 (토큰 교체)', '쉬움 (리바인딩)'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`// src/infrastructure/di/container.ts (수동 DI 예시)
+export class Container {
+  private userRepository: IUserRepository;
+  private createUserUseCase: CreateUserUseCase;
+  private getUserUseCase: GetUserUseCase;
+  private userController: UserController;
+
+  constructor() {
+    // 1. Infrastructure
+    this.userRepository = new InMemoryUserRepository();
+
+    // 2. Application (Infrastructure를 주입)
+    this.createUserUseCase = new CreateUserUseCase(this.userRepository);
+    this.getUserUseCase = new GetUserUseCase(this.userRepository);
+
+    // 3. Presentation (Application을 주입)
+    this.userController = new UserController(
+      this.createUserUseCase,
+      this.getUserUseCase
+    );
+  }
+
+  getUserController(): UserController {
+    return this.userController;
+  }
+
+  // 테스트용: Repository만 교체
+  static withRepository(repo: IUserRepository): Container {
+    const container = new Container();
+    // ... Repository 교체 로직
+    return container;
+  }
+}`}
+  language="typescript"
+  filename="수동 DI 컨테이너 예시"
+/>
+
+<Callout type="tip" title="프로덕션에서는?">
+  InMemoryRepository는 학습용입니다. 프로덕션 환경에서는 Prisma, TypeORM 등 실제 DB 구현체로 교체합니다. **DI 컨테이너에서 한 줄만 바꾸면** Application Layer 코드 변경 없이 저장소를 교체할 수 있습니다.
+</Callout>
+
+---
+
+## 실습 6: Presentation Layer -- HTTP 진입점과 Express 설정
+
+<CodeBlock
+  code={`Presentation Layer를 구현해줘:
+1. src/presentation/http/user-controller.ts
+   - POST /api/users -> CreateUserUseCase 호출 -> 201 응답
+   - GET /api/users/:id -> GetUserUseCase 호출 -> 200 응답
+   - Result 패턴의 Success/Failure에 따라 적절한 HTTP 상태 코드 반환
+2. src/presentation/middleware/error-handler.ts -- 전역 에러 핸들러
+3. src/presentation/middleware/request-logger.ts -- 요청 로깅 (method, path, 소요시간)
+4. src/presentation/app.ts
+   - Express 앱 설정 (helmet, cors, json, rate-limit)
+   - DI 컨테이너에서 의존성 가져오기
+   - 라우터 등록
+   - Graceful shutdown 지원`}
+  language="text"
+  filename="프롬프트 6: Presentation Layer"
+/>
+
+### Claude가 생성하는 것
+
+- **`user-controller.ts`** -- HTTP 요청을 받아 유스케이스를 호출하고, Result를 HTTP 응답으로 변환하는 컨트롤러
+- **`error-handler.ts`** -- DomainError의 `statusCode`를 HTTP 상태 코드로 매핑하는 전역 에러 핸들러
+- **`app.ts`** -- 모든 레이어를 조립하는 진입점
+
+### Express vs Fastify 프레임워크 선택
+
+<ComparisonTable
+  title="Express vs Fastify 비교"
+  headers={['항목', 'Express', 'Fastify']}
+  rows={[
+    { feature: '성능 (req/sec)', values: ['약 9,400', '약 46,600 ([공식 벤치마크](https://fastify.dev/benchmarks/))'] },
+    { feature: '생태계', values: ['가장 넓음 (10년+)', '빠르게 성장 중'] },
+    { feature: 'TypeScript 지원', values: ['@types/express 필요', '내장 타입 지원'] },
+    { feature: '스키마 검증', values: ['별도 라이브러리 필요', 'JSON Schema 내장'] },
+    { feature: 'Plugin 시스템', values: ['미들웨어 체인', '캡슐화된 플러그인'] },
+    { feature: '학습 자료', values: ['매우 풍부', '충분함'] },
+  ]}
+/>
+
+<Callout type="info" title="이 실습에서 Express를 선택한 이유">
+  Clean Architecture에서는 **프레임워크가 세부사항(detail)**입니다. Express든 Fastify든 Presentation Layer에만 영향을 미치고, Domain/Application Layer는 변경되지 않습니다. Express를 선택한 이유는 학습 자료가 가장 풍부하고, 대부분의 Node.js 개발자에게 익숙하기 때문입니다.
+</Callout>
+
+### 여기서 배우는 것
+
+<Callout type="info" title="Result 패턴과 HTTP 응답 매핑">
+  생성된 `user-controller.ts`를 보면, Result를 HTTP 응답으로 변환하는 패턴이 일관됩니다:
+
+  ```
+  const result = await this.createUserUseCase.execute(dto);
+  if (result.isFailure()) {
+    return res.status(result.error.statusCode).json({
+      code: result.error.code,
+      message: result.error.message,
+    });
+  }
+  return res.status(201).json(result.value);
+  ```
+
+  `throw`와 `try-catch`가 아닌 **명시적인 분기**로 에러를 처리합니다. 어떤 에러가 어떤 HTTP 상태 코드로 변환되는지 코드만 보면 알 수 있습니다.
+</Callout>
+
+<Callout type="tip" title="확인 포인트">
+  `user-controller.ts`에서 `import`를 확인해보세요. **Domain이나 Infrastructure를 직접 import하지 않습니다.** Application Layer의 유스케이스만 import합니다. 이것이 레이어 간 의존성 규칙의 실제 모습입니다.
+</Callout>
+
+---
+
+## 실습 7: 인증/인가 구현 -- JWT 미들웨어
+
+<CodeBlock
+  code={`인증 시스템을 구현해줘:
+
+1. src/infrastructure/auth/jwt-service.ts
+   - IJwtService 인터페이스 정의 (domain/shared/ 아래)
+   - Access Token (15분) + Refresh Token (7일) 생성
+   - 토큰 검증 및 페이로드 추출
+   - 환경 변수에서 시크릿 키 로드
+
+2. src/application/user/authenticate-user.ts
+   - 이메일 + 비밀번호로 로그인 유스케이스
+   - bcrypt로 비밀번호 비교
+   - 성공 시 Access Token + Refresh Token 반환
+   - Result 패턴으로 에러 처리
+
+3. src/presentation/middleware/auth-middleware.ts
+   - Authorization: Bearer <token> 헤더에서 토큰 추출
+   - 토큰 검증 후 req.user에 유저 정보 주입
+   - 만료/무효 토큰 시 401 응답
+
+4. src/presentation/http/auth-controller.ts
+   - POST /api/auth/login -> 로그인
+   - POST /api/auth/refresh -> 토큰 갱신
+   - POST /api/auth/logout -> 로그아웃`}
+  language="text"
+  filename="프롬프트 7: JWT 인증 구현"
+/>
+
+### Claude가 생성하는 것
+
+- **`jwt-service.ts`** -- JWT 토큰 생성/검증 서비스. 환경 변수에서 시크릿 키를 로드
+- **`authenticate-user.ts`** -- 로그인 유스케이스. bcrypt 비교 후 토큰 쌍 반환
+- **`auth-middleware.ts`** -- Express 미들웨어. 토큰 검증 후 `req.user` 주입
+- **`auth-controller.ts`** -- 인증 관련 HTTP 엔드포인트
+
+### 여기서 배우는 것
+
+<Callout type="info" title="인증 레이어 분리 원칙">
+  인증 시스템도 Clean Architecture 원칙을 따릅니다:
+
+  - **Domain**: `IJwtService` 인터페이스만 정의 (구체 구현 모름)
+  - **Infrastructure**: `JwtService`가 실제 jsonwebtoken 라이브러리를 사용
+  - **Application**: 유스케이스가 `IJwtService`를 주입받아 토큰 생성
+  - **Presentation**: 미들웨어가 토큰을 검증하고 요청에 유저 정보 추가
+
+  JWT 라이브러리를 교체하거나, 토큰 방식을 세션으로 바꿔도 **Application/Domain Layer는 변경 없음**입니다.
+</Callout>
+
+<Callout type="warning" title="보안 주의사항">
+  Claude가 생성한 인증 코드는 학습 목적입니다. 프로덕션에서는 반드시 다음을 추가하세요:
+  - Refresh Token Rotation (사용된 토큰 즉시 무효화)
+  - Rate Limiting (로그인 시도 횟수 제한)
+  - Refresh Token을 HttpOnly Cookie에 저장
+  - 시크릿 키는 반드시 환경 변수로 관리 (코드에 절대 하드코딩 금지)
+</Callout>
+
+---
+
+## 실습 8: 데이터베이스 연동 -- Prisma
+
+<CodeBlock
+  code={`Prisma를 사용한 데이터베이스 연동을 구현해줘:
+
+1. prisma/schema.prisma
+   - User 모델 (id, email, name, passwordHash, status, createdAt, updatedAt)
+   - SQLite로 개발 환경 설정 (프로덕션에서 PostgreSQL 전환 가능)
+
+2. src/infrastructure/persistence/prisma-user-repository.ts
+   - IUserRepository를 구현
+   - PrismaClient를 생성자로 주입
+   - Prisma 모델 <-> Domain 엔터티 변환 메서드
+   - findById, findByEmail, save 구현
+
+3. DI 컨테이너에 Prisma 옵션 추가
+   - 환경 변수 USE_DB=true일 때 PrismaUserRepository 사용
+   - USE_DB=false일 때 InMemoryUserRepository 사용
+
+npx prisma generate && npx prisma db push로 DB 초기화까지 해줘.`}
+  language="text"
+  filename="프롬프트 8: Prisma 데이터베이스 연동"
+/>
+
+### Claude가 생성하는 것
+
+- **`schema.prisma`** -- User 테이블 스키마 정의
+- **`prisma-user-repository.ts`** -- Prisma ORM을 사용한 저장소 구현체
+- 수정된 **`container.ts`** -- 환경 변수에 따라 저장소 구현체를 동적으로 선택
+
+### 여기서 배우는 것
+
+<MermaidDiagram
+  chart={`flowchart LR
+    A["Application Layer\n(UseCase)"] --> B["IUserRepository\n(인터페이스)"]
+    C["InMemoryUserRepository"] -.->|implements| B
+    D["PrismaUserRepository"] -.->|implements| B
+    E["TypeORMUserRepository"] -.->|implements| B
+    style B fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style A fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26`}
+  title="의존성 역전: 저장소 교체 가능 구조"
+  caption="인터페이스만 동일하면 어떤 구현체든 교체 가능합니다"
+/>
+
+<Callout type="info" title="ORM 모델과 Domain 엔터티의 분리">
+  `PrismaUserRepository` 안에는 `toDomain()`과 `toPersistence()` 변환 메서드가 있습니다. Prisma가 반환하는 객체와 Domain의 `User` 엔터티는 **별도의 타입**입니다. 이 분리 덕분에:
+
+  - DB 스키마 변경이 Domain에 영향을 주지 않음
+  - Prisma를 TypeORM으로 교체해도 Domain/Application 코드 변경 없음
+  - 테스트에서 InMemoryRepository를 사용할 수 있음
+</Callout>
+
+<ComparisonTable
+  title="TypeScript ORM 비교"
+  headers={['항목', 'Prisma', 'TypeORM', 'Drizzle']}
+  rows={[
+    { feature: '타입 안전성', values: ['매우 높음 (생성된 타입)', '중간 (데코레이터 기반)', '높음 (SQL-like API)'] },
+    { feature: '마이그레이션', values: ['prisma migrate', 'typeorm migration', 'drizzle-kit'] },
+    { feature: '쿼리 스타일', values: ['객체 기반 API', 'Active Record / Repository', 'SQL-like 빌더'] },
+    { feature: '학습 곡선', values: ['낮음', '중간', '낮음'] },
+    { feature: '성능', values: ['좋음', '보통', '매우 좋음 (가벼움)'] },
+    { feature: 'Clean Architecture 친화도', values: ['높음 (Repository 패턴)', '높음 (Repository 패턴)', '중간 (쿼리 중심)'] },
+  ]}
+/>
+
+---
+
+## 실습 9: 테스트 전략 -- 단위/통합/E2E
+
+<CodeBlock
+  code={`테스트를 3단계로 작성해줘:
+
+1. tests/unit/user-entity.test.ts -- Domain 단위 테스트
+   - User.create() 정상/비정상 케이스
+   - 상태 전이 테스트 (activate, deactivate)
+   - Email 값 객체 검증
+
+2. tests/unit/create-user.test.ts -- UseCase 단위 테스트
+   - 정상 생성 시 이메일, 이름, status=pending 검증
+   - 이메일 중복 시 DuplicateError 반환 (Result.isFailure)
+   - 잘못된 이메일 형식 시 ValidationError 반환
+   - IUserRepository는 jest.Mocked로 mock
+
+3. tests/unit/result.test.ts -- Result 패턴 테스트
+   - ok().map(), fail().map() 동작 검증
+   - flatMap 체이닝 검증
+
+4. tests/integration/user-api.test.ts -- API 통합 테스트
+   - supertest로 POST /api/users -> 201 응답
+   - 생성한 사용자를 GET /api/users/:id -> 200 응답
+   - 존재하지 않는 ID -> 404 응답
+   - 중복 이메일 -> 409 응답
+
+5. tests/integration/auth-api.test.ts -- 인증 통합 테스트
+   - POST /api/auth/login -> 토큰 반환
+   - 잘못된 비밀번호 -> 401 응답
+   - 보호된 엔드포인트에 토큰 없이 접근 -> 401 응답
+
+모든 테스트를 작성 후 npm test로 실행까지 해줘.`}
+  language="text"
+  filename="프롬프트 9: 3단계 테스트"
+/>
+
+### Claude가 생성하는 것
+
+- **단위 테스트** -- Domain 엔터티와 UseCase 로직을 격리하여 테스트
+- **통합 테스트** -- supertest로 실제 HTTP 요청을 보내 전체 파이프라인 검증
+- **Result 패턴 테스트** -- `ok()`, `fail()`, `map()`, `flatMap()` 체이닝 검증
+
+### 테스트 피라미드
+
+<MermaidDiagram
+  chart={`flowchart TB
+    A["E2E 테스트\n(적음, 느림, 비쌈)"] --> B["통합 테스트\n(중간)"]
+    B --> C["단위 테스트\n(많음, 빠름, 저렴)"]
+    style A fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style B fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style C fill:#e8f5e9,stroke:#66bb6a,color:#2d2a26`}
+  title="테스트 피라미드"
+  caption="아래로 갈수록 테스트 수가 많고, 실행 속도가 빠르고, 비용이 저렴합니다"
+/>
+
+### 여기서 배우는 것
+
+<Callout type="info" title="왜 DB 없이 테스트가 가능한가?">
+  생성된 테스트 코드를 보면 `jest.fn()`으로 만든 **가짜 Repository**를 사용합니다. 실제 저장소가 아닌 Mock 객체를 주입하기 때문에:
+
+  - **DB 설정 불필요** -- 테스트 실행에 외부 서비스가 필요 없음
+  - **빠른 실행** -- 네트워크/디스크 I/O 없이 밀리초 단위로 완료
+  - **격리된 검증** -- UseCase의 로직만 정확히 테스트
+
+  이것이 가능한 이유는 실습 4에서 **인터페이스로 의존성을 주입**했기 때문입니다. 의존성 역전이 테스트 용이성으로 직결됩니다.
+</Callout>
+
+<Callout type="tip" title="'실행까지 해줘'의 효과">
+  프롬프트 끝에 **"테스트 작성 후 실행까지 해줘"**라고 추가하면, Claude Code가 `npm test`를 실행하고 실패한 테스트를 자동으로 수정합니다. 이 피드백 루프 덕분에 **처음부터 통과하는 테스트 코드**를 받을 수 있습니다.
+</Callout>
+
+<CodeBlock
+  code={`// tests/unit/create-user.test.ts 예시
+describe('CreateUserUseCase', () => {
+  let useCase: CreateUserUseCase;
+  let mockRepo: jest.Mocked<IUserRepository>;
+
+  beforeEach(() => {
+    mockRepo = {
+      findById: jest.fn(),
+      findByEmail: jest.fn(),
+      save: jest.fn(),
+    };
+    useCase = new CreateUserUseCase(mockRepo);
+  });
+
+  it('정상적으로 사용자를 생성한다', async () => {
+    mockRepo.findByEmail.mockResolvedValue(null);
+    mockRepo.save.mockResolvedValue(undefined);
+
+    const result = await useCase.execute({
+      email: 'test@example.com',
+      name: 'Test User',
+    });
+
+    expect(result.isSuccess()).toBe(true);
+    if (result.isSuccess()) {
+      expect(result.value.email).toBe('test@example.com');
+      expect(result.value.status).toBe('pending');
+    }
+  });
+
+  it('이메일 중복 시 DuplicateError를 반환한다', async () => {
+    mockRepo.findByEmail.mockResolvedValue(
+      User.reconstitute({ /* 기존 사용자 */ })
+    );
+
+    const result = await useCase.execute({
+      email: 'existing@example.com',
+      name: 'Duplicate User',
+    });
+
+    expect(result.isFailure()).toBe(true);
+    if (result.isFailure()) {
+      expect(result.error).toBeInstanceOf(DuplicateError);
+    }
+  });
+});`}
+  language="typescript"
+  filename="단위 테스트 코드 예시"
+/>
+
+---
+
+## 실습 10: API 문서화 -- Swagger/OpenAPI
+
+<CodeBlock
+  code={`API 문서화를 구현해줘:
+
+1. src/presentation/docs/swagger.ts
+   - swagger-jsdoc + swagger-ui-express 설정
+   - OpenAPI 3.0 스펙
+   - /api-docs 경로에서 Swagger UI 제공
+
+2. 각 컨트롤러에 JSDoc 주석으로 API 스펙 추가
+   - 요청/응답 스키마
+   - 상태 코드별 응답 예시
+   - 인증 필요 여부 (Bearer Token)
+   - 에러 응답 형식
+
+npm run dev로 실행 후 http://localhost:3000/api-docs에서
+Swagger UI가 보이는지 확인해줘.`}
+  language="text"
+  filename="프롬프트 10: Swagger API 문서화"
+/>
+
+### Claude가 생성하는 것
+
+- **`swagger.ts`** -- swagger-jsdoc 설정 + swagger-ui-express 미들웨어 등록
+- 각 컨트롤러 메서드에 **JSDoc 주석**으로 OpenAPI 스펙 추가
+- `npm run dev` 실행 후 Swagger UI 접근 확인
+
+### 여기서 배우는 것
+
+<Callout type="info" title="API 문서화가 중요한 이유">
+  Swagger/OpenAPI 문서화는 단순한 문서를 넘어 여러 이점을 제공합니다:
+
+  - **프론트엔드 협업**: 프론트엔드 개발자가 API 스펙을 즉시 확인 가능
+  - **자동 클라이언트 생성**: OpenAPI 스펙에서 TypeScript/Python 클라이언트 코드 자동 생성
+  - **계약 기반 테스트**: 문서에 명시된 스펙과 실제 응답이 일치하는지 자동 검증
+  - **Try it out**: Swagger UI에서 직접 API를 호출하여 동작 확인
+</Callout>
+
+<CodeBlock
+  code={`// 컨트롤러에 추가되는 JSDoc 주석 예시
+/**
+ * @swagger
+ * /api/users:
+ *   post:
+ *     summary: 새 사용자 생성
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, name]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               name:
+ *                 type: string
+ *                 example: John Doe
+ *     responses:
+ *       201:
+ *         description: 사용자 생성 성공
+ *       400:
+ *         description: 유효성 검증 실패
+ *       409:
+ *         description: 이메일 중복
+ */`}
+  language="typescript"
+  filename="Swagger JSDoc 주석 예시"
+/>
+
+---
+
+## 프롬프트별 Claude Code 응답 패턴
+
+Claude Code에 프롬프트를 입력할 때 **표현 방식에 따라 응답의 품질과 범위가 달라집니다**. 아래는 이 프로젝트에서 자주 사용하는 프롬프트 패턴과 그 효과입니다.
+
+<ComparisonTable
+  title="프롬프트 패턴별 Claude Code 응답"
+  headers={['프롬프트 패턴', '응답 특성', '적합한 상황']}
+  rows={[
+    { feature: '"~를 구현해줘"', values: ['파일 생성/수정 + 코드 작성', '새 기능 구현'] },
+    { feature: '"~를 구현하고 테스트까지 실행해줘"', values: ['구현 + npm test 자동 실행 + 실패 시 자동 수정', '검증이 필요한 구현'] },
+    { feature: '"기존 @파일명 패턴을 따라 ~를 만들어줘"', values: ['기존 코드 스타일과 일관된 코드 생성', '패턴 일관성 유지'] },
+    { feature: '"Plan Mode에서 계획을 세워줘"', values: ['파일 수정 없이 계획만 출력', '복잡한 기능 설계'] },
+    { feature: '"다음 N개 케이스를 커버해줘: 1. 2. 3."', values: ['번호별로 누락 없이 모든 케이스 구현', '테스트 케이스 작성'] },
+    { feature: '"서브에이전트로 ~를 조사해줘"', values: ['메인 컨텍스트 보존하며 탐색 결과만 반환', '코드베이스 탐색'] },
+  ]}
+/>
+
+---
+
+## 단계별 프로젝트 빌드업 과정
+
+전체 10개 실습을 진행하면서 프로젝트가 어떻게 성장하는지 한눈에 확인합니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    S1["실습 1: 프로젝트 초기화\nCLAUDE.md + 빈 디렉토리"] --> S2["실습 2: Domain Layer\nEntity + Value Object + Interface"]
+    S2 --> S3["실습 3: Result 패턴\n타입 안전 에러 처리"]
+    S3 --> S4["실습 4: Application Layer\nUseCase + DTO"]
+    S4 --> S5["실습 5: Infrastructure + DI\nInMemory Repository + Container"]
+    S5 --> S6["실습 6: Presentation Layer\nController + Middleware + Express"]
+    S6 --> S7["실습 7: JWT 인증\nLogin + Token + AuthMiddleware"]
+    S7 --> S8["실습 8: DB 연동\nPrisma + 저장소 교체"]
+    S8 --> S9["실습 9: 테스트\n단위 + 통합 + E2E"]
+    S9 --> S10["실습 10: API 문서화\nSwagger + OpenAPI"]
+    style S1 fill:#e8f5e9,stroke:#66bb6a,color:#2d2a26
+    style S2 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style S3 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style S4 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style S5 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style S6 fill:#fff3e0,stroke:#ff9800,color:#2d2a26
+    style S7 fill:#fff3e0,stroke:#ff9800,color:#2d2a26
+    style S8 fill:#e8f5e9,stroke:#66bb6a,color:#2d2a26
+    style S9 fill:#e8f5e9,stroke:#66bb6a,color:#2d2a26
+    style S10 fill:#e8f5e9,stroke:#66bb6a,color:#2d2a26`}
+  title="프로젝트 빌드업 흐름"
+  caption="Domain -> Application -> Infrastructure -> Presentation 순서로 레이어를 쌓아갑니다"
+/>
+
+---
+
+## 의존성 흐름 전체 다이어그램
+
+완성된 프로젝트의 모듈 간 의존성 흐름입니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Presentation["Presentation Layer"]
+      UC["UserController"]
+      AC["AuthController"]
+      AM["AuthMiddleware"]
+      EH["ErrorHandler"]
+      SW["Swagger"]
+    end
+    subgraph Application["Application Layer"]
+      CU["CreateUserUseCase"]
+      GU["GetUserUseCase"]
+      AU["AuthenticateUserUseCase"]
+    end
+    subgraph Domain["Domain Layer"]
+      UE["User Entity"]
+      VO["Value Objects\n(Email)"]
+      IR["IUserRepository"]
+      IJ["IJwtService"]
+      RS["Result / DomainError"]
+    end
+    subgraph Infrastructure["Infrastructure Layer"]
+      IMR["InMemoryUserRepository"]
+      PR["PrismaUserRepository"]
+      JS["JwtService"]
+      DI["DI Container"]
+    end
+    UC --> CU
+    UC --> GU
+    AC --> AU
+    AM --> IJ
+    CU --> IR
+    CU --> UE
+    GU --> IR
+    AU --> IR
+    AU --> IJ
+    UE --> VO
+    UE --> RS
+    IMR -.->|implements| IR
+    PR -.->|implements| IR
+    JS -.->|implements| IJ
+    DI --> IMR
+    DI --> PR
+    DI --> JS
+    DI --> CU
+    DI --> GU
+    DI --> AU
+    style Domain fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Application fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Infrastructure fill:#e8f5e9,stroke:#66bb6a,color:#2d2a26
+    style Presentation fill:#fff3e0,stroke:#ff9800,color:#2d2a26`}
+  title="모듈 의존성 흐름"
+  caption="모든 화살표가 Domain을 향합니다. 의존성 방향 규칙을 위반하는 화살표가 없는지 확인하세요."
+/>
+
+---
+
+## TypeScript 타입 시스템 심화 활용
+
+이 프로젝트에서 활용되는 TypeScript 고급 타입 패턴입니다.
+
+<CodeBlock
+  code={`// 1. Generic 타입: Result 패턴에 활용
+type Result<T, E = Error> = Success<T> | Failure<E>;
+
+// 2. Conditional Types: 응답 타입 자동 추론
+type ApiResponse<T> = T extends Error
+  ? { success: false; error: { code: string; message: string } }
+  : { success: true; data: T };
+
+// 3. Mapped Types: Entity에서 DTO 자동 생성
+type ReadonlyDTO<T> = {
+  readonly [K in keyof T]: T[K] extends Date ? string : T[K];
+};
+
+// 4. Template Literal Types: 라우트 경로 타입 안전성
+type ApiRoute = \`/api/\${string}\`;
+type UserRoute = \`/api/users\` | \`/api/users/\${string}\`;
+
+// 5. Branded Types: 값 객체의 타입 안전성 강화
+type UserId = string & { readonly __brand: 'UserId' };
+type Email = string & { readonly __brand: 'Email' };
+
+function createUserId(id: string): UserId {
+  return id as UserId;
+}
+
+// UserId와 Email을 실수로 바꿔 쓸 수 없음
+function getUser(id: UserId): Promise<User | null> { /* ... */ }
+// getUser(someEmail); // 컴파일 에러!`}
+  language="typescript"
+  filename="TypeScript 고급 타입 패턴"
+/>
+
+<Callout type="info" title="Branded Types의 가치">
+  일반적인 `string` 타입으로는 `userId`와 `email`을 실수로 바꿔 사용하는 것을 막을 수 없습니다. Branded Types를 사용하면 **컴파일 타임에 이런 실수를 잡을 수 있습니다**. 런타임 비용은 전혀 없으면서 타입 안전성만 높아집니다.
+</Callout>
+
+---
+
+## 정리: 레이어별 역할과 규칙
+
+<ComparisonTable
+  title="Clean Architecture 레이어별 역할"
+  headers={['레이어', '역할', '의존 대상', '테스트 방법']}
+  rows={[
+    { feature: 'Domain', values: ['엔터티, 값 객체, 비즈니스 규칙, Result 패턴', '없음 (순수 코드)', '단위 테스트 (mock 불필요)'] },
+    { feature: 'Application', values: ['유스케이스, 흐름 조율', 'Domain 인터페이스', '단위 테스트 (Repository mock)'] },
+    { feature: 'Infrastructure', values: ['저장소 구현, JWT, DI 컨테이너', 'Domain 인터페이스', '단위 테스트 (InMemory DB)'] },
+    { feature: 'Presentation', values: ['HTTP 요청/응답 처리, 미들웨어, 문서화', 'Application 유스케이스', '통합 테스트 (supertest)'] },
+  ]}
+/>
+
+<Callout type="tip" title="이 실습에서 가장 중요한 한 가지">
+  10개 실습을 통해 만든 코드에서 **저장소를 InMemory에서 PostgreSQL로 교체한다고 상상해보세요.** 바꿔야 하는 파일은 `in-memory-user-repository.ts` 하나와 `container.ts`의 조립 코드 한 줄뿐입니다. Domain, Application, Presentation Layer는 전혀 건드리지 않습니다. 이것이 Clean Architecture와 의존성 역전이 주는 실질적 가치입니다.
+</Callout>
+
+<Callout type="info" title="다음 단계: Python API">
+  다음 챕터에서는 동일한 아키텍처를 **Python(FastAPI)**으로 구현합니다. 언어와 프레임워크는 달라도 아키텍처 원칙은 동일하다는 것을 직접 확인할 수 있습니다.
+</Callout>
+
+
+<ChapterNav
+  prev={{ title: 'Agent SDK와 자동화', path: '/docs/part-4--확장과-자동화-agent-sdk와-자동화' }}
+  next={{ title: 'Python API', path: '/docs/part-5--실전-예제-python-api' }}
+/>

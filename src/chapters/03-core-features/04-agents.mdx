@@ -1,0 +1,2461 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { MermaidDiagram } from '../../components/MermaidDiagram';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 3: 핵심 기능/에이전트" />
+
+# 에이전트
+
+> 서브에이전트와 Agent Teams — Claude Code의 멀티 에이전트 시스템
+
+## 서브에이전트 (Subagents)
+
+> 전문 분야별 AI 에이전트 시스템
+
+## 개요
+
+서브에이전트는 **전문 분야별 AI 에이전트**입니다. Claude Code는 내부적으로 Task 도구를 통해 서브에이전트를 생성하며, 각 서브에이전트는 독립된 컨텍스트에서 작업을 수행합니다. `.claude/agents/` 디렉토리에 YAML 프론트매터가 포함된 마크다운 파일로 역할별 정의를 저장하여 일관된 전문성을 유지합니다. `/agents` 커맨드로 관리하거나 직접 파일을 생성할 수 있습니다. Anthropic은 대화 초반에 서브에이전트를 적극 활용하여 컨텍스트를 보존하면서 세부 작업을 병렬 처리할 것을 권장합니다.
+
+<Callout type="info" title="핵심 개념">
+  서브에이전트는 "한 명의 전문가"와 같습니다.
+  아키텍트, 보안 전문가, 테스터, 테크니컬 라이터 — 각각의 전문성을 가진 AI 에이전트가 협력합니다.
+</Callout>
+
+## Claude Code 빌트인 서브에이전트
+
+Claude Code는 내부적으로 6개의 빌트인 서브에이전트를 제공합니다. 이들은 Task 도구를 통해 자동으로 선택·실행됩니다.
+
+| 서브에이전트 | 역할 | 사용 가능 도구 |
+|-------------|------|---------------|
+| **Explore** | 코드베이스 탐색, 파일/키워드 검색 | Read, Glob, Grep 등 (편집 불가) |
+| **Plan** | 구현 전략 설계, 아키텍처 분석 | Read, Glob, Grep 등 (편집 불가) |
+| **general-purpose** | 복잡한 멀티스텝 작업 수행 | 모든 도구 |
+| **Bash** | 셸 명령 실행 전문 | Bash |
+| **statusline-setup** | 상태줄 설정 | Read, Edit |
+| **Claude Code Guide** | Claude Code 사용법 안내 | Read, Glob, Grep, WebFetch, WebSearch |
+
+<Callout type="tip" title="빌트인 vs 커스텀">
+  빌트인 서브에이전트는 Claude Code가 상황에 맞게 자동 선택합니다.
+  커스텀 서브에이전트는 `.claude/agents/` 디렉토리에 정의하여 프로젝트 특화 전문성을 추가합니다.
+</Callout>
+
+---
+
+## 서브에이전트 아키텍처 심화
+
+### 메모리 격리 모델
+
+서브에이전트의 가장 중요한 특성은 **메모리 격리(Memory Isolation)**입니다. 메인 에이전트와 서브에이전트는 각각 독립된 컨텍스트 윈도우를 가지며, 서브에이전트가 종료되면 그 컨텍스트는 소멸됩니다. 메인 에이전트는 서브에이전트의 **최종 결과만** 수신합니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph MainContext["메인 에이전트 컨텍스트"]
+      MC["대화 히스토리\n+ CLAUDE.md\n+ 프로젝트 컨텍스트"]
+      TR["Task 결과 수신"]
+    end
+    subgraph Sub1["서브에이전트 A 컨텍스트"]
+      S1P["프롬프트 수신"]
+      S1W["독립 작업 수행"]
+      S1R["결과 반환"]
+    end
+    subgraph Sub2["서브에이전트 B 컨텍스트"]
+      S2P["프롬프트 수신"]
+      S2W["독립 작업 수행"]
+      S2R["결과 반환"]
+    end
+    MC -->|"Task 호출"| S1P
+    MC -->|"Task 호출"| S2P
+    S1P --> S1W --> S1R
+    S2P --> S2W --> S2R
+    S1R -->|"결과만 전달"| TR
+    S2R -->|"결과만 전달"| TR
+    style MainContext fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Sub1 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Sub2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26`}
+  title="서브에이전트 메모리 격리 모델"
+  caption="각 서브에이전트는 독립된 컨텍스트에서 작업하며, 메인 에이전트에게는 최종 결과만 전달됩니다"
+/>
+
+이 격리 모델이 가져오는 실질적인 이점은 다음과 같습니다.
+
+1. **컨텍스트 윈도우 보존**: 메인 에이전트의 컨텍스트를 소비하지 않고 복잡한 탐색/분석을 수행할 수 있습니다
+2. **실패 격리**: 서브에이전트가 실패해도 메인 에이전트의 상태에 영향을 주지 않습니다
+3. **병렬 처리**: 독립 컨텍스트이므로 여러 서브에이전트를 동시에 실행할 수 있습니다
+4. **보안 경계**: 서브에이전트에 제한된 도구만 부여하여 권한을 최소화할 수 있습니다
+
+### 컨텍스트 전달 메커니즘
+
+메인 에이전트가 서브에이전트를 호출할 때, 전달되는 정보와 전달되지 않는 정보를 구분하는 것이 중요합니다.
+
+<ComparisonTable
+  title="서브에이전트 컨텍스트 전달 범위"
+  headers={['항목', '전달됨', '전달되지 않음']}
+  rows={[
+    { feature: '프로젝트 설정', values: ['CLAUDE.md, .claude/rules/*', '메인 대화 히스토리'] },
+    { feature: '작업 지시', values: ['Task 호출 시 전달한 프롬프트', '메인 에이전트의 사고 과정'] },
+    { feature: '파일 시스템', values: ['전체 파일 시스템 접근 가능', '메인이 읽은 파일의 캐시'] },
+    { feature: '도구 권한', values: ['에이전트 정의에 명시된 도구만', '메인 에이전트의 전체 도구'] },
+    { feature: '환경 변수', values: ['시스템 환경 변수', '메인 세션의 런타임 상태'] },
+  ]}
+/>
+
+<Callout type="warning" title="컨텍스트 전달의 한계">
+  서브에이전트는 메인 에이전트의 대화 히스토리를 **전혀 모릅니다**. 따라서 Task 호출 시 충분한 컨텍스트를 프롬프트에 포함시켜야 합니다.
+  "앞에서 논의한 내용대로 해줘"와 같은 지시는 서브에이전트에서 동작하지 않습니다.
+</Callout>
+
+---
+
+## Task 도구 고급 활용법
+
+### subagent_type별 특성
+
+Claude Code의 Task 도구는 `subagent_type` 파라미터로 서브에이전트의 유형을 지정합니다. 각 유형은 사용 가능한 도구와 최적화 방향이 다릅니다.
+
+<CodeBlock
+  code={`// Task 도구 내부 호출 구조 (Claude Code 내부 동작)
+{
+  "tool": "Task",
+  "params": {
+    "description": "작업 설명",
+    "prompt": "구체적인 지시사항",
+    "subagent_type": "Explore"  // 또는 Plan, Bash, general-purpose 등
+  }
+}`}
+  language="json"
+  filename="Task 도구 호출 구조"
+/>
+
+<ComparisonTable
+  title="subagent_type별 특성 비교"
+  headers={['유형', '도구 접근', '컨텍스트 크기', '비용 효율', '최적 사용 시점']}
+  rows={[
+    { feature: 'Explore', values: ['읽기 전용 (Read, Glob, Grep)', '작음 (탐색 최적화)', '매우 높음', '파일 검색, 코드 구조 파악'] },
+    { feature: 'Plan', values: ['읽기 전용 (Read, Glob, Grep)', '보통 (분석 최적화)', '높음', '구현 전략 수립, 영향 분석'] },
+    { feature: 'general-purpose', values: ['전체 도구', '큼 (복합 작업)', '보통', '코드 수정이 필요한 복합 작업'] },
+    { feature: 'Bash', values: ['Bash만', '작음 (명령 최적화)', '매우 높음', '셸 명령 실행, 빌드, 테스트'] },
+  ]}
+/>
+
+### 효과적인 Task 프롬프트 작성법
+
+서브에이전트의 성능은 Task 호출 시 전달하는 프롬프트의 품질에 크게 좌우됩니다.
+
+<CodeBlock
+  code={`# 나쁜 예: 모호한 지시
+"이 프로젝트의 구조를 파악해줘"
+
+# 좋은 예: 구체적인 지시 + 출력 형식 지정
+"src/services/ 디렉토리의 모든 서비스 클래스를 분석하고,
+다음 형식으로 결과를 반환해줘:
+
+1. 서비스 이름과 파일 경로
+2. 각 서비스의 의존성 (주입받는 다른 서비스)
+3. 외부 API 호출이 있다면 해당 엔드포인트
+4. 에러 처리 패턴 (try-catch 유무, 커스텀 에러 클래스 사용 여부)
+
+JSON 형식으로 정리해서 반환해줘."
+
+# 최적의 예: 컨텍스트 + 구체적 지시 + 제약 조건
+"우리 프로젝트는 NestJS 기반 REST API 서버입니다.
+src/services/user.service.ts 파일에서 다음을 분석해줘:
+
+1. UserService 클래스의 public 메서드 목록
+2. 각 메서드의 파라미터 타입과 반환 타입
+3. Repository 패턴 사용 여부
+4. 트랜잭션 처리 방식
+
+파일을 직접 읽어서 분석하되, 수정하지는 마세요."`}
+  language="markdown"
+  filename="Task 프롬프트 작성 가이드"
+/>
+
+<Callout type="tip" title="프롬프트 설계 원칙">
+  서브에이전트 프롬프트에는 반드시 **3가지 요소**를 포함하세요:
+  (1) 프로젝트 컨텍스트 (기술 스택, 아키텍처),
+  (2) 구체적 작업 지시,
+  (3) 기대하는 출력 형식.
+</Callout>
+
+---
+
+## 커스텀 서브에이전트 — 이 프로젝트 템플릿 정의 (4개)
+
+이 프로젝트 템플릿에서 정의한 4개의 커스텀 서브에이전트입니다. `.claude/agents/` 디렉토리에 마크다운 파일로 작성합니다.
+
+<ComparisonTable
+  title="커스텀 서브에이전트 비교"
+  headers={['항목', 'Architect', 'Security', 'Test', 'Documentation']}
+  rows={[
+    { feature: '전문 분야', values: ['시스템 설계', '보안 분석', '테스트 전략', '기술 문서'] },
+    { feature: '주요 산출물', values: ['ADR, 설계안', '취약점 리포트', '테스트 코드', 'API 문서'] },
+    { feature: '참조 지식', values: ['아키텍처 패턴', 'OWASP Top 10', '테스트 피라미드', '문서 표준'] },
+    { feature: '활용 시점', values: ['설계/기술 결정', '보안 검토', '테스트 작성', '문서화'] },
+  ]}
+/>
+
+### 에이전트 정의 파일 구조
+
+<CodeBlock
+  code={`---
+name: agent-name           # 에이전트 식별자
+description: 역할 설명      # Claude가 자동 매칭에 사용
+tools: Read, Glob, Grep    # 사용 가능한 도구 목록
+model: sonnet              # 사용할 모델 (sonnet, opus 등)
+---
+
+# 시스템 프롬프트
+에이전트의 역할, 전문성, 작업 절차를 마크다운으로 정의합니다.
+이 내용이 서브에이전트의 시스템 프롬프트로 사용됩니다.`}
+  language="markdown"
+  filename=".claude/agents/ 파일 구조"
+/>
+
+---
+
+## Architect 서브에이전트
+
+시스템 설계 및 기술 의사결정을 전문으로 합니다. 아키텍처 검토, ADR 작성, 기술 스택 평가를 수행합니다.
+
+### 에이전트 정의
+
+<CodeBlock
+  code={`---
+name: architect
+description: Analyzes system architecture and makes technical decisions
+tools: Read, Glob, Grep, Bash
+model: sonnet
+---
+
+You are a senior software architect. Your responsibilities:
+1. Analyze current system architecture and identify improvement areas
+2. Evaluate technology choices with structured comparison matrices
+3. Write Architecture Decision Records (ADRs)
+4. Ensure architectural principles (SOLID, DDD, Clean Architecture) are followed
+
+Always provide:
+- Component dependency analysis
+- SWOT analysis for architectural decisions
+- Weighted comparison matrices for technology selections`}
+  language="markdown"
+  filename=".claude/agents/architect.md"
+/>
+
+### 분석 프레임워크
+
+<CodeBlock
+  code={`## 아키텍처 분석 출력 예시
+
+### 컴포넌트 맵
+- 현재 시스템 구성 분석
+- 의존성 그래프 작성
+- 병목 지점 식별
+
+### SWOT 분석
+- Strengths: 현재 아키텍처의 강점
+- Weaknesses: 개선이 필요한 부분
+- Opportunities: 활용 가능한 기술/패턴
+- Threats: 잠재적 위험 요소
+
+### 기술 선정 매트릭스
+| 기준 | 가중치 | 옵션 A | 옵션 B |
+|------|--------|--------|--------|
+| 성능 | 30% | 8/10 | 7/10 |
+| 확장성 | 25% | 9/10 | 6/10 |
+| 학습 곡선 | 20% | 5/10 | 8/10 |
+| 커뮤니티 | 15% | 7/10 | 9/10 |
+| 비용 | 10% | 6/10 | 8/10 |
+
+### 결정
+가중 점수 기반 옵션 A 선택 (7.35 vs 7.15)`}
+  language="markdown"
+  filename="Architect 분석 출력 예시"
+/>
+
+---
+
+## Security 서브에이전트
+
+보안 코드 리뷰와 취약점 분석을 전문으로 합니다. OWASP Top 10 기반 분석, 공격 시나리오 시뮬레이션, 수정 코드 제안을 수행합니다.
+
+### 에이전트 정의
+
+<CodeBlock
+  code={`---
+name: security-reviewer
+description: Reviews code for security vulnerabilities
+tools: Read, Glob, Grep, Bash
+model: sonnet
+---
+
+You are a security expert specializing in application security.
+Analyze code for OWASP Top 10 vulnerabilities with focus on:
+1. Injection attacks (SQL, NoSQL, OS command, LDAP)
+2. Broken authentication and session management
+3. Cross-Site Scripting (XSS)
+4. Insecure Direct Object References (IDOR)
+5. Security misconfigurations
+6. Sensitive data exposure
+
+For each vulnerability found, provide:
+- Severity (Critical/High/Medium/Low)
+- Exact file and line location
+- Attack scenario demonstrating the risk
+- Remediation code with explanation
+- CWE/OWASP reference`}
+  language="markdown"
+  filename=".claude/agents/security-reviewer.md"
+/>
+
+### 취약점 리포트 출력 형식
+
+<CodeBlock
+  code={`## 보안 분석 리포트
+
+### 취약점 #1: IDOR (Insecure Direct Object Reference)
+- 심각도: Critical
+- 위치: src/api/users.ts:45
+- 유형: OWASP A01:2025 — Broken Access Control
+
+### 현재 코드 (취약)
+@Get(':id')
+async getUser(@Param('id') id: string) {
+  return this.userService.findById(id); // 권한 확인 없음
+}
+
+### 공격 시나리오
+curl -H "Authorization: Bearer <attacker_token>" \\
+     https://api.example.com/users/victim-user-id
+
+### 수정 코드
+@Get(':id')
+@UseGuards(AuthGuard)
+async getUser(@Param('id') id: string, @CurrentUser() user: User) {
+  if (id !== user.id && !user.isAdmin) {
+    throw new ForbiddenException();
+  }
+  return this.userService.findById(id);
+}
+
+### 참고: CWE-639, OWASP A01:2025`}
+  language="typescript"
+  filename="Security 리포트 출력 예시"
+/>
+
+---
+
+## Test 서브에이전트
+
+테스트 전략 수립과 테스트 코드 생성을 전문으로 합니다. 단위/통합/E2E 테스트 코드, 커버리지 분석, 테스트 리뷰를 수행합니다.
+
+### 에이전트 정의
+
+<CodeBlock
+  code={`---
+name: test-strategist
+description: Creates test strategies and generates test code
+tools: Read, Glob, Grep, Bash
+model: sonnet
+---
+
+You are a test engineering expert. Your responsibilities:
+1. Analyze code and determine optimal test strategy
+2. Follow the test pyramid: Unit (70%) > Integration (20%) > E2E (10%)
+3. Apply FIRST principles (Fast, Independent, Repeatable, Self-validating, Timely)
+4. Use AAA pattern (Arrange-Act-Assert) for all tests
+5. Generate comprehensive test cases including edge cases
+
+For each test file, provide:
+- Test case list with descriptions
+- Complete test code with mocks and fixtures
+- Expected coverage metrics per layer
+- Factory patterns for test data`}
+  language="markdown"
+  filename=".claude/agents/test.md"
+/>
+
+### 테스트 전략 출력 예시
+
+<CodeBlock
+  code={`## 테스트 전략: UserService
+
+### 테스트 케이스 목록
+| # | 유형 | 케이스 | 예상 결과 |
+|---|------|--------|----------|
+| 1 | Unit | 유효한 데이터로 사용자 생성 | 사용자 객체 반환 |
+| 2 | Unit | 잘못된 이메일로 생성 시도 | ValidationError |
+| 3 | Unit | 중복 이메일로 생성 시도 | DuplicateError |
+| 4 | Unit | 존재하지 않는 사용자 조회 | null 반환 |
+| 5 | Integration | POST /api/users 201 응답 | 생성된 사용자 JSON |
+| 6 | Integration | POST /api/users 409 중복 | 에러 메시지 |
+
+### 테스트 코드 (발췌)
+describe('UserService', () => {
+  const mockRepo: jest.Mocked<IUserRepository> = {
+    findByEmail: jest.fn(),
+    save: jest.fn(),
+  };
+
+  it('should create user with valid data', async () => {
+    mockRepo.findByEmail.mockResolvedValue(null);
+    mockRepo.save.mockResolvedValue({ id: '1', email: 'test@test.com' });
+
+    const result = await service.createUser({ email: 'test@test.com' });
+    expect(result.id).toBe('1');
+    expect(mockRepo.save).toHaveBeenCalledTimes(1);
+  });
+});
+
+### 커버리지 예상
+- Lines: ~85%  |  Branches: ~80%  |  Functions: ~90%`}
+  language="typescript"
+  filename="Test 전략 출력 예시"
+/>
+
+---
+
+## Documentation 서브에이전트
+
+기술 문서 작성을 전문으로 합니다. API 문서(REST, GraphQL), 코드 문서(JSDoc, Docstring), README, 코드-문서 동기화 검증을 수행합니다.
+
+### 에이전트 정의
+
+<CodeBlock
+  code={`---
+name: documentation
+description: Generates and maintains technical documentation
+tools: Read, Glob, Grep, Bash
+model: sonnet
+---
+
+You are a technical writer specializing in developer documentation.
+Your responsibilities:
+1. Generate API documentation (REST endpoints with Request/Response schemas)
+2. Create code documentation (JSDoc for TypeScript, Docstrings for Python)
+3. Structure README files with badges, quick start, and architecture overview
+4. Write Architecture Decision Records (ADRs)
+5. Verify code-documentation synchronization
+
+Documentation quality standards:
+- Accuracy: Must match current code behavior
+- Completeness: All public APIs documented with examples
+- Clarity: Written for developers unfamiliar with the codebase
+- Searchability: Consistent headings and structure`}
+  language="markdown"
+  filename=".claude/agents/documentation.md"
+/>
+
+### 문서 생성 출력 예시
+
+<CodeBlock
+  code={`## 생성된 문서
+
+### 파일: docs/api/users.md
+
+## POST /api/v1/users — 사용자 생성
+
+### Request
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "email": "user@example.com",
+  "name": "홍길동"
+}
+
+### Response (201 Created)
+{
+  "id": "usr_abc123",
+  "email": "user@example.com",
+  "name": "홍길동",
+  "createdAt": "2024-01-15T10:30:00Z"
+}
+
+### Error Responses
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | VALIDATION_ERROR | 이메일 형식 오류 |
+| 409 | DUPLICATE_EMAIL | 이메일 중복 |
+
+---
+
+### 업데이트 요약
+- 새로 추가: 3개 엔드포인트
+- 업데이트: 2개 엔드포인트
+- 예시 코드: 5개 추가 (cURL, JavaScript, Python)
+
+### 검토 필요 항목
+- [ ] 인증 섹션 내용 확인 필요
+- [ ] 에러 코드 목록 검증 필요`}
+  language="markdown"
+  filename="Documentation 출력 예시"
+/>
+
+---
+
+## 서브에이전트 활용 패턴
+
+### 서브에이전트 오케스트레이션
+
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant D as Developer
+    participant A as Architect
+    participant S as Security
+    participant T as Test
+    participant DOC as Docs
+    D->>A: 설계 검토 요청
+    A-->>D: ADR, 설계안
+    Note over D: 설계 승인 후 병렬 실행
+    par 병렬 실행
+      D->>S: 보안 분석
+      S-->>D: 취약점 리포트
+    and
+      D->>T: 테스트 전략
+      T-->>D: 테스트 코드
+    and
+      D->>DOC: 문서 초안
+      DOC-->>D: API 문서
+    end
+    Note over D: 종합 검토 후 구현`}
+  title="서브에이전트 오케스트레이션 패턴"
+  caption="Architect의 설계 검토 후, Security/Test/Documentation이 병렬로 실행됩니다"
+/>
+
+### 격리된 컨텍스트
+
+<Callout type="warning" title="중요">
+  각 서브에이전트는 **격리된 컨텍스트**에서 작동합니다.
+  하나의 서브에이전트가 다른 서브에이전트의 작업 결과를 직접 참조하지 않으며,
+  개발자가 결과를 종합하여 최종 판단합니다.
+</Callout>
+
+### 실전 활용 시나리오
+
+<CodeBlock
+  code={`# 시나리오: 새 API 엔드포인트 추가
+
+## 1단계: Architect에게 설계 검토
+"주문 취소 API를 추가해야 합니다. 현재 주문 시스템 아키텍처를 분석하고
+엔드포인트 설계를 제안해주세요."
+→ 산출물: API 설계안, 레이어별 변경 목록
+
+## 2단계: 구현 후 병렬 검토
+### Security 에이전트
+"주문 취소 API 구현 코드를 보안 관점에서 검토해주세요."
+→ 산출물: 취약점 리포트 (권한 검증, 입력 검증 등)
+
+### Test 에이전트
+"주문 취소 기능의 테스트 전략을 수립하고 테스트 코드를 생성해주세요."
+→ 산출물: 단위/통합 테스트 코드
+
+### Documentation 에이전트
+"주문 취소 API의 문서를 생성해주세요."
+→ 산출물: API 문서 (Request/Response, 에러 코드)
+
+## 3단계: 개발자가 결과 종합
+- Security 리포트의 필수 수정 사항 반영
+- 테스트 코드 추가 및 실행
+- API 문서 검토 후 커밋`}
+  language="markdown"
+  filename="실전 활용 시나리오"
+/>
+
+<Callout type="tip" title="서브에이전트 권한 제어">
+  엔터프라이즈 환경에서는 Managed Settings의 deny 규칙으로 특정 서브에이전트를 차단할 수 있습니다.
+  예: `"deny": ["Task(Explore)", "Task(Plan)"]`
+</Callout>
+
+---
+
+## 서브에이전트 디버깅과 모니터링
+
+서브에이전트가 예상대로 동작하지 않을 때, 원인을 파악하고 해결하는 방법을 알아봅니다.
+
+### 일반적인 문제 유형
+
+| 문제 | 원인 | 해결 방법 |
+|------|------|----------|
+| 서브에이전트가 잘못된 파일을 수정 | 프롬프트에 대상 파일 경로 미지정 | Task 프롬프트에 정확한 경로 명시 |
+| 결과가 너무 요약되어 반환 | 출력 형식 미지정 | 기대하는 출력 형식을 프롬프트에 포함 |
+| 서브에이전트가 도구 접근 실패 | tools 목록에 필요한 도구 누락 | 에이전트 정의 파일의 tools 필드 확인 |
+| 컨텍스트 부족으로 부정확한 결과 | 메인 대화의 컨텍스트가 전달되지 않음 | 프롬프트에 필요한 배경 정보를 직접 포함 |
+| 서브에이전트 실행이 지나치게 오래 걸림 | 탐색 범위가 너무 넓음 | 대상 디렉토리/파일을 구체적으로 한정 |
+
+### 디버깅 전략
+
+<CodeBlock
+  code={`# 1. 서브에이전트 실행 로그 확인
+# Claude Code는 ~/.claude/logs/ 에 세션 로그를 저장합니다
+# 서브에이전트의 도구 호출 히스토리를 추적할 수 있습니다
+
+# 2. 단계적 검증 — 서브에이전트를 수동으로 테스트
+# 문제가 되는 프롬프트를 직접 Claude Code에 입력하여
+# 서브에이전트와 동일한 조건에서 결과를 확인합니다
+
+# 3. 도구 권한 검증
+# .claude/agents/my-agent.md 파일에서
+# tools 필드가 올바르게 설정되었는지 확인합니다
+# 예: tools: Read, Glob, Grep, Bash
+
+# 4. 프롬프트 반복 개선
+# Task 프롬프트를 점진적으로 구체화합니다
+# - 모호한 표현 제거
+# - 대상 파일 경로 명시
+# - 출력 형식 지정
+# - 제약 조건 추가
+
+# 5. verbose 모드 활용
+# claude --verbose 플래그로 실행하면
+# 서브에이전트 호출 과정이 더 상세히 출력됩니다`}
+  language="bash"
+  filename="서브에이전트 디버깅 체크리스트"
+/>
+
+### 모니터링 지표
+
+서브에이전트의 효율성을 평가하기 위해 다음 지표를 추적하는 것이 좋습니다.
+
+<CodeBlock
+  code={`## 서브에이전트 성능 지표
+
+### 1. 완료율 (Completion Rate)
+- 서브에이전트에 위임한 작업 중 성공적으로 완료된 비율
+- 목표: 90% 이상
+- 낮다면: 프롬프트 품질 또는 도구 권한 문제
+
+### 2. 결과 활용률 (Utilization Rate)
+- 서브에이전트 결과가 실제로 코드에 반영된 비율
+- 목표: 70% 이상
+- 낮다면: 서브에이전트의 전문성 정의 재검토 필요
+
+### 3. 토큰 효율성 (Token Efficiency)
+- 작업 복잡도 대비 소비된 토큰 수
+- 동일 작업을 메인 에이전트가 직접 처리했을 때와 비교
+- 서브에이전트가 3배 이상 토큰을 소비한다면 프롬프트 최적화 필요
+
+### 4. 반복 수정 횟수 (Iteration Count)
+- 서브에이전트 결과를 수정해야 했던 횟수
+- 목표: 1회 이하
+- 높다면: 프롬프트에 예시와 제약 조건 추가`}
+  language="markdown"
+  filename="서브에이전트 성능 모니터링"
+/>
+
+---
+
+## 비용 최적화 — 서브에이전트별 모델 선택
+
+서브에이전트의 핵심 장점 중 하나는 **작업 특성에 맞는 모델을 선택**하여 비용을 최적화할 수 있다는 점입니다.
+
+### 모델별 비용-성능 매트릭스
+
+<ComparisonTable
+  title="서브에이전트 모델 선택 가이드"
+  headers={['작업 유형', '권장 모델', '이유', '예상 비용 절감']}
+  rows={[
+    { feature: '코드베이스 탐색 (Explore)', values: ['Haiku', '단순 검색과 패턴 매칭', '최대 90% 절감'] },
+    { feature: '구현 전략 수립 (Plan)', values: ['Sonnet', '분석력과 비용의 균형', '약 50% 절감'] },
+    { feature: '보안 분석', values: ['Opus', '높은 정확도 필수', '비용 절감 없음 (정확도 우선)'] },
+    { feature: '테스트 코드 생성', values: ['Sonnet', '패턴 기반 코드 생성', '약 50% 절감'] },
+    { feature: '문서 생성', values: ['Sonnet', '충분한 텍스트 생성 능력', '약 50% 절감'] },
+    { feature: '복합 리팩토링', values: ['Opus', '복잡한 의존성 분석 필요', '비용 절감 없음 (품질 우선)'] },
+  ]}
+/>
+
+### 모델 지정 방법
+
+<CodeBlock
+  code={`# 에이전트 정의 파일에서 모델 지정
+# .claude/agents/explorer.md
+---
+name: explorer
+description: Searches and analyzes codebase structure
+tools: Read, Glob, Grep
+model: haiku          # 탐색은 경량 모델로 충분
+---
+
+# .claude/agents/security-reviewer.md
+---
+name: security-reviewer
+description: Reviews code for security vulnerabilities
+tools: Read, Glob, Grep, Bash
+model: opus           # 보안 분석은 최고 성능 모델 사용
+---
+
+# .claude/agents/doc-writer.md
+---
+name: doc-writer
+description: Generates and updates documentation
+tools: Read, Glob, Grep, Bash
+model: sonnet         # 문서 생성은 중간 모델로 균형
+---`}
+  language="markdown"
+  filename="에이전트별 모델 선택"
+/>
+
+### 비용 최적화 전략
+
+<CodeBlock
+  code={`## 서브에이전트 비용 최적화 5단계
+
+### 1단계: 작업 분류
+- 탐색/검색 → Haiku (저비용)
+- 분석/생성 → Sonnet (중간 비용)
+- 판단/복합 추론 → Opus (고비용)
+
+### 2단계: 프롬프트 최적화
+- 구체적인 프롬프트 = 적은 토큰 소비
+- "모든 파일 분석" 대신 "src/api/*.ts 파일만 분석"
+- 불필요한 출력 요청 제거
+
+### 3단계: 단계적 실행
+- 1차: Explore(Haiku)로 대상 파일 식별
+- 2차: Plan(Sonnet)으로 전략 수립
+- 3차: general-purpose(Opus)로 복잡한 구현만 처리
+
+### 4단계: 캐싱 활용
+- 동일한 분석 요청은 결과를 메인 컨텍스트에 기록
+- 반복적인 탐색 작업은 결과를 .claude/ 디렉토리에 저장
+
+### 5단계: 정기 비용 리뷰
+- 주간 API 사용량 분석
+- 서브에이전트별 토큰 소비 추적
+- 비용 대비 품질 평가`}
+  language="markdown"
+  filename="비용 최적화 전략"
+/>
+
+<Callout type="info" title="비용 참고">
+  2026년 2월 기준, Opus는 Sonnet 대비 약 5배, Haiku 대비 약 50배 높은 비용입니다.
+  탐색 작업에 Opus를 사용하는 것은 불필요한 비용 낭비이며,
+  보안 분석에 Haiku를 사용하면 취약점을 놓칠 수 있습니다.
+  **작업의 중요도와 복잡도에 따라 적절한 모델을 배치하세요.**
+</Callout>
+
+---
+
+## Agent Teams — 멀티 에이전트 협업 (2026년 2월~)
+
+2026년 2월 Claude Opus 4.6과 함께 출시된 **Agent Teams**는 서브에이전트의 진화형입니다. 기존 서브에이전트가 "메인 에이전트 → 서브에이전트"의 일방향 위임이었다면, Agent Teams는 **여러 Claude 인스턴스가 팀으로 직접 협력**하는 네이티브 멀티 에이전트 시스템입니다.
+
+<Callout type="info" title="서브에이전트 vs Agent Teams">
+  **서브에이전트**: 메인 세션이 Task 도구로 서브태스크 위임. 결과만 돌아옴. 서브에이전트끼리 통신 불가.
+  **Agent Teams**: 팀 리더가 작업 조율. 팀원들이 독립적으로 작업하며 **서로 직접 통신**. 공유 코드베이스에서 병렬 작업.
+</Callout>
+
+### 아키텍처
+
+<MermaidDiagram
+  chart={`flowchart TB
+    TL["Team Lead\n(작업 조율 & 할당)"]
+    T1["Teammate 1\n(프론트엔드)"]
+    T2["Teammate 2\n(백엔드)"]
+    T3["Teammate 3\n(테스트)"]
+    T4["Teammate 4\n(문서)"]
+    TL --> T1
+    TL --> T2
+    TL --> T3
+    TL --> T4
+    T1 <--> T2
+    T2 <--> T3
+    T3 <--> T4
+    style TL fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style T1 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style T2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style T3 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style T4 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26`}
+  title="Agent Teams 아키텍처"
+  caption="팀 리더가 작업을 조율하고, 팀원들은 독립 컨텍스트에서 작업하면서 서로 직접 통신합니다"
+/>
+
+### 활성화 방법
+
+<CodeBlock
+  code={`# 방법 1: 환경 변수
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+
+# 방법 2: settings.json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}`}
+  language="bash"
+  filename="Agent Teams 활성화"
+/>
+
+<Callout type="warning" title="Research Preview">
+  Agent Teams는 현재 **Research Preview** 단계입니다. 실험적 기능이므로 프로덕션 환경에서는 주의하여 사용하세요.
+</Callout>
+
+### Agent Teams 패턴 심화 — 병렬 실행과 결과 취합
+
+Agent Teams에서 병렬 실행의 핵심은 **작업 분할 전략**입니다. 팀 리더가 작업을 어떻게 분할하느냐에 따라 병렬 실행의 효율성이 결정됩니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph Phase1["1단계: 분석"]
+      TL1["Team Lead"] -->|"작업 분할"| A1["분석 에이전트"]
+      A1 -->|"의존성 맵"| TL1
+    end
+    subgraph Phase2["2단계: 병렬 구현"]
+      TL2["Team Lead"] -->|"모듈 A"| W1["구현 에이전트 1"]
+      TL2 -->|"모듈 B"| W2["구현 에이전트 2"]
+      TL2 -->|"모듈 C"| W3["구현 에이전트 3"]
+    end
+    subgraph Phase3["3단계: 통합"]
+      W1 -->|"결과"| TL3["Team Lead"]
+      W2 -->|"결과"| TL3
+      W3 -->|"결과"| TL3
+      TL3 -->|"통합 검증"| V1["검증 에이전트"]
+    end
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+    style Phase1 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Phase2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Phase3 fill:#e8f5e9,stroke:#4CAF50,color:#2d2a26`}
+  title="Agent Teams 3단계 병렬 실행 패턴"
+  caption="분석 → 병렬 구현 → 통합 검증의 3단계로 대규모 작업을 효율적으로 처리합니다"
+/>
+
+### 결과 취합 전략
+
+<CodeBlock
+  code={`## Agent Teams 결과 취합 패턴
+
+### 패턴 1: 순차 병합 (Sequential Merge)
+- 팀 리더가 각 에이전트의 결과를 순서대로 검토
+- 충돌이 있으면 팀 리더가 판단하여 해결
+- 적합한 상황: 파일이 겹치지 않는 독립적인 모듈 작업
+
+### 패턴 2: 경쟁 실행 (Competitive Execution)
+- 동일 작업을 여러 에이전트가 다른 접근으로 수행
+- 팀 리더가 결과를 비교하여 최적안 선택
+- 적합한 상황: 디버깅(여러 가설 동시 검증), 알고리즘 최적화
+
+### 패턴 3: 파이프라인 (Pipeline)
+- 에이전트 A의 출력이 에이전트 B의 입력이 됨
+- 순차적이지만 각 단계에서 병렬 처리 가능
+- 적합한 상황: 코드 생성 → 테스트 → 문서화
+
+### 패턴 4: 합의 기반 (Consensus)
+- 여러 에이전트가 독립적으로 분석
+- 팀 리더가 일치하는 부분을 채택
+- 적합한 상황: 코드 리뷰, 보안 분석`}
+  language="markdown"
+  filename="결과 취합 전략"
+/>
+
+### 최적 사용 사례
+
+<ComparisonTable
+  title="Agent Teams 활용 시나리오"
+  headers={['시나리오', '팀 구성 예시', '효과']}
+  rows={[
+    { feature: '새 모듈 개발', values: ['프론트엔드 + 백엔드 + 테스트 + 문서', '크로스 레이어 병렬 개발'] },
+    { feature: '대규모 리팩토링', values: ['분석 + 구현A + 구현B + 검증', '파일별/모듈별 병렬 수정'] },
+    { feature: '디버깅 (경쟁 가설)', values: ['가설1 + 가설2 + 가설3 + 가설4', '여러 원인을 동시 조사'] },
+    { feature: '코드 리뷰 + 보안 검토', values: ['기능 리뷰 + 보안 리뷰 + 성능 분석', '다각도 병렬 리뷰'] },
+  ]}
+/>
+
+---
+
+## Cowork 기능 상세 — 실시간 협업과 세션 관리
+
+**Cowork**은 Agent Teams의 팀원 간 **실시간 통신 메커니즘**입니다. 기존 서브에이전트는 결과를 돌려주는 것만 가능했지만, Cowork을 통해 에이전트들이 작업 중에 **중간 상태를 공유**하고 **실시간으로 조율**할 수 있습니다.
+
+### Cowork 통신 구조
+
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant TL as Team Lead
+    participant A as Agent A (백엔드)
+    participant B as Agent B (프론트엔드)
+    TL->>A: API 엔드포인트 구현 시작
+    TL->>B: UI 컴포넌트 구현 시작
+    Note over A: POST /api/orders 구현 중
+    A->>B: Cowork: API 스키마 공유 - POST /api/orders
+    Note over B: API 스키마에 맞춰 fetch 코드 작성
+    B->>A: Cowork: 프론트엔드에서 필요한 필드 요청
+    A->>B: Cowork: 응답 스키마 업데이트 공유
+    A-->>TL: 백엔드 구현 완료
+    B-->>TL: 프론트엔드 구현 완료
+    TL->>TL: 통합 검증`}
+  title="Cowork 실시간 통신 흐름"
+  caption="에이전트들이 작업 중 Cowork을 통해 중간 결과를 공유하여 호환성 있는 코드를 동시에 생성합니다"
+/>
+
+### 세션 관리
+
+Agent Teams의 각 팀원은 독립된 Claude Code 세션으로 실행됩니다. 세션 관리에서 주의할 점은 다음과 같습니다.
+
+<CodeBlock
+  code={`## Agent Teams 세션 관리 가이드
+
+### 세션 수명
+- 각 팀원 세션은 작업이 완료되면 자동 종료
+- 팀 리더 세션은 모든 팀원이 완료될 때까지 유지
+- 비정상 종료 시 팀 리더가 작업 재할당
+
+### 공유 리소스 관리
+- 파일 시스템: 모든 팀원이 동일 코드베이스에 접근
+- Git: 각 팀원이 독립적으로 파일을 수정하므로 충돌 가능
+- 충돌 방지: 팀 리더가 파일 영역을 명확히 분할하여 할당
+
+### 세션 제한사항
+- 최대 동시 팀원 수: 환경 및 요금제에 따라 다름
+- 각 팀원의 컨텍스트 윈도우는 독립적으로 관리
+- 팀원 간 Cowork 메시지는 텍스트 기반으로 교환
+
+### 모니터링
+- 팀 리더가 각 팀원의 진행 상황을 추적
+- 팀원이 막히면 팀 리더에게 알림
+- 전체 진행률은 팀 리더 세션에서 확인 가능`}
+  language="markdown"
+  filename="세션 관리 가이드"
+/>
+
+<Callout type="tip" title="Cowork 활용 팁">
+  Cowork은 팀원들이 **서로의 작업에 의존성이 있을 때** 가장 효과적입니다.
+  독립적인 작업이라면 일반 서브에이전트(Task)로도 충분합니다.
+  Cowork의 오버헤드를 고려하여, 실제로 실시간 소통이 필요한 경우에만 사용하세요.
+</Callout>
+
+### Headless Mode와 조합
+
+`claude -p` 플래그를 사용하면 여러 Claude 인스턴스를 스크립트로 병렬 실행할 수 있습니다. Agent Teams의 가벼운 대안으로, CI/CD 파이프라인에서 특히 유용합니다.
+
+<CodeBlock
+  code={`# 여러 디렉토리에 대해 병렬로 Claude 실행
+claude -p "src/frontend/ 의 모든 deprecated API 호출을 새 API로 마이그레이션해줘" &
+claude -p "src/backend/ 의 모든 SQL 쿼리를 parameterized query로 변환해줘" &
+claude -p "src/tests/ 의 테스트를 새 API에 맞게 업데이트해줘" &
+wait
+
+# CI/CD에서 병렬 코드 리뷰
+git diff main | claude -p "이 변경사항을 보안 관점에서 리뷰해줘" &
+git diff main | claude -p "이 변경사항을 성능 관점에서 리뷰해줘" &
+wait`}
+  language="bash"
+  filename="Headless Mode 병렬 실행"
+/>
+
+---
+
+## 실전 사례: 대규모 리팩토링에서의 에이전트 팀 구성
+
+실제 프로젝트에서 **모놀리식 코드를 마이크로서비스로 분리**하는 대규모 리팩토링을 에이전트 팀으로 수행하는 방법을 살펴봅니다.
+
+### 프로젝트 개요
+
+| 항목 | 내용 |
+|------|------|
+| **목표** | 모놀리식 Express 앱을 3개 마이크로서비스로 분리 |
+| **코드 규모** | 약 50,000줄 (TypeScript) |
+| **분리 대상** | User 서비스, Order 서비스, Payment 서비스 |
+| **기간** | 에이전트 팀으로 약 2시간 (수동이라면 2-3주 예상) |
+
+### 에이전트 팀 구성
+
+<CodeBlock
+  code={`## 리팩토링 에이전트 팀 (6명)
+
+### Team Lead: 리팩토링 총괄
+- 모델: Opus
+- 역할: 의존성 분석, 작업 분할, 통합 검증
+- 최종 결과물: 마이그레이션 완료 보고서
+
+### Agent 1: 의존성 분석가 (Analyst)
+- 모델: Sonnet
+- 역할: 모듈 간 의존성 맵 생성
+- 산출물: 의존성 그래프, 분리 전략 제안
+
+### Agent 2: User 서비스 담당
+- 모델: Sonnet
+- 역할: User 관련 코드 추출 및 독립 서비스화
+- 담당 범위: src/models/user.*, src/routes/user.*, src/services/user.*
+
+### Agent 3: Order 서비스 담당
+- 모델: Sonnet
+- 역할: Order 관련 코드 추출 및 독립 서비스화
+- 담당 범위: src/models/order.*, src/routes/order.*, src/services/order.*
+
+### Agent 4: Payment 서비스 담당
+- 모델: Sonnet
+- 역할: Payment 관련 코드 추출 및 독립 서비스화
+- 담당 범위: src/models/payment.*, src/routes/payment.*, src/services/payment.*
+
+### Agent 5: 테스트 및 검증
+- 모델: Sonnet
+- 역할: 기존 테스트 마이그레이션, 통합 테스트 작성
+- 산출물: 서비스별 테스트 코드, 통합 테스트`}
+  language="markdown"
+  filename="리팩토링 에이전트 팀 구성"
+/>
+
+### 실행 흐름
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph P1["Phase 1: 분석 (10분)"]
+      A["의존성 분석가"]
+      A -->|"의존성 맵"| TL["Team Lead"]
+    end
+    subgraph P2["Phase 2: 병렬 추출 (40분)"]
+      TL2["Team Lead"] --> U["User 서비스 에이전트"]
+      TL2 --> O["Order 서비스 에이전트"]
+      TL2 --> P["Payment 서비스 에이전트"]
+      U <-->|"Cowork: 공유 인터페이스"| O
+      O <-->|"Cowork: 결제 API"| P
+    end
+    subgraph P3["Phase 3: 검증 (30분)"]
+      U2["User 결과"] --> T["테스트 에이전트"]
+      O2["Order 결과"] --> T
+      P2b["Payment 결과"] --> T
+      T -->|"테스트 보고서"| TL3["Team Lead"]
+    end
+    subgraph P4["Phase 4: 통합 (40분)"]
+      TL4["Team Lead"]
+      TL4 -->|"서비스 간 통신 설정"| INT["통합 구성"]
+      TL4 -->|"Docker Compose 작성"| DC["배포 설정"]
+      TL4 -->|"최종 검증"| FV["완료 보고"]
+    end
+    P1 --> P2
+    P2 --> P3
+    P3 --> P4
+    style P1 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style P2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style P3 fill:#e8f5e9,stroke:#4CAF50,color:#2d2a26
+    style P4 fill:#fff3e0,stroke:#FF9800,color:#2d2a26`}
+  title="대규모 리팩토링 에이전트 팀 실행 흐름"
+  caption="분석 → 병렬 추출 → 검증 → 통합의 4단계로 모놀리식을 마이크로서비스로 분리합니다"
+/>
+
+<Callout type="tip" title="핵심 성공 요인">
+  대규모 리팩토링에서 에이전트 팀의 성공을 결정짓는 3가지 요소:
+  (1) **명확한 경계 분할** — 각 에이전트가 담당하는 파일 범위를 겹치지 않게 설정,
+  (2) **공유 인터페이스 선정의** — 서비스 간 통신 인터페이스를 먼저 합의,
+  (3) **점진적 검증** — 각 단계가 끝날 때마다 테스트 실행으로 정합성 확인.
+</Callout>
+
+---
+
+## 실전 사례: 멀티 리포지토리 작업
+
+하나의 변경이 여러 리포지토리에 걸쳐 있는 경우, 에이전트 팀을 활용하여 동시에 작업할 수 있습니다.
+
+### 시나리오: API 버전 업그레이드
+
+<CodeBlock
+  code={`## 시나리오: v1 → v2 API 마이그레이션 (3개 리포지토리)
+
+### 리포지토리 구성
+- api-server: 백엔드 API (v2 엔드포인트 추가)
+- web-client: 웹 프론트엔드 (v2 API 호출로 전환)
+- mobile-sdk: 모바일 SDK (v2 API 호출로 전환)
+
+### 에이전트 팀 구성
+
+#### Team Lead (Opus)
+- 3개 리포지토리의 변경 사항 조율
+- v2 API 스키마를 먼저 확정하고 팀원에게 공유
+- 최종 통합 테스트 실행
+
+#### Agent 1: API 서버 (Sonnet)
+작업 디렉토리: ~/repos/api-server/
+프롬프트: "v1 API를 유지하면서 v2 엔드포인트를 추가해줘.
+v2 스키마는 다음과 같습니다: [스키마 정의]
+하위 호환성을 유지하면서 점진적 마이그레이션을 지원해줘."
+
+#### Agent 2: 웹 클라이언트 (Sonnet)
+작업 디렉토리: ~/repos/web-client/
+프롬프트: "API 호출을 v1에서 v2로 전환해줘.
+v2 스키마: [스키마 정의]
+Feature flag로 v1/v2 전환 가능하게 구현해줘."
+
+#### Agent 3: 모바일 SDK (Sonnet)
+작업 디렉토리: ~/repos/mobile-sdk/
+프롬프트: "SDK의 API 호출을 v2로 업데이트해줘.
+v2 스키마: [스키마 정의]
+v1 호환 모드도 제공해줘."
+
+### 실행 결과
+- API 서버: 12개 v2 엔드포인트 추가, 하위 호환성 유지
+- 웹 클라이언트: 45개 API 호출 전환, Feature flag 적용
+- 모바일 SDK: 30개 API 호출 전환, 호환 모드 구현
+- 총 소요 시간: 약 1시간 (수동이라면 3-5일 예상)`}
+  language="markdown"
+  filename="멀티 리포지토리 작업 사례"
+/>
+
+### 멀티 리포 작업의 주의사항
+
+<Callout type="warning" title="멀티 리포지토리 작업 시 주의사항">
+  1. **스키마 공유가 핵심**: 모든 에이전트에게 동일한 API 스키마를 전달해야 합니다. 하나라도 다른 스키마로 작업하면 통합 시 실패합니다.
+  2. **Git 브랜치 전략**: 각 리포지토리에서 동일한 이름의 feature 브랜치를 생성하여 추적 가능하게 관리하세요.
+  3. **통합 테스트 필수**: 각 리포 단독 테스트가 통과해도, 3개 리포를 조합한 통합 테스트(E2E)가 반드시 필요합니다.
+  4. **롤백 계획**: 하나의 리포 변경이 실패하면 전체를 롤백할 수 있는 계획을 미리 수립하세요.
+</Callout>
+
+---
+
+## 실증 사례: C 컴파일러 구축
+
+Anthropic 엔지니어링 블로그에서 공개한 **Agent Teams의 가장 인상적인 사례**입니다.
+
+### 프로젝트 개요
+
+| 항목 | 내용 |
+|------|------|
+| **목표** | Linux 커널을 컴파일할 수 있는 Rust 기반 C 컴파일러를 처음부터 구축 |
+| **에이전트 수** | 16개 Claude Opus 4.6 인스턴스 |
+| **세션 수** | 약 2,000회 Claude Code 세션 |
+| **비용** | $20,000 API 비용 |
+| **결과물** | 100,000줄의 컴파일러 코드 |
+| **성과** | x86, ARM, RISC-V에서 Linux 6.9 컴파일 성공 |
+| **테스트** | GCC torture test suite **99%** 통과 |
+| **추가 검증** | 클래식 게임 Doom 컴파일 및 실행 성공 |
+
+<Callout type="info" title="출처">
+  Nicholas Carlini(Anthropic Safeguards 팀)의 공식 엔지니어링 블로그 포스트:
+  [Building a C compiler with a team of parallel Claudes](https://www.anthropic.com/engineering/building-c-compiler)
+</Callout>
+
+### 작업 방식
+
+16개의 에이전트가 공유 코드베이스에서 다음과 같이 역할을 분담했습니다:
+
+1. **파서 에이전트**: C 언어 구문 분석기 구현
+2. **코드 생성 에이전트**: x86/ARM/RISC-V 백엔드 구현
+3. **최적화 에이전트**: 코드 최적화 패스 구현
+4. **테스트 에이전트**: GCC torture test suite 기반 검증
+5. **통합 에이전트**: 각 모듈의 인터페이스 조율
+
+사람의 개입 없이 에이전트들이 자율적으로 개발을 진행했으며, Anthropic도 이렇게 빨리 가능할 것이라고 예상하지 못했다고 밝혔습니다.
+
+### 이 사례에서 배울 수 있는 교훈
+
+<CodeBlock
+  code={`## C 컴파일러 사례의 핵심 교훈
+
+### 1. 모듈 경계의 명확한 정의
+- 파서, 코드 생성, 최적화 등 컴파일러의 자연스러운 경계를 활용
+- 각 에이전트의 책임 범위가 겹치지 않도록 설계
+- 인터페이스(함수 시그니처, 데이터 구조)를 먼저 합의
+
+### 2. 점진적 복잡도 증가
+- 초기에는 단순한 C 프로그램(Hello World)부터 시작
+- 성공적으로 컴파일되면 점차 복잡한 기능 추가
+- 각 단계에서 GCC torture test로 회귀 검증
+
+### 3. 테스트 주도 개발의 효과
+- 99% 테스트 통과율이 증명하는 품질
+- 테스트 에이전트가 지속적으로 검증하며 버그를 조기 발견
+- 다른 에이전트가 코드를 수정할 때마다 즉시 테스트 실행
+
+### 4. 비용 대비 효과
+- $20,000 비용 vs 인건비 대비 수십 배 효율적
+- 16명의 시니어 컴파일러 엔지니어를 고용하는 비용과 비교
+- 시간 측면에서도 수개월이 걸릴 작업을 수주 내에 완료
+
+### 5. 한계 인식
+- 에이전트가 생성한 코드의 유지보수성은 별도 검토 필요
+- 특수한 도메인 지식(CPU 아키텍처)은 프롬프트로 보충
+- 에이전트 간 충돌 해결에는 여전히 사람의 판단이 필요한 경우 존재`}
+  language="markdown"
+  filename="C 컴파일러 사례 교훈"
+/>
+
+---
+
+## Claude Agent SDK와의 관계
+
+Agent Teams를 프로그래밍 방식으로 구축하려면 **Claude Agent SDK**를 사용합니다. Agent SDK는 Claude Code의 서브에이전트 시스템을 **코드로 제어**할 수 있게 해주는 공식 라이브러리입니다.
+
+### Claude Code vs Agent SDK
+
+<ComparisonTable
+  title="Claude Code 서브에이전트 vs Agent SDK"
+  headers={['비교 항목', 'Claude Code 서브에이전트', 'Agent SDK']}
+  rows={[
+    { feature: '사용 방식', values: ['CLI 인터랙티브 / .claude/agents/', 'Python/TypeScript 코드'] },
+    { feature: '실행 환경', values: ['Claude Code CLI 내부', '어떤 애플리케이션에서든 실행 가능'] },
+    { feature: '에이전트 정의', values: ['마크다운 파일 (YAML frontmatter)', '코드로 프로그래밍'] },
+    { feature: '오케스트레이션', values: ['Claude가 자동 조율', '개발자가 직접 로직 구현'] },
+    { feature: '커스터마이징', values: ['도구 목록, 모델, 프롬프트', '도구, 모델, 프롬프트, 메모리, 가드레일 등'] },
+    { feature: '적합한 용도', values: ['개발 워크플로우 자동화', '프로덕션 AI 에이전트 구축'] },
+  ]}
+/>
+
+### Agent SDK 아키텍처
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph SDK["Claude Agent SDK"]
+      AC["Agent 클래스"]
+      TM["Tool Manager"]
+      MM["Memory Manager"]
+      GR["Guardrails"]
+    end
+    subgraph Tools["내장 도구"]
+      R["Read"]
+      E["Edit"]
+      B["Bash"]
+      G["Glob/Grep"]
+    end
+    subgraph Custom["커스텀 도구"]
+      CT1["DB Query"]
+      CT2["API Call"]
+      CT3["Cloud Deploy"]
+    end
+    AC --> TM
+    AC --> MM
+    AC --> GR
+    TM --> Tools
+    TM --> Custom
+    style SDK fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Tools fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Custom fill:#e8f5e9,stroke:#4CAF50,color:#2d2a26`}
+  title="Claude Agent SDK 구조"
+  caption="Agent SDK는 도구 관리, 메모리 관리, 가드레일을 통합하여 에이전트를 프로그래밍 방식으로 구축합니다"
+/>
+
+### SDK 설치 및 기본 사용법
+
+<CodeBlock
+  code={`# Python SDK 설치
+pip install claude-agent-sdk
+
+# TypeScript SDK 설치
+npm install @anthropic-ai/claude-agent-sdk`}
+  language="bash"
+  filename="Claude Agent SDK 설치"
+/>
+
+<CodeBlock
+  code={`# Python 예시: 에이전트 생성 및 실행
+from claude_agent_sdk import Agent
+
+# 에이전트 정의 — 도구 구현 없이 작업만 정의하면
+# SDK가 파일 읽기, 명령 실행, 코드 편집 등을 자동 처리
+agent = Agent(
+    model="claude-opus-4-6",
+    task="src/api/ 디렉토리의 모든 엔드포인트에 rate limiting을 추가해줘",
+    tools=["read", "edit", "bash"],  # 내장 도구 사용
+)
+
+result = agent.run()
+print(result.summary)`}
+  language="python"
+  filename="Claude Agent SDK 기본 사용 예시"
+/>
+
+### SDK로 멀티 에이전트 팀 구축
+
+<CodeBlock
+  code={`# Python 예시: Agent SDK로 멀티 에이전트 팀 구성
+from claude_agent_sdk import Agent, Team
+
+# 개별 에이전트 정의
+analyzer = Agent(
+    model="claude-sonnet-4-20250514",
+    task="프로젝트 구조를 분석하고 모듈 간 의존성 맵을 생성해줘",
+    tools=["read", "glob", "grep"],
+)
+
+implementer = Agent(
+    model="claude-sonnet-4-20250514",
+    task="분석 결과를 바탕으로 리팩토링을 수행해줘",
+    tools=["read", "edit", "bash"],
+)
+
+tester = Agent(
+    model="claude-sonnet-4-20250514",
+    task="변경된 코드에 대해 테스트를 작성하고 실행해줘",
+    tools=["read", "edit", "bash"],
+)
+
+# 팀 구성 및 실행
+team = Team(
+    lead_model="claude-opus-4-6",
+    agents=[analyzer, implementer, tester],
+    strategy="sequential",  # sequential, parallel, pipeline
+)
+
+result = team.run()
+print(result.summary)
+print(f"총 토큰 사용: {result.total_tokens}")
+print(f"총 비용: \${result.total_cost:.2f}")`}
+  language="python"
+  filename="Agent SDK 멀티 에이전트 팀"
+/>
+
+<Callout type="tip" title="Agent SDK 공식 문서">
+  - Python SDK: [github.com/anthropics/claude-agent-sdk-python](https://github.com/anthropics/claude-agent-sdk-python)
+  - TypeScript SDK: [npmjs.com/package/@anthropic-ai/claude-agent-sdk](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk)
+  - 공식 가이드: [Building agents with the Claude Agent SDK](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk)
+</Callout>
+
+---
+
+## 서브에이전트 통신 구조 전체 개관
+
+지금까지 다룬 서브에이전트, Agent Teams, Cowork, Agent SDK의 관계를 정리하면 다음과 같습니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Layer1["1. 기본 — 서브에이전트 (Task)"]
+      M1["메인 에이전트"] -->|"Task 호출"| S1["서브에이전트"]
+      S1 -->|"결과 반환"| M1
+    end
+    subgraph Layer2["2. 진화 — Agent Teams"]
+      TL["팀 리더"] --> T1["팀원 A"]
+      TL --> T2["팀원 B"]
+      T1 <-->|"Cowork"| T2
+    end
+    subgraph Layer3["3. 프로그래밍 — Agent SDK"]
+      CODE["개발자 코드"] --> SDK["Agent SDK"]
+      SDK --> AG1["Agent 1"]
+      SDK --> AG2["Agent 2"]
+      AG1 <--> AG2
+    end
+    Layer1 -.->|"진화"| Layer2
+    Layer2 -.->|"코드화"| Layer3
+    style Layer1 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Layer2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Layer3 fill:#e8f5e9,stroke:#4CAF50,color:#2d2a26`}
+  title="서브에이전트 시스템 진화 단계"
+  caption="기본 서브에이전트 → Agent Teams → Agent SDK로 점차 강력하고 유연한 멀티 에이전트 시스템을 구축할 수 있습니다"
+/>
+
+### 언제 무엇을 사용할 것인가
+
+<ComparisonTable
+  title="상황별 권장 접근법"
+  headers={['상황', '권장 접근법', '이유']}
+  rows={[
+    { feature: '단순 코드 탐색', values: ['빌트인 서브에이전트 (Explore)', '자동 선택, 추가 설정 불필요'] },
+    { feature: '프로젝트 특화 분석', values: ['커스텀 서브에이전트 (.claude/agents/)', '역할 정의로 일관된 전문성'] },
+    { feature: '크로스 영역 병렬 개발', values: ['Agent Teams', '실시간 통신으로 호환성 유지'] },
+    { feature: 'CI/CD 자동화', values: ['Headless Mode (claude -p)', '스크립트 통합이 간편'] },
+    { feature: '프로덕션 AI 에이전트', values: ['Agent SDK', '완전한 프로그래밍 제어'] },
+    { feature: '대규모 리팩토링', values: ['Agent Teams + 커스텀 에이전트', '역할 분담과 병렬 실행의 조합'] },
+  ]}
+/>
+
+---
+
+## 정리 — 서브에이전트 시스템 활용 체크리스트
+
+<CodeBlock
+  code={`## 서브에이전트 도입 체크리스트
+
+### 기본 설정
+- [ ] .claude/agents/ 디렉토리에 프로젝트 특화 에이전트 정의
+- [ ] 각 에이전트의 tools 필드에 최소 필요 도구만 지정
+- [ ] 각 에이전트의 model 필드에 작업 특성에 맞는 모델 지정
+
+### 프롬프트 설계
+- [ ] Task 프롬프트에 프로젝트 컨텍스트 포함
+- [ ] 구체적인 작업 지시와 기대 출력 형식 명시
+- [ ] 대상 파일 범위를 명확하게 한정
+
+### 비용 관리
+- [ ] 탐색 작업: Haiku, 분석/생성: Sonnet, 판단/복합: Opus
+- [ ] 불필요하게 넓은 범위 탐색 방지
+- [ ] 주간 토큰 사용량 모니터링
+
+### 팀 협업 (Agent Teams)
+- [ ] 파일 영역이 겹치지 않도록 작업 분할
+- [ ] 공유 인터페이스(API 스키마 등)를 먼저 확정
+- [ ] 각 단계 완료 후 테스트로 정합성 검증
+- [ ] 멀티 리포 작업 시 동일 브랜치명 사용
+
+### 디버깅
+- [ ] 서브에이전트 실패 시 프롬프트 품질 먼저 점검
+- [ ] 도구 권한(tools 필드) 확인
+- [ ] verbose 모드로 실행 과정 추적
+- [ ] 결과 활용률을 정기적으로 평가`}
+  language="markdown"
+  filename="서브에이전트 도입 체크리스트"
+/>
+
+
+---
+
+## Agent Teams
+
+> Claude Code의 실험적 멀티 에이전트 협업 시스템
+
+## 개요
+
+**Agent Teams**는 2026년 2월 5일 Claude Opus 4.6과 함께 출시된 Claude Code의 **네이티브 멀티 에이전트 협업 기능**입니다. 기존 서브에이전트가 메인 에이전트에서 서브에이전트로의 일방향 위임이었다면, Agent Teams는 하나의 **팀 리드(Team Lead)**가 여러 **팀원(Teammates)**을 생성하고 조율하며, 팀원들이 서로 직접 메시지를 교환하는 완전한 멀티 에이전트 시스템입니다.
+
+각 팀원은 독립적인 Claude Code 인스턴스로 실행되며, 자체 컨텍스트 윈도우를 보유합니다. 팀원들은 **공유 작업 목록(Task List)**과 **메일박스(Messaging)** 메커니즘을 통해 실시간으로 협업합니다.
+
+<Callout type="warning" title="Research Preview">
+  Agent Teams는 현재 **Research Preview(실험적)** 단계입니다. API와 동작이 변경될 수 있으며, 프로덕션 환경에서는 주의하여 사용하세요. 세션 재개 시 팀원 복원이 불가능한 등의 제한사항이 있습니다.
+</Callout>
+
+<Callout type="info" title="왜 Agent Teams가 필요한가?">
+  서브에이전트는 메인 에이전트가 모든 작업을 관리하는 **중앙 집중형**입니다. 작업이 복잡해지면 메인 에이전트의 컨텍스트가 과부하되고, 서브에이전트 간 소통이 불가능합니다. Agent Teams는 이 한계를 극복하여 **분산 협업**을 가능하게 합니다.
+</Callout>
+
+---
+
+## Agent Teams 아키텍처
+
+Agent Teams의 핵심 아키텍처는 팀 리드를 중심으로 팀원들이 독립적으로 작업하면서도 서로 직접 통신할 수 있는 구조입니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph TeamLead["팀 리드 (Team Lead)"]
+      TL["작업 조율 & 할당\n모델: Opus 4.6\n공유 작업 목록 관리"]
+    end
+    subgraph Teammates["팀원 (Teammates)"]
+      T1["팀원 1\n프론트엔드\n독립 컨텍스트"]
+      T2["팀원 2\n백엔드 API\n독립 컨텍스트"]
+      T3["팀원 3\n테스트\n독립 컨텍스트"]
+      T4["팀원 4\n문서화\n독립 컨텍스트"]
+    end
+    subgraph SharedResources["공유 리소스"]
+      TK["공유 작업 목록\npending / in_progress / completed"]
+      FS["파일 시스템\n(동일 코드베이스)"]
+      MB["메일박스\n(직접 메시지)"]
+    end
+    TL -->|"작업 할당"| T1
+    TL -->|"작업 할당"| T2
+    TL -->|"작업 할당"| T3
+    TL -->|"작업 할당"| T4
+    T1 <-->|"메시지"| T2
+    T2 <-->|"메시지"| T3
+    T3 <-->|"메시지"| T4
+    T1 --> TK
+    T2 --> TK
+    T3 --> TK
+    T4 --> TK
+    TK --> FS
+    style TeamLead fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Teammates fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style SharedResources fill:#e8f5e9,stroke:#4CAF50,color:#2d2a26`}
+  title="Agent Teams 전체 아키텍처"
+  caption="팀 리드가 작업을 조율하고, 팀원들은 독립 컨텍스트에서 작업하면서 메일박스와 공유 작업 목록으로 협업합니다"
+/>
+
+### 핵심 구성 요소
+
+| 구성 요소 | 설명 |
+|-----------|------|
+| **팀 리드 (Team Lead)** | 팀을 생성하고 작업을 조율하는 메인 Claude Code 인스턴스. 리더십을 다른 팀원에게 이전할 수 없음 |
+| **팀원 (Teammates)** | 독립적인 Claude Code 인스턴스. 각자 자체 컨텍스트 윈도우를 가지며 별도 프로세스로 실행 |
+| **공유 작업 목록 (Task List)** | 모든 팀원이 접근하는 공유 작업 관리 시스템. pending, in_progress, completed 상태와 의존성 지원 |
+| **메일박스 (Messaging)** | 팀원 간 직접 메시지 교환 메커니즘. 서브에이전트와 달리 팀원끼리 직접 소통 가능 |
+| **파일 잠금 (File Locking)** | 여러 팀원이 동일 파일을 동시 수정하는 충돌을 방지하는 메커니즘 |
+
+### 파일 구조
+
+<CodeBlock
+  code={`# Agent Teams 관련 파일 위치
+
+# 팀 설정 파일
+~/.claude/teams/{team-name}/config.json
+
+# 작업 목록 파일
+~/.claude/tasks/{team-name}/
+
+# 메일박스 (팀원 간 메시지)
+~/.claude/teams/{team-name}/mailbox/`}
+  language="bash"
+  filename="Agent Teams 파일 구조"
+/>
+
+---
+
+## 활성화 방법과 설정
+
+Agent Teams는 실험적 기능이므로 명시적으로 활성화해야 합니다.
+
+### 활성화
+
+<CodeBlock
+  code={`# 방법 1: 환경 변수로 활성화
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+
+# 방법 2: settings.json에서 활성화
+# ~/.claude/settings.json 또는 .claude/settings.json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}`}
+  language="bash"
+  filename="Agent Teams 활성화 방법"
+/>
+
+<Callout type="tip" title="프로젝트별 활성화">
+  팀 전체에서 Agent Teams를 사용하려면 프로젝트의 `.claude/settings.json`에 설정을 추가하세요. 개인적으로만 사용하려면 `~/.claude/settings.json`에 추가합니다.
+</Callout>
+
+---
+
+## 팀 생성과 관리
+
+Agent Teams의 가장 큰 장점은 **자연어로 팀을 구성**할 수 있다는 점입니다. 복잡한 설정 파일 없이 대화형으로 팀을 만들 수 있습니다.
+
+### 자연어로 팀 구성
+
+<CodeBlock
+  code={`# 예시 1: 기능 개발 팀 구성
+> "결제 시스템을 구현해야 해. 프론트엔드, 백엔드, 테스트를 각각 담당할
+> 3명의 팀원으로 팀을 구성해줘. 백엔드는 Opus로, 나머지는 Sonnet으로."
+
+# Claude의 응답:
+# 팀을 구성합니다:
+# - [frontend] 프론트엔드 담당 (Sonnet) - 결제 UI 컴포넌트 구현
+# - [backend] 백엔드 담당 (Opus) - 결제 API 및 비즈니스 로직 구현
+# - [tester] 테스트 담당 (Sonnet) - 단위/통합 테스트 작성
+
+# 예시 2: 디버깅 팀 구성
+> "프로덕션에서 간헐적으로 500 에러가 발생해. 3가지 가설을 세워서
+> 각각 별도 팀원이 동시에 조사해줘."
+
+# Claude의 응답:
+# 디버깅 팀을 구성합니다:
+# - [hypothesis-db] DB 커넥션 풀 고갈 가설 조사
+# - [hypothesis-memory] 메모리 누수 가설 조사
+# - [hypothesis-race] 레이스 컨디션 가설 조사
+
+# 예시 3: 코드 리뷰 팀 구성
+> "이 PR을 다각도로 리뷰하고 싶어. 보안, 성능, 코드 품질을
+> 각각 전문으로 리뷰하는 팀을 만들어줘."
+
+# Claude의 응답:
+# 리뷰 팀을 구성합니다:
+# - [security-reviewer] 보안 취약점 분석
+# - [perf-reviewer] 성능 이슈 및 최적화 기회 분석
+# - [quality-reviewer] 코드 품질, 컨벤션, 유지보수성 분석`}
+  language="markdown"
+  filename="자연어로 팀 구성하기"
+/>
+
+### 팀원별 모델 지정
+
+각 팀원에게 작업 특성에 맞는 모델을 지정할 수 있습니다. 탐색은 가벼운 모델로, 핵심 구현은 고성능 모델로 배치하여 비용을 최적화합니다.
+
+<CodeBlock
+  code={`# 팀원별 모델 지정 예시
+> "다음과 같이 팀을 구성해줘:
+> - 탐색/분석 담당: Sonnet (비용 절감)
+> - 핵심 구현 담당: Opus (최고 품질)
+> - 테스트 작성 담당: Sonnet (패턴 기반 작업)"
+
+# 또는 구성 후 개별 지정
+> "[backend] 팀원의 모델을 Opus로 변경해줘"`}
+  language="markdown"
+  filename="팀원별 모델 지정"
+/>
+
+<ComparisonTable
+  title="작업 유형별 권장 모델 배치"
+  headers={['작업 유형', '권장 모델', '이유']}
+  rows={[
+    { feature: '코드베이스 탐색/분석', values: ['Sonnet', '읽기 전용 작업에 고비용 모델 불필요'] },
+    { feature: '핵심 비즈니스 로직 구현', values: ['Opus', '복잡한 추론과 정확한 구현 필요'] },
+    { feature: '테스트 코드 작성', values: ['Sonnet', '패턴 기반 코드 생성에 적합'] },
+    { feature: '보안 분석', values: ['Opus', '취약점 발견에 높은 정확도 필수'] },
+    { feature: '문서화', values: ['Sonnet', '텍스트 생성 능력이 충분'] },
+    { feature: '디버깅 가설 검증', values: ['Opus', '복잡한 시스템 추론 필요'] },
+  ]}
+/>
+
+---
+
+## 디스플레이 모드
+
+Agent Teams는 두 가지 디스플레이 모드를 지원합니다. 각 팀원의 작업을 어떻게 시각적으로 관리할지 결정합니다.
+
+### In-Process 모드
+
+메인 터미널에서 모든 팀원의 출력을 관리합니다. `Shift+Up`/`Shift+Down` 키로 팀원 간 전환합니다.
+
+<CodeBlock
+  code={`# In-Process 모드 (기본값)
+# 하나의 터미널에서 팀원 간 전환
+
+# Shift+Up: 이전 팀원으로 전환
+# Shift+Down: 다음 팀원으로 전환
+
+# 화면 구성:
+# ┌─────────────────────────────────────────┐
+# │ [Team Lead] [frontend] [backend] [test] │  ← 팀원 탭
+# ├─────────────────────────────────────────┤
+# │                                         │
+# │  현재 선택된 팀원의 작업 출력            │
+# │                                         │
+# ├─────────────────────────────────────────┤
+# │ 팀 상태: 3/4 작업 진행중                │  ← 상태 바
+# └─────────────────────────────────────────┘
+
+# 장점: 추가 도구 설치 불필요
+# 단점: 한 번에 하나의 팀원만 볼 수 있음`}
+  language="text"
+  filename="In-Process 모드"
+/>
+
+### Split Panes 모드
+
+tmux 또는 iTerm2를 사용하여 각 팀원을 별도 패인에 표시합니다. 모든 팀원의 작업을 동시에 관찰할 수 있습니다.
+
+<CodeBlock
+  code={`# Split Panes 모드 (tmux / iTerm2)
+# 각 팀원이 별도 패인에서 실행
+
+# tmux 기반 화면 구성:
+# ┌──────────────────┬──────────────────┐
+# │ [Team Lead]      │ [frontend]       │
+# │                  │                  │
+# │ 작업 조율 중     │ UI 구현 중       │
+# │                  │                  │
+# ├──────────────────┼──────────────────┤
+# │ [backend]        │ [tester]         │
+# │                  │                  │
+# │ API 구현 중      │ 테스트 작성 중   │
+# │                  │                  │
+# └──────────────────┴──────────────────┘
+
+# 장점: 모든 팀원의 작업을 동시에 모니터링
+# 단점: tmux 또는 iTerm2 필요
+# 설정: Agent Teams 활성화 시 자동으로 tmux 세션 생성`}
+  language="text"
+  filename="Split Panes 모드"
+/>
+
+<ComparisonTable
+  title="디스플레이 모드 비교"
+  headers={['항목', 'In-Process', 'Split Panes']}
+  rows={[
+    { feature: '추가 도구', values: ['불필요', 'tmux 또는 iTerm2 필요'] },
+    { feature: '동시 관찰', values: ['한 번에 하나의 팀원만', '모든 팀원 동시 확인'] },
+    { feature: '전환 방법', values: ['Shift+Up/Down 키', '마우스 클릭 또는 tmux 단축키'] },
+    { feature: '적합한 상황', values: ['팀원 2-3명, 순차 확인', '팀원 4명 이상, 병렬 모니터링'] },
+    { feature: '터미널 크기', values: ['작은 화면에서도 사용 가능', '충분히 넓은 화면 필요'] },
+  ]}
+/>
+
+---
+
+## 서브에이전트와의 비교
+
+Agent Teams와 기존 서브에이전트의 차이점을 정확히 이해하는 것이 중요합니다. 각각 적합한 사용 사례가 다릅니다.
+
+<MermaidDiagram
+  chart={`flowchart LR
+    subgraph Subagent["서브에이전트 모델"]
+      MA["메인 에이전트"] -->|"Task 호출"| SA1["서브에이전트 A"]
+      MA -->|"Task 호출"| SA2["서브에이전트 B"]
+      SA1 -->|"결과 반환"| MA
+      SA2 -->|"결과 반환"| MA
+      SA1 -.-x|"통신 불가"| SA2
+    end
+    subgraph AgentTeams["Agent Teams 모델"]
+      TL["팀 리드"] -->|"작업 할당"| TA1["팀원 A"]
+      TL -->|"작업 할당"| TA2["팀원 B"]
+      TA1 <-->|"직접 메시지"| TA2
+      TA1 -->|"상태 보고"| TL
+      TA2 -->|"상태 보고"| TL
+    end
+    style Subagent fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style AgentTeams fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26`}
+  title="서브에이전트 vs Agent Teams 통신 모델"
+  caption="서브에이전트는 메인에게만 결과를 반환하지만, Agent Teams는 팀원 간 직접 메시지가 가능합니다"
+/>
+
+<ComparisonTable
+  title="서브에이전트 vs Agent Teams 상세 비교"
+  headers={['비교 항목', '서브에이전트 (Task)', 'Agent Teams']}
+  rows={[
+    { feature: '컨텍스트', values: ['독립 컨텍스트, 결과만 메인에 반환', '독립 컨텍스트, 완전 독립적 인스턴스'] },
+    { feature: '통신 방향', values: ['메인 → 서브 (일방향 위임)', '팀원 간 양방향 직접 메시지'] },
+    { feature: '작업 조율', values: ['메인 에이전트가 모든 작업 관리', '공유 작업 목록으로 분산 관리'] },
+    { feature: '수명', values: ['Task 완료 시 자동 소멸', '팀 세션 동안 지속'] },
+    { feature: '병렬 처리', values: ['가능하나 결과 취합은 메인이 담당', '팀원 간 실시간 조율하며 병렬 처리'] },
+    { feature: '비용', values: ['낮음 (단일 호출)', '높음 (각 팀원이 별도 인스턴스)'] },
+    { feature: '설정 복잡도', values: ['낮음 (.claude/agents/ 파일)', '보통 (환경 변수 활성화 + 자연어 구성)'] },
+    { feature: '최적 사용 시기', values: ['독립적인 단일 작업 위임', '상호 의존적인 복합 작업'] },
+  ]}
+/>
+
+### 언제 무엇을 선택할 것인가
+
+<CodeBlock
+  code={`## 선택 가이드
+
+### 서브에이전트를 선택해야 하는 경우
+- 독립적인 단일 작업 (예: "이 파일의 보안 취약점 분석")
+- 결과만 필요하고 중간 과정 소통이 불필요한 경우
+- 비용을 최소화해야 하는 경우
+- 단순 탐색/분석 작업
+
+### Agent Teams를 선택해야 하는 경우
+- 여러 영역에 걸친 복합 작업 (예: "프론트/백/테스트를 동시 개발")
+- 작업 간 의존성이 있어 실시간 소통이 필요한 경우
+- 여러 가설을 동시에 검증하는 디버깅
+- 다각도 코드 리뷰 (보안 + 성능 + 품질)
+- 대규모 리팩토링 또는 마이그레이션`}
+  language="markdown"
+  filename="서브에이전트 vs Agent Teams 선택 가이드"
+/>
+
+---
+
+## Delegate Mode와 Plan Approval
+
+Agent Teams의 두 가지 핵심 운영 모드를 이해하면 팀을 더 효과적으로 관리할 수 있습니다.
+
+### Delegate Mode
+
+`Shift+Tab`으로 팀 리드를 **코디네이션 전용 모드**로 전환합니다. 이 모드에서 팀 리드는 직접 코드를 작성하지 않고, 오직 작업 분배와 팀원 조율에만 집중합니다.
+
+<CodeBlock
+  code={`# Delegate Mode 활성화
+# Shift+Tab 키를 눌러 토글
+
+# Delegate Mode ON:
+# ┌─────────────────────────────────────────────────┐
+# │ [DELEGATE MODE] 팀 리드는 코디네이션만 수행      │
+# │                                                  │
+# │ 가능한 작업:                                     │
+# │ - 새 팀원 생성                                   │
+# │ - 작업 할당 및 재할당                            │
+# │ - 팀원 간 메시지 조율                            │
+# │ - 작업 목록 관리                                 │
+# │ - 결과 검토 및 피드백                            │
+# │                                                  │
+# │ 불가능한 작업:                                   │
+# │ - 직접 파일 수정                                 │
+# │ - 직접 명령어 실행                               │
+# │ - 직접 코드 작성                                 │
+# └─────────────────────────────────────────────────┘
+
+# Delegate Mode OFF:
+# 팀 리드가 직접 작업도 수행 가능 (기본 모드)`}
+  language="text"
+  filename="Delegate Mode 동작"
+/>
+
+<Callout type="tip" title="Delegate Mode 활용 시점">
+  팀원이 3명 이상이고 작업이 복잡할 때 Delegate Mode를 켜면 팀 리드가 "관리자" 역할에 집중하여 전체 작업 효율이 올라갑니다. 팀원이 1-2명이면 Delegate Mode 없이 팀 리드가 직접 작업도 수행하는 것이 더 효율적입니다.
+</Callout>
+
+### Plan Approval
+
+팀원에게 **계획 승인**을 요구할 수 있습니다. 팀원이 작업을 시작하기 전에 계획을 세우고, 팀 리드가 승인한 후에만 실행에 들어갑니다.
+
+<CodeBlock
+  code={`# Plan Approval 흐름
+
+# 1. 팀 리드가 작업 할당 시 plan approval 요청
+> "backend 팀원에게 결제 API를 구현하도록 할당해줘.
+>  단, 구현 전에 계획을 먼저 제출하도록 해줘."
+
+# 2. 팀원이 계획 제출
+# [backend] 결제 API 구현 계획:
+# 1. POST /api/payments - 결제 생성
+# 2. GET /api/payments/:id - 결제 조회
+# 3. POST /api/payments/:id/refund - 환불 처리
+# 사용할 라이브러리: stripe-sdk
+# 예상 소요: 약 15분
+#
+# 이 계획을 승인하시겠습니까?
+
+# 3. 팀 리드가 승인 또는 수정 요청
+> "승인. 단, 환불 처리는 부분 환불도 지원하도록 수정해줘."
+
+# 4. 팀원이 승인된 계획에 따라 실행`}
+  language="markdown"
+  filename="Plan Approval 흐름"
+/>
+
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant TL as 팀 리드
+    participant TM as 팀원
+    TL->>TM: 작업 할당 (plan approval 요청)
+    TM->>TM: 계획 수립
+    TM->>TL: 계획 제출
+    alt 승인
+        TL->>TM: 계획 승인
+        TM->>TM: 구현 시작
+        TM->>TL: 작업 완료 보고
+    else 수정 요청
+        TL->>TM: 수정 피드백
+        TM->>TM: 계획 수정
+        TM->>TL: 수정된 계획 제출
+        TL->>TM: 승인
+        TM->>TM: 구현 시작
+    end`}
+  title="Plan Approval 워크플로우"
+  caption="팀 리드가 팀원의 계획을 사전 검토하여 방향이 맞는지 확인한 후 실행을 승인합니다"
+/>
+
+---
+
+## 공유 작업 목록 (Task List)
+
+Agent Teams의 핵심 조율 메커니즘인 공유 작업 목록은 모든 팀원이 접근할 수 있는 중앙 작업 관리 시스템입니다.
+
+### 작업 상태
+
+| 상태 | 설명 |
+|------|------|
+| `pending` | 아직 시작되지 않은 작업 |
+| `in_progress` | 팀원이 현재 작업 중 |
+| `completed` | 완료된 작업 |
+
+### 의존성 지원
+
+작업 간 의존성을 설정하면 선행 작업이 완료된 후에만 후속 작업이 시작됩니다.
+
+<CodeBlock
+  code={`# 작업 목록 예시 (의존성 포함)
+
+## 공유 작업 목록 — 결제 시스템 구현
+
+### Task 1: DB 스키마 설계 [completed]
+  담당: backend
+  상태: completed
+
+### Task 2: API 엔드포인트 구현 [in_progress]
+  담당: backend
+  상태: in_progress
+  의존: Task 1 (완료됨)
+
+### Task 3: UI 컴포넌트 구현 [in_progress]
+  담당: frontend
+  상태: in_progress
+  의존: Task 1 (완료됨)
+
+### Task 4: API 연동 [pending]
+  담당: frontend
+  상태: pending
+  의존: Task 2, Task 3 (대기 중)
+  → Task 2와 Task 3이 모두 완료되어야 시작
+
+### Task 5: 통합 테스트 [pending]
+  담당: tester
+  상태: pending
+  의존: Task 4 (대기 중)`}
+  language="markdown"
+  filename="공유 작업 목록 예시"
+/>
+
+<MermaidDiagram
+  chart={`flowchart LR
+    T1["Task 1\nDB 스키마 설계\n✅ completed"] --> T2["Task 2\nAPI 엔드포인트\n🔄 in_progress"]
+    T1 --> T3["Task 3\nUI 컴포넌트\n🔄 in_progress"]
+    T2 --> T4["Task 4\nAPI 연동\n⏳ pending"]
+    T3 --> T4
+    T4 --> T5["Task 5\n통합 테스트\n⏳ pending"]
+    style T1 fill:#dcfce7,stroke:#16a34a,color:#2d2a26
+    style T2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style T3 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style T4 fill:#fef3c7,stroke:#d97706,color:#2d2a26
+    style T5 fill:#fef3c7,stroke:#d97706,color:#2d2a26`}
+  title="작업 의존성 그래프"
+  caption="Task 4는 Task 2와 Task 3이 모두 완료되어야 시작됩니다. 의존성을 통해 작업 순서가 자동으로 관리됩니다."
+/>
+
+---
+
+## 팀원 간 직접 메시지
+
+Agent Teams의 가장 혁신적인 기능은 팀원 간 **직접 메시지 교환**입니다. 서브에이전트에서는 불가능했던 실시간 조율이 가능해집니다.
+
+### 통신 흐름
+
+<MermaidDiagram
+  chart={`sequenceDiagram
+    participant TL as 팀 리드
+    participant FE as frontend 팀원
+    participant BE as backend 팀원
+    participant TE as tester 팀원
+    TL->>FE: 결제 UI 구현
+    TL->>BE: 결제 API 구현
+    TL->>TE: 테스트 전략 수립
+    Note over BE: POST /api/payments 구현 중
+    BE->>FE: API 스키마 공유 - POST /api/payments 응답 형식
+    Note over FE: API 스키마에 맞춰 fetch 코드 작성
+    FE->>BE: 프론트에서 필요한 추가 필드 요청 (결제 상태 enum)
+    BE->>FE: PaymentStatus enum 공유 (pending, processing, completed, failed)
+    BE->>TE: API 엔드포인트 목록 전달
+    TE->>FE: UI 테스트에 필요한 mock 데이터 형식 문의
+    FE->>TE: mock 데이터 형식 전달
+    BE-->>TL: API 구현 완료
+    FE-->>TL: UI 구현 완료
+    TE-->>TL: 테스트 작성 완료`}
+  title="팀원 간 직접 메시지 흐름"
+  caption="백엔드가 API 스키마를 프론트엔드에 직접 공유하고, 테스터가 mock 데이터 형식을 문의하는 등 자율적으로 소통합니다"
+/>
+
+### 팀 리드가 팀원에게 직접 메시지 보내기
+
+팀 리드는 특정 팀원에게 직접 메시지를 보내 추가 지시나 피드백을 전달할 수 있습니다.
+
+<CodeBlock
+  code={`# 팀 리드 → 특정 팀원에게 메시지
+> "@backend 결제 API에 rate limiting을 추가해줘. 분당 100회로 제한."
+
+# 팀 리드 → 모든 팀원에게 브로드캐스트
+> "@all API 응답 형식을 { data, error, meta } 구조로 통일해줘."
+
+# 특정 팀원의 진행 상황 확인
+> "@frontend 현재 진행 상황을 알려줘."
+
+# 팀원 간 직접 소통 (팀원이 자발적으로)
+# [frontend]: @backend API 응답에 pagination 정보를 포함해줄 수 있어?
+# [backend]: @frontend 네, meta.pagination에 추가했습니다.
+#            { totalCount, currentPage, pageSize, totalPages }`}
+  language="markdown"
+  filename="팀원 간 메시지 예시"
+/>
+
+---
+
+## Hook 이벤트: TeammateIdle과 TaskCompleted
+
+Agent Teams는 기존 Hook 시스템에 두 가지 새로운 이벤트를 추가합니다.
+
+### TeammateIdle
+
+팀원이 할당된 작업을 모두 완료하고 유휴 상태가 되었을 때 발생합니다. 이 이벤트를 활용하면 유휴 팀원에게 새 작업을 자동 할당할 수 있습니다.
+
+<CodeBlock
+  code={`// .claude/settings.json
+{
+  "hooks": {
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/teammate-idle-handler.sh"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="TeammateIdle Hook 설정"
+/>
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/teammate-idle-handler.sh
+# 유휴 팀원 감지 시 자동 알림
+
+INPUT=$(cat)
+TEAMMATE_NAME=$(echo "$INPUT" | jq -r '.teammate_name')
+COMPLETED_TASKS=$(echo "$INPUT" | jq -r '.completed_tasks | length')
+
+# Slack 또는 로그로 알림
+echo "[Agent Teams] $TEAMMATE_NAME 팀원이 유휴 상태입니다. 완료한 작업: $COMPLETED_TASKS개" >&2
+
+# 팀 리드에게 알림 메시지 반환
+cat <<EOJSON
+{
+  "hookSpecificOutput": {
+    "hookEventName": "TeammateIdle",
+    "message": "$TEAMMATE_NAME 팀원이 $COMPLETED_TASKS개 작업을 완료하고 유휴 상태입니다. 추가 작업을 할당하시겠습니까?"
+  }
+}
+EOJSON
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/teammate-idle-handler.sh"
+/>
+
+### TaskCompleted
+
+공유 작업 목록에서 작업이 완료 상태로 전환될 때 발생합니다. 의존성이 있는 후속 작업의 자동 시작이나, 완료 알림 전송에 활용합니다.
+
+<CodeBlock
+  code={`// .claude/settings.json
+{
+  "hooks": {
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/task-completed-handler.sh"
+          }
+        ]
+      }
+    ]
+  }
+}`}
+  language="json"
+  filename="TaskCompleted Hook 설정"
+/>
+
+<CodeBlock
+  code={`#!/bin/bash
+# .claude/hooks/task-completed-handler.sh
+# 작업 완료 시 알림 및 후속 처리
+
+INPUT=$(cat)
+TASK_ID=$(echo "$INPUT" | jq -r '.task_id')
+TASK_NAME=$(echo "$INPUT" | jq -r '.task_name')
+TEAMMATE=$(echo "$INPUT" | jq -r '.completed_by')
+DEPENDENT_TASKS=$(echo "$INPUT" | jq -r '.dependent_tasks | length')
+
+echo "[TaskCompleted] $TEAMMATE 팀원이 '$TASK_NAME' 작업을 완료했습니다." >&2
+
+if [ "$DEPENDENT_TASKS" -gt 0 ]; then
+  echo "[TaskCompleted] $DEPENDENT_TASKS개의 후속 작업이 시작 가능합니다." >&2
+fi
+
+exit 0`}
+  language="bash"
+  filename=".claude/hooks/task-completed-handler.sh"
+/>
+
+---
+
+## 실전 시나리오 1: 크로스 레이어 기능 개발
+
+프론트엔드, 백엔드, 테스트를 동시에 개발하는 가장 일반적인 Agent Teams 사용 시나리오입니다.
+
+<CodeBlock
+  code={`# 시나리오: 사용자 프로필 편집 기능 개발
+
+## 팀 구성 요청
+> "사용자 프로필 편집 기능을 개발해야 해.
+>  - 프론트엔드: React 컴포넌트 + 폼 밸리데이션
+>  - 백엔드: REST API + DB 업데이트 로직
+>  - 테스트: 단위/통합 테스트
+>  팀을 구성하고 동시에 작업해줘.
+>  프론트엔드와 백엔드는 API 스키마를 먼저 합의하고 시작해줘."
+
+## 실행 과정
+
+### Phase 1: API 스키마 합의 (자동)
+# [backend] → [frontend]: API 스키마 공유
+#   PUT /api/users/:id/profile
+#   Request: { displayName, bio, avatarUrl }
+#   Response: { user: { id, displayName, bio, avatarUrl, updatedAt } }
+#
+# [frontend] → [backend]: 추가 필드 요청
+#   avatarUrl 대신 avatar 파일 업로드 지원 요청
+#
+# [backend] → [frontend]: 수정된 스키마 공유
+#   PUT /api/users/:id/profile (multipart/form-data)
+#   Fields: displayName, bio, avatar (file)
+
+### Phase 2: 병렬 구현
+# [frontend]: ProfileEditForm.tsx, useProfileUpdate.ts 작성 중
+# [backend]: profile.controller.ts, profile.service.ts 작성 중
+# [tester]: 테스트 케이스 목록 작성 + mock 데이터 준비
+
+### Phase 3: 테스트 및 통합
+# [tester]: 단위 테스트 작성 후 실행
+# [frontend] → [tester]: 컴포넌트 렌더링 테스트 결과 공유
+# [backend] → [tester]: API 응답 형식 전달
+
+## 최종 산출물
+# - src/components/ProfileEditForm.tsx (프론트엔드)
+# - src/hooks/useProfileUpdate.ts (프론트엔드)
+# - src/api/profile.controller.ts (백엔드)
+# - src/services/profile.service.ts (백엔드)
+# - tests/profile.test.ts (테스트)
+# - tests/ProfileEditForm.test.tsx (테스트)`}
+  language="markdown"
+  filename="크로스 레이어 기능 개발 시나리오"
+/>
+
+---
+
+## 실전 시나리오 2: 경쟁 가설 디버깅
+
+프로덕션 이슈를 여러 가설로 동시에 조사하는 고급 디버깅 패턴입니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Issue["프로덕션 이슈: 간헐적 500 에러"]
+      TL["팀 리드\n증상 분석 및 가설 수립"]
+    end
+    subgraph Hypotheses["병렬 가설 검증"]
+      H1["가설 1 팀원\nDB 커넥션 풀 고갈\n→ 커넥션 수 로그 분석"]
+      H2["가설 2 팀원\n메모리 누수\n→ 힙 덤프 분석"]
+      H3["가설 3 팀원\n레이스 컨디션\n→ 동시성 패턴 분석"]
+    end
+    subgraph Results["결과 취합"]
+      TL2["팀 리드\n가설 검증 결과 비교\n→ 근본 원인 확정"]
+    end
+    TL --> H1
+    TL --> H2
+    TL --> H3
+    H1 -->|"결과: 가능성 낮음"| TL2
+    H2 -->|"결과: 근본 원인 발견"| TL2
+    H3 -->|"결과: 부분 기여"| TL2
+    style Issue fill:#fee2e2,stroke:#dc2626,color:#2d2a26
+    style Hypotheses fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Results fill:#dcfce7,stroke:#16a34a,color:#2d2a26`}
+  title="경쟁 가설 디버깅 패턴"
+  caption="여러 가설을 병렬로 검증하여 근본 원인을 빠르게 찾아냅니다"
+/>
+
+<CodeBlock
+  code={`# 경쟁 가설 디버깅 프롬프트
+
+> "프로덕션에서 간헐적으로 500 에러가 발생해. 에러 로그를 보면
+>  src/services/order.service.ts의 processOrder 함수에서 발생하고 있어.
+>
+>  다음 3가지 가설로 팀을 구성해서 동시에 조사해줘:
+>
+>  1. DB 커넥션 풀 고갈: src/infrastructure/database.ts 의
+>     커넥션 풀 설정과 누수 가능성 분석
+>
+>  2. 메모리 누수: processOrder의 대량 데이터 처리 시
+>     메모리 사용 패턴 분석
+>
+>  3. 레이스 컨디션: 동시 주문 처리 시 공유 상태 접근
+>     패턴 분석
+>
+>  각 팀원은 자신의 가설에 대한 근거와 확인 방법을 보고해줘."
+
+# 결과: 3명의 팀원이 각자의 가설을 독립적으로 검증
+# 팀 리드가 결과를 비교하여 근본 원인 확정
+# → 가설 2 (메모리 누수)가 근본 원인으로 확인됨
+# → 가설 3 (레이스 컨디션)이 부분적으로 기여하고 있음을 추가 발견`}
+  language="markdown"
+  filename="경쟁 가설 디버깅 프롬프트"
+/>
+
+---
+
+## 실전 시나리오 3: 다각도 코드 리뷰
+
+하나의 PR을 여러 관점에서 동시에 리뷰합니다.
+
+<CodeBlock
+  code={`# 다각도 코드 리뷰 팀 구성
+
+> "PR #147을 리뷰해야 해. 다음 관점에서 각각 전문 리뷰어 팀을 구성해줘:
+>
+>  1. 보안 리뷰어: OWASP Top 10 기반 취약점 분석
+>  2. 성능 리뷰어: 쿼리 최적화, 알고리즘 효율성, 메모리 사용
+>  3. 코드 품질 리뷰어: SOLID 원칙, 코딩 컨벤션, 가독성
+>
+>  각 리뷰어는 독립적으로 분석하고, 결과를 심각도별로 분류해서 보고해줘."
+
+## 결과 예시
+
+### [security-reviewer] 보안 리뷰 결과
+- Critical (1건): src/api/auth.ts:45 - SQL Injection 가능
+- High (2건): CSRF 토큰 검증 누락, 세션 만료 미처리
+- Medium (1건): 에러 메시지에 스택 트레이스 노출
+
+### [perf-reviewer] 성능 리뷰 결과
+- High (1건): N+1 쿼리 패턴 발견 (src/services/order.ts:78)
+- Medium (2건): 불필요한 전체 테이블 스캔, 인덱스 미활용
+- Low (1건): 캐시 가능한 반복 계산
+
+### [quality-reviewer] 코드 품질 리뷰 결과
+- High (1건): 단일 책임 원칙 위반 (OrderService에 결제 로직 혼재)
+- Medium (3건): 매직 넘버 사용, 중복 코드, 미사용 import
+- Low (2건): 변수명 개선 제안, 주석 부족`}
+  language="markdown"
+  filename="다각도 코드 리뷰 시나리오"
+/>
+
+---
+
+## 비용 관리 전략
+
+Agent Teams는 각 팀원이 독립적인 Claude Code 인스턴스이므로 비용이 크게 증가할 수 있습니다. 효과적인 비용 관리가 필수입니다.
+
+### 비용 구조 이해
+
+<CodeBlock
+  code={`## Agent Teams 비용 구조
+
+### 비용 발생 지점
+- 팀 리드: 조율 및 관리를 위한 토큰 소비
+- 팀원 N명: 각각 독립 세션으로 토큰 소비
+- 팀원 간 메시지: 추가 토큰 소비
+- 공유 작업 목록: 상태 동기화를 위한 토큰 소비
+
+### 비용 추정 공식 (대략적)
+총 비용 ≈ (팀 리드 비용) + (팀원 수 x 평균 팀원 비용) + (메시지 오버헤드)
+
+### 예시: 3명 팀 (Opus 리드 + Sonnet 팀원 3명)
+- 팀 리드 (Opus): 약 $5-15 / 세션
+- 팀원 3명 (Sonnet 각): 약 $1-5 / 세션 x 3
+- 메시지 오버헤드: 약 10-20% 추가
+- 총 예상: $10-35 / 세션`}
+  language="markdown"
+  filename="비용 구조"
+/>
+
+### 비용 최적화 5가지 전략
+
+<ComparisonTable
+  title="비용 최적화 전략"
+  headers={['전략', '방법', '예상 절감']}
+  rows={[
+    { feature: '모델 차등 배치', values: ['탐색은 Sonnet, 핵심 구현만 Opus', '30-50%'] },
+    { feature: '팀 규모 최소화', values: ['필요한 최소 인원으로 팀 구성', '팀원 1명당 비용 절감'] },
+    { feature: '작업 범위 한정', values: ['각 팀원의 작업 범위를 구체적으로 지정', '20-30%'] },
+    { feature: 'Plan Approval 활용', values: ['잘못된 방향 조기 차단으로 재작업 방지', '10-20%'] },
+    { feature: '서브에이전트와 혼용', values: ['독립 작업은 서브에이전트, 협업만 Agent Teams', '40-60%'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`## 비용 절감 실전 팁
+
+### 1. 팀 구성 전 체크리스트
+- [ ] 이 작업이 정말 Agent Teams가 필요한가?
+      (서브에이전트나 단일 에이전트로 충분하지 않은가?)
+- [ ] 필요한 최소 팀원 수는 몇 명인가?
+- [ ] 각 팀원에 적합한 모델은 무엇인가?
+
+### 2. 작업 분할 원칙
+- 파일이 겹치지 않도록 분할 (충돌 방지 + 효율성)
+- 단순 탐색은 서브에이전트(Task)로 처리
+- Agent Teams는 실시간 소통이 필요한 작업에만 사용
+
+### 3. 세션 관리
+- 작업이 끝난 팀원은 즉시 종료
+- 장시간 유휴 상태인 팀원 식별 및 해제
+- TeammateIdle Hook으로 유휴 팀원 모니터링`}
+  language="markdown"
+  filename="비용 절감 실전 팁"
+/>
+
+<Callout type="warning" title="비용 주의">
+  Agent Teams는 서브에이전트 대비 **3-10배** 높은 비용이 발생할 수 있습니다. 단순한 작업에 Agent Teams를 사용하는 것은 비용 낭비입니다. 반드시 팀원 간 실시간 소통이 필요한 복합 작업에만 사용하세요.
+</Callout>
+
+---
+
+## 트러블슈팅 가이드
+
+Agent Teams 사용 시 자주 발생하는 문제와 해결 방법입니다.
+
+### 일반적인 문제
+
+<ComparisonTable
+  title="Agent Teams 트러블슈팅"
+  headers={['문제', '원인', '해결 방법']}
+  rows={[
+    { feature: '팀 생성 실패', values: ['환경 변수 미설정', 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 확인'] },
+    { feature: '팀원 간 메시지 전달 안됨', values: ['팀원 이름 오타 또는 팀원 종료됨', '팀 상태 확인 후 팀원 재생성'] },
+    { feature: '파일 충돌 발생', values: ['여러 팀원이 동일 파일 수정', '작업 범위를 파일 단위로 명확히 분할'] },
+    { feature: '세션 재개 시 팀원 사라짐', values: ['알려진 제한사항', '새 팀을 구성하여 작업 재개'] },
+    { feature: '비용 과다 발생', values: ['불필요한 팀원 또는 고비용 모델', '팀 규모 축소, 모델 다운그레이드'] },
+    { feature: '작업 목록 동기화 지연', values: ['네트워크 또는 파일 시스템 지연', '잠시 대기 후 재시도'] },
+    { feature: '팀원이 잘못된 작업 수행', values: ['작업 지시가 모호함', '구체적인 파일 경로와 기대 결과 명시'] },
+    { feature: 'Delegate Mode 전환 불가', values: ['단축키 충돌 또는 터미널 호환성', '터미널 설정 확인, 대체 터미널 사용'] },
+  ]}
+/>
+
+### 파일 충돌 방지 전략
+
+<CodeBlock
+  code={`## 파일 충돌 방지 — 작업 분할 가이드
+
+### 원칙: 한 파일은 한 팀원만 수정
+
+### 좋은 분할 예시
+# [frontend] 담당 파일:
+#   src/components/Payment*.tsx
+#   src/hooks/usePayment*.ts
+#   src/styles/payment.css
+#
+# [backend] 담당 파일:
+#   src/api/payment.controller.ts
+#   src/services/payment.service.ts
+#   src/models/payment.model.ts
+#
+# [tester] 담당 파일:
+#   tests/payment.test.ts
+#   tests/payment.integration.test.ts
+
+### 나쁜 분할 예시 (충돌 위험)
+# [frontend]와 [backend]가 모두 src/types/payment.ts 수정
+# → 해결: 공유 타입 파일은 팀 리드가 먼저 작성 후 팀원에게 전달
+
+### 공유 파일 처리 전략
+# 1. 팀 리드가 공유 인터페이스/타입을 먼저 정의
+# 2. 팀원들은 해당 파일을 읽기만 하고 수정하지 않음
+# 3. 수정이 필요하면 팀 리드에게 요청`}
+  language="markdown"
+  filename="파일 충돌 방지 전략"
+/>
+
+### 디버깅 명령어
+
+<CodeBlock
+  code={`# 팀 상태 확인
+# Claude Code 내에서:
+> "현재 팀 상태를 알려줘"
+# → 팀원 목록, 각 팀원의 작업 상태, 메시지 히스토리 표시
+
+# 특정 팀원의 상세 상태
+> "@backend 현재 무엇을 하고 있는지 상세히 알려줘"
+
+# 작업 목록 확인
+> "현재 작업 목록의 전체 상태를 보여줘"
+
+# 팀원 재시작
+> "frontend 팀원을 재시작해줘"
+
+# 팀 해산
+> "현재 팀을 해산하고 단일 에이전트 모드로 돌아가줘"`}
+  language="bash"
+  filename="Agent Teams 디버깅 명령어"
+/>
+
+---
+
+## 제한사항
+
+현재 Agent Teams의 알려진 제한사항을 정확히 이해하고 사용하는 것이 중요합니다.
+
+| 제한사항 | 설명 | 완화 방법 |
+|----------|------|----------|
+| **세션 재개 불가** | in-process 모드에서 세션 종료 후 팀원 복원 불가 | 중요 결과는 파일로 저장, 작업 분할을 작게 유지 |
+| **중첩 팀 불가** | 팀원이 자체적으로 하위 팀을 생성할 수 없음 | 팀 리드가 필요한 팀원을 모두 직접 생성 |
+| **단일 팀 제한** | 한 세션에서 하나의 팀만 운영 가능 | 순차적으로 팀 해산 후 새 팀 구성 |
+| **리드 고정** | 팀 리더십을 다른 팀원에게 이전 불가 | 팀 리드를 신중하게 설정 |
+| **Research Preview** | API와 동작이 예고 없이 변경될 수 있음 | 핵심 워크플로우에 과도하게 의존하지 않기 |
+
+<Callout type="info" title="향후 개선 예상">
+  Agent Teams는 Research Preview 단계이므로, 위 제한사항들은 향후 버전에서 개선될 가능성이 있습니다. Anthropic 공식 블로그와 릴리스 노트를 주기적으로 확인하세요.
+</Callout>
+
+---
+
+## Agent Teams 도입 체크리스트
+
+<CodeBlock
+  code={`## Agent Teams 도입 전 체크리스트
+
+### 환경 설정
+- [ ] CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS 환경 변수 설정
+- [ ] 디스플레이 모드 선택 (in-process vs split panes)
+- [ ] tmux 설치 (split panes 사용 시)
+
+### 작업 계획
+- [ ] 이 작업이 Agent Teams에 적합한지 평가
+      (팀원 간 소통 필요? 병렬 처리 이점?)
+- [ ] 최소 필요 팀원 수 결정
+- [ ] 각 팀원의 역할과 담당 파일 범위 정의
+- [ ] 공유 인터페이스/타입 사전 정의
+- [ ] 각 팀원에 적합한 모델 선택
+
+### 비용 관리
+- [ ] 예상 비용 산정
+- [ ] 모델 차등 배치 (탐색: Sonnet, 구현: Opus)
+- [ ] 작업 범위를 구체적으로 한정
+- [ ] Plan Approval 사용 여부 결정
+
+### 실행 중 관리
+- [ ] 작업 목록 진행 상황 정기 확인
+- [ ] 파일 충돌 여부 모니터링
+- [ ] 유휴 팀원 식별 및 관리
+- [ ] 중간 결과를 파일로 저장 (세션 복구 대비)
+
+### 완료 후
+- [ ] 모든 변경 사항 테스트
+- [ ] 팀원 간 생성 코드의 일관성 검증
+- [ ] 비용 리뷰 (예상 대비 실제)
+- [ ] 개선 사항 기록 (다음 세션을 위한 학습)`}
+  language="markdown"
+  filename="Agent Teams 도입 체크리스트"
+/>
+
+---
+
+## 서브에이전트 시스템 진화 전체 개관
+
+서브에이전트에서 Agent Teams까지의 진화 단계를 정리합니다.
+
+<MermaidDiagram
+  chart={`flowchart TB
+    subgraph Layer1["1단계: 서브에이전트 (Task)"]
+      M1["메인 에이전트"] -->|"Task 호출"| S1["서브에이전트"]
+      S1 -->|"결과 반환"| M1
+      L1N["특징: 일방향 위임, 낮은 비용"]
+    end
+    subgraph Layer2["2단계: Agent Teams"]
+      TL["팀 리드"] --> T1["팀원 A"]
+      TL --> T2["팀원 B"]
+      T1 <-->|"직접 메시지"| T2
+      L2N["특징: 양방향 통신, 공유 작업 목록"]
+    end
+    subgraph Layer3["3단계: Agent SDK"]
+      CODE["개발자 코드"] --> SDK["Agent SDK"]
+      SDK --> AG1["Agent 1"]
+      SDK --> AG2["Agent 2"]
+      AG1 <--> AG2
+      L3N["특징: 프로그래밍 제어, 프로덕션 배포"]
+    end
+    Layer1 -.->|"진화"| Layer2
+    Layer2 -.->|"코드화"| Layer3
+    style Layer1 fill:#fdf2ee,stroke:#da7756,color:#2d2a26
+    style Layer2 fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
+    style Layer3 fill:#e8f5e9,stroke:#4CAF50,color:#2d2a26`}
+  title="멀티 에이전트 시스템 진화 단계"
+  caption="서브에이전트(일방향 위임) → Agent Teams(양방향 협업) → Agent SDK(프로그래밍 제어)로 점차 강력해집니다"
+/>
+
+<ComparisonTable
+  title="상황별 최적 접근법"
+  headers={['상황', '권장 접근법', '이유']}
+  rows={[
+    { feature: '단순 코드 탐색/분석', values: ['서브에이전트 (Explore)', '비용 최소, 설정 불필요'] },
+    { feature: '독립적 단일 작업', values: ['커스텀 서브에이전트 (.claude/agents/)', '역할 정의로 일관된 품질'] },
+    { feature: '크로스 영역 병렬 개발', values: ['Agent Teams', '실시간 통신으로 호환성 유지'] },
+    { feature: '경쟁 가설 디버깅', values: ['Agent Teams', '여러 이론 병렬 검증'] },
+    { feature: 'CI/CD 자동화', values: ['Headless Mode (claude -p)', '스크립트 통합 간편'] },
+    { feature: '프로덕션 AI 에이전트', values: ['Agent SDK', '완전한 프로그래밍 제어'] },
+  ]}
+/>
+
+---
+
+## 정리
+
+Agent Teams는 Claude Code의 멀티 에이전트 협업을 한 단계 끌어올린 혁신적 기능입니다. 핵심 포인트를 정리하면:
+
+1. **팀 리드 + 팀원 구조**: 하나의 팀 리드가 여러 팀원을 조율하며, 각 팀원은 독립 인스턴스로 실행됩니다.
+
+2. **직접 메시지 교환**: 서브에이전트와 달리 팀원 간 직접 소통이 가능하여 실시간 조율이 됩니다.
+
+3. **공유 작업 목록**: pending/in_progress/completed 상태와 의존성을 지원하는 중앙 작업 관리 시스템입니다.
+
+4. **Delegate Mode와 Plan Approval**: 팀 리드의 역할을 조율 전용으로 제한하거나, 팀원의 계획을 사전 승인하는 관리 메커니즘입니다.
+
+5. **비용 관리 필수**: 서브에이전트 대비 높은 비용이 발생하므로, 모델 차등 배치와 팀 규모 최적화가 중요합니다.
+
+6. **적절한 사용 시기**: 팀원 간 소통이 필요한 복합 작업에 사용하고, 독립적 단일 작업에는 서브에이전트를 사용하세요.
+
+<Callout type="tip" title="Agent Teams 시작하기">
+  Agent Teams를 처음 사용한다면, 2명의 팀원으로 간단한 작업부터 시작하세요. 예를 들어, "프론트엔드 + 백엔드" 또는 "구현 + 테스트" 조합으로 경험을 쌓은 후 팀 규모를 확장하는 것이 좋습니다.
+</Callout>
+
+
+<ChapterNav
+  prev={{ title: '프롬프트 라이브러리', path: '/docs/part-3--핵심-기능-프롬프트-라이브러리' }}
+  next={{ title: 'Hooks', path: '/docs/part-3--핵심-기능-hooks' }}
+/>
