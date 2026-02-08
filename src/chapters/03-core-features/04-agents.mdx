@@ -28,14 +28,14 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 Claude Code는 내부적으로 6개의 빌트인 서브에이전트를 제공합니다. 이들은 Task 도구를 통해 자동으로 선택·실행됩니다.
 
-| 서브에이전트 | 역할 | 사용 가능 도구 |
-|-------------|------|---------------|
-| **Explore** | 코드베이스 탐색, 파일/키워드 검색 | Read, Glob, Grep 등 (편집 불가) |
-| **Plan** | 구현 전략 설계, 아키텍처 분석 | Read, Glob, Grep 등 (편집 불가) |
-| **general-purpose** | 복잡한 멀티스텝 작업 수행 | 모든 도구 |
-| **Bash** | 셸 명령 실행 전문 | Bash |
-| **statusline-setup** | 상태줄 설정 | Read, Edit |
-| **Claude Code Guide** | Claude Code 사용법 안내 | Read, Glob, Grep, WebFetch, WebSearch |
+| 서브에이전트 | 역할 | 사용 가능 도구 | 모델 |
+|-------------|------|---------------|------|
+| **Explore** | 코드베이스 탐색, 파일/키워드 검색 | 읽기 전용 도구 (편집 불가) | Haiku |
+| **Plan** | 구현 전략 설계, 아키텍처 분석 | 읽기 전용 도구 (편집 불가) | inherit |
+| **general-purpose** | 복잡한 멀티스텝 작업 수행 | 모든 도구 | inherit |
+| **Bash** | 셸 명령 실행 전문 | Bash | inherit |
+| **statusline-setup** | 상태줄 설정 | /statusline 실행 시 사용 | Sonnet |
+| **Claude Code Guide** | Claude Code 사용법 안내 | Claude Code 질문 시 사용 | Haiku |
 
 <Callout type="tip" title="빌트인 vs 커스텀">
   빌트인 서브에이전트는 Claude Code가 상황에 맞게 자동 선택합니다.
@@ -204,7 +204,7 @@ src/services/user.service.ts 파일에서 다음을 분석해줘:
 name: agent-name           # 에이전트 식별자
 description: 역할 설명      # Claude가 자동 매칭에 사용
 tools: Read, Glob, Grep    # 사용 가능한 도구 목록
-model: sonnet              # 사용할 모델 (sonnet, opus 등)
+model: sonnet              # 사용할 모델 (sonnet, opus, haiku, inherit)
 ---
 
 # 시스템 프롬프트
@@ -589,8 +589,8 @@ Authorization: Bearer <token>
 
 <CodeBlock
   code={`# 1. 서브에이전트 실행 로그 확인
-# Claude Code는 ~/.claude/logs/ 에 세션 로그를 저장합니다
-# 서브에이전트의 도구 호출 히스토리를 추적할 수 있습니다
+# Claude Code는 ~/.claude/projects/{project}/{sessionId}/ 에 세션 로그를 저장합니다
+# 서브에이전트 transcript는 subagents/agent-{agentId}.jsonl 파일로 추적합니다
 
 # 2. 단계적 검증 — 서브에이전트를 수동으로 테스트
 # 문제가 되는 프롬프트를 직접 Claude Code에 입력하여
@@ -865,11 +865,11 @@ Agent Teams에서 병렬 실행의 핵심은 **작업 분할 전략**입니다. 
 
 ---
 
-## Cowork 기능 상세 — 실시간 협업과 세션 관리
+## 팀원 간 메시징 — 실시간 협업과 세션 관리
 
-**Cowork**은 Agent Teams의 팀원 간 **실시간 통신 메커니즘**입니다. 기존 서브에이전트는 결과를 돌려주는 것만 가능했지만, Cowork을 통해 에이전트들이 작업 중에 **중간 상태를 공유**하고 **실시간으로 조율**할 수 있습니다.
+Agent Teams의 팀원 간 **메일박스(Mailbox) 기반 실시간 통신 메커니즘**입니다. 기존 서브에이전트는 결과를 돌려주는 것만 가능했지만, 이 메시징 시스템을 통해 에이전트들이 작업 중에 **중간 상태를 공유**하고 **실시간으로 조율**할 수 있습니다.
 
-### Cowork 통신 구조
+### 메일박스 통신 구조
 
 <MermaidDiagram
   chart={`sequenceDiagram
@@ -879,15 +879,15 @@ Agent Teams에서 병렬 실행의 핵심은 **작업 분할 전략**입니다. 
     TL->>A: API 엔드포인트 구현 시작
     TL->>B: UI 컴포넌트 구현 시작
     Note over A: POST /api/orders 구현 중
-    A->>B: Cowork: API 스키마 공유 - POST /api/orders
+    A->>B: 메시지: API 스키마 공유 - POST /api/orders
     Note over B: API 스키마에 맞춰 fetch 코드 작성
-    B->>A: Cowork: 프론트엔드에서 필요한 필드 요청
-    A->>B: Cowork: 응답 스키마 업데이트 공유
+    B->>A: 메시지: 프론트엔드에서 필요한 필드 요청
+    A->>B: 메시지: 응답 스키마 업데이트 공유
     A-->>TL: 백엔드 구현 완료
     B-->>TL: 프론트엔드 구현 완료
     TL->>TL: 통합 검증`}
-  title="Cowork 실시간 통신 흐름"
-  caption="에이전트들이 작업 중 Cowork을 통해 중간 결과를 공유하여 호환성 있는 코드를 동시에 생성합니다"
+  title="메일박스 기반 실시간 통신 흐름"
+  caption="에이전트들이 작업 중 메일박스를 통해 중간 결과를 공유하여 호환성 있는 코드를 동시에 생성합니다"
 />
 
 ### 세션 관리
@@ -920,10 +920,10 @@ Agent Teams의 각 팀원은 독립된 Claude Code 세션으로 실행됩니다.
   filename="세션 관리 가이드"
 />
 
-<Callout type="tip" title="Cowork 활용 팁">
-  Cowork은 팀원들이 **서로의 작업에 의존성이 있을 때** 가장 효과적입니다.
+<Callout type="tip" title="팀원 간 메시징 활용 팁">
+  팀원 간 직접 메시징은 **서로의 작업에 의존성이 있을 때** 가장 효과적입니다.
   독립적인 작업이라면 일반 서브에이전트(Task)로도 충분합니다.
-  Cowork의 오버헤드를 고려하여, 실제로 실시간 소통이 필요한 경우에만 사용하세요.
+  메시징 오버헤드를 고려하여, 실제로 실시간 소통이 필요한 경우에만 사용하세요.
 </Callout>
 
 ### Headless Mode와 조합
@@ -1010,8 +1010,8 @@ wait`}
       TL2["Team Lead"] --> U["User 서비스 에이전트"]
       TL2 --> O["Order 서비스 에이전트"]
       TL2 --> P["Payment 서비스 에이전트"]
-      U <-->|"Cowork: 공유 인터페이스"| O
-      O <-->|"Cowork: 결제 API"| P
+      U <-->|"메시지: 공유 인터페이스"| O
+      O <-->|"메시지: 결제 API"| P
     end
     subgraph P3["Phase 3: 검증 (30분)"]
       U2["User 결과"] --> T["테스트 에이전트"]
@@ -1123,7 +1123,7 @@ Anthropic 엔지니어링 블로그에서 공개한 **Agent Teams의 가장 인�
 
 <Callout type="info" title="출처">
   Nicholas Carlini(Anthropic Safeguards 팀)의 공식 엔지니어링 블로그 포스트:
-  [Building a C compiler with a team of parallel Claudes](https://www.anthropic.com/engineering/building-c-compiler)
+  [Building a C compiler with Claude](https://www.anthropic.com/engineering/building-c-compiler)
 </Callout>
 
 ### 작업 방식
@@ -1185,9 +1185,9 @@ Agent Teams를 프로그래밍 방식으로 구축하려면 **Claude Agent SDK**
   rows={[
     { feature: '사용 방식', values: ['CLI 인터랙티브 / .claude/agents/', 'Python/TypeScript 코드'] },
     { feature: '실행 환경', values: ['Claude Code CLI 내부', '어떤 애플리케이션에서든 실행 가능'] },
-    { feature: '에이전트 정의', values: ['마크다운 파일 (YAML frontmatter)', '코드로 프로그래밍'] },
+    { feature: '에이전트 정의', values: ['마크다운 파일 (YAML frontmatter)', '코드로 프로그래밍 (query 함수 + AgentDefinition)'] },
     { feature: '오케스트레이션', values: ['Claude가 자동 조율', '개발자가 직접 로직 구현'] },
-    { feature: '커스터마이징', values: ['도구 목록, 모델, 프롬프트', '도구, 모델, 프롬프트, 메모리, 가드레일 등'] },
+    { feature: '커스터마이징', values: ['도구 목록, 모델, 프롬프트', '도구, 모델, 프롬프트, 훅, 권한, MCP 등'] },
     { feature: '적합한 용도', values: ['개발 워크플로우 자동화', '프로덕션 AI 에이전트 구축'] },
   ]}
 />
@@ -1197,10 +1197,10 @@ Agent Teams를 프로그래밍 방식으로 구축하려면 **Claude Agent SDK**
 <MermaidDiagram
   chart={`flowchart TB
     subgraph SDK["Claude Agent SDK"]
-      AC["Agent 클래스"]
+      AC["query() 함수"]
       TM["Tool Manager"]
-      MM["Memory Manager"]
-      GR["Guardrails"]
+      MM["Session Manager"]
+      GR["Hooks & Permissions"]
     end
     subgraph Tools["내장 도구"]
       R["Read"]
@@ -1222,7 +1222,7 @@ Agent Teams를 프로그래밍 방식으로 구축하려면 **Claude Agent SDK**
     style Tools fill:#f0f4ff,stroke:#5B8DEF,color:#2d2a26
     style Custom fill:#e8f5e9,stroke:#4CAF50,color:#2d2a26`}
   title="Claude Agent SDK 구조"
-  caption="Agent SDK는 도구 관리, 메모리 관리, 가드레일을 통합하여 에이전트를 프로그래밍 방식으로 구축합니다"
+  caption="Agent SDK는 도구 관리, 세션 관리, 훅과 권한 시스템을 통합하여 에이전트를 프로그래밍 방식으로 구축합니다"
 />
 
 ### SDK 설치 및 기본 사용법
@@ -1239,18 +1239,23 @@ npm install @anthropic-ai/claude-agent-sdk`}
 
 <CodeBlock
   code={`# Python 예시: 에이전트 생성 및 실행
-from claude_agent_sdk import Agent
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
 
 # 에이전트 정의 — 도구 구현 없이 작업만 정의하면
 # SDK가 파일 읽기, 명령 실행, 코드 편집 등을 자동 처리
-agent = Agent(
-    model="claude-opus-4-6",
-    task="src/api/ 디렉토리의 모든 엔드포인트에 rate limiting을 추가해줘",
-    tools=["read", "edit", "bash"],  # 내장 도구 사용
-)
+async def main():
+    async for message in query(
+        prompt="src/api/ 디렉토리의 모든 엔드포인트에 rate limiting을 추가해줘",
+        options=ClaudeAgentOptions(
+            model="claude-opus-4-6",
+            allowed_tools=["Read", "Edit", "Bash"],
+        )
+    ):
+        if hasattr(message, "result"):
+            print(message.result)
 
-result = agent.run()
-print(result.summary)`}
+asyncio.run(main())`}
   language="python"
   filename="Claude Agent SDK 기본 사용 예시"
 />
@@ -1258,47 +1263,54 @@ print(result.summary)`}
 ### SDK로 멀티 에이전트 팀 구축
 
 <CodeBlock
-  code={`# Python 예시: Agent SDK로 멀티 에이전트 팀 구성
-from claude_agent_sdk import Agent, Team
+  code={`# Python 예시: Agent SDK로 서브에이전트 기반 멀티 에이전트 구성
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions, AgentDefinition
 
-# 개별 에이전트 정의
-analyzer = Agent(
-    model="claude-sonnet-4-20250514",
-    task="프로젝트 구조를 분석하고 모듈 간 의존성 맵을 생성해줘",
-    tools=["read", "glob", "grep"],
-)
+async def main():
+    # 커스텀 서브에이전트를 정의하고 메인 에이전트가 조율
+    async for message in query(
+        prompt="""다음 순서로 작업해줘:
+1. analyzer 에이전트로 프로젝트 구조를 분석하고 의존성 맵 생성
+2. implementer 에이전트로 분석 결과를 바탕으로 리팩토링 수행
+3. tester 에이전트로 변경된 코드에 대해 테스트 작성 및 실행""",
+        options=ClaudeAgentOptions(
+            model="claude-opus-4-6",
+            allowed_tools=["Read", "Edit", "Bash", "Glob", "Grep", "Task"],
+            agents={
+                "analyzer": AgentDefinition(
+                    description="프로젝트 구조 분석 전문가",
+                    prompt="프로젝트 구조를 분석하고 모듈 간 의존성 맵을 생성하세요.",
+                    tools=["Read", "Glob", "Grep"],
+                    model="sonnet",
+                ),
+                "implementer": AgentDefinition(
+                    description="코드 리팩토링 전문가",
+                    prompt="분석 결과를 바탕으로 리팩토링을 수행하세요.",
+                    tools=["Read", "Edit", "Bash"],
+                    model="sonnet",
+                ),
+                "tester": AgentDefinition(
+                    description="테스트 작성 전문가",
+                    prompt="변경된 코드에 대해 테스트를 작성하고 실행하세요.",
+                    tools=["Read", "Edit", "Bash"],
+                    model="sonnet",
+                ),
+            }
+        )
+    ):
+        if hasattr(message, "result"):
+            print(message.result)
 
-implementer = Agent(
-    model="claude-sonnet-4-20250514",
-    task="분석 결과를 바탕으로 리팩토링을 수행해줘",
-    tools=["read", "edit", "bash"],
-)
-
-tester = Agent(
-    model="claude-sonnet-4-20250514",
-    task="변경된 코드에 대해 테스트를 작성하고 실행해줘",
-    tools=["read", "edit", "bash"],
-)
-
-# 팀 구성 및 실행
-team = Team(
-    lead_model="claude-opus-4-6",
-    agents=[analyzer, implementer, tester],
-    strategy="sequential",  # sequential, parallel, pipeline
-)
-
-result = team.run()
-print(result.summary)
-print(f"총 토큰 사용: {result.total_tokens}")
-print(f"총 비용: \${result.total_cost:.2f}")`}
+asyncio.run(main())`}
   language="python"
-  filename="Agent SDK 멀티 에이전트 팀"
+  filename="Agent SDK 서브에이전트 기반 멀티 에이전트"
 />
 
 <Callout type="tip" title="Agent SDK 공식 문서">
   - Python SDK: [github.com/anthropics/claude-agent-sdk-python](https://github.com/anthropics/claude-agent-sdk-python)
-  - TypeScript SDK: [npmjs.com/package/@anthropic-ai/claude-agent-sdk](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk)
-  - 공식 가이드: [Building agents with the Claude Agent SDK](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk)
+  - TypeScript SDK: [github.com/anthropics/claude-agent-sdk-typescript](https://github.com/anthropics/claude-agent-sdk-typescript)
+  - 공식 개요: [Agent SDK overview](https://platform.claude.com/docs/en/agent-sdk/overview)
 </Callout>
 
 ---
@@ -1316,7 +1328,7 @@ print(f"총 비용: \${result.total_cost:.2f}")`}
     subgraph Layer2["2. 진화 — Agent Teams"]
       TL["팀 리더"] --> T1["팀원 A"]
       TL --> T2["팀원 B"]
-      T1 <-->|"Cowork"| T2
+      T1 <-->|"메시지"| T2
     end
     subgraph Layer3["3. 프로그래밍 — Agent SDK"]
       CODE["개발자 코드"] --> SDK["Agent SDK"]
