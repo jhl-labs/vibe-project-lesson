@@ -17,7 +17,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## 개요
 
-서브에이전트는 **전문 분야별 AI 에이전트**입니다. Claude Code는 내부적으로 Task 도구를 통해 서브에이전트를 생성하며, 각 서브에이전트는 독립된 컨텍스트에서 작업을 수행합니다. `.claude/agents/` 디렉토리에 YAML 프론트매터가 포함된 마크다운 파일로 역할별 정의를 저장하여 일관된 전문성을 유지합니다. `/agents` 커맨드로 관리하거나 직접 파일을 생성할 수 있습니다. Anthropic은 대화 초반에 서브에이전트를 적극 활용하여 컨텍스트를 보존하면서 세부 작업을 병렬 처리할 것을 권장합니다.
+서브에이전트는 **특정 유형의 작업을 전담하는 전문 AI 어시스턴트**입니다. 각 서브에이전트는 독립된 컨텍스트 윈도우에서 커스텀 시스템 프롬프트, 특정 도구 접근, 독립적 권한으로 실행됩니다. `.claude/agents/` 디렉토리에 YAML 프론트매터가 포함된 마크다운 파일로 역할별 정의를 저장하여 일관된 전문성을 유지합니다. `/agents` 커맨드로 관리하거나 직접 파일을 생성할 수 있습니다. 서브에이전트는 컨텍스트 보존, 도구 제한을 통한 제약 강제, 비용 관리(Haiku 같은 경량 모델 활용) 등에 효과적입니다.
 
 <Callout type="info" title="핵심 개념">
   서브에이전트는 "한 명의 전문가"와 같습니다.
@@ -30,12 +30,12 @@ Claude Code는 내부적으로 6개의 빌트인 서브에이전트를 제공합
 
 | 서브에이전트 | 역할 | 사용 가능 도구 | 모델 |
 |-------------|------|---------------|------|
-| **Explore** | 코드베이스 탐색, 파일/키워드 검색 | 읽기 전용 도구 (편집 불가) | Haiku |
-| **Plan** | 구현 전략 설계, 아키텍처 분석 | 읽기 전용 도구 (편집 불가) | inherit |
-| **general-purpose** | 복잡한 멀티스텝 작업 수행 | 모든 도구 | inherit |
-| **Bash** | 셸 명령 실행 전문 | Bash | inherit |
-| **statusline-setup** | 상태줄 설정 | /statusline 실행 시 사용 | Sonnet |
-| **Claude Code Guide** | Claude Code 사용법 안내 | Claude Code 질문 시 사용 | Haiku |
+| **Explore** | 빠른 읽기 전용 코드베이스 탐색·분석 | 읽기 전용 도구 (Write, Edit 불가) | Haiku |
+| **Plan** | Plan 모드에서 코드베이스 연구·컨텍스트 수집 | 읽기 전용 도구 (Write, Edit 불가) | inherit |
+| **general-purpose** | 탐색과 수정이 모두 필요한 복합 멀티스텝 작업 | 모든 도구 | inherit |
+| **Bash** | 별도 컨텍스트에서 터미널 명령 실행 | Bash | inherit |
+| **statusline-setup** | /statusline 실행 시 상태줄 스크립트 생성 | 상태줄 설정 전용 | Sonnet |
+| **Claude Code Guide** | Claude Code 기능에 대한 질문 응답 | Claude Code 질문 시 사용 | Haiku |
 
 <Callout type="tip" title="빌트인 vs 커스텀">
   빌트인 서브에이전트는 Claude Code가 상황에 맞게 자동 선택합니다.
@@ -201,10 +201,16 @@ src/services/user.service.ts 파일에서 다음을 분석해줘:
 
 <CodeBlock
   code={`---
-name: agent-name           # 에이전트 식별자
-description: 역할 설명      # Claude가 자동 매칭에 사용
-tools: Read, Glob, Grep    # 사용 가능한 도구 목록
+name: agent-name           # 에이전트 식별자 (필수, 소문자+하이픈)
+description: 역할 설명      # Claude가 자동 매칭에 사용 (필수)
+tools: Read, Glob, Grep    # 사용 가능한 도구 목록 (생략 시 전체 상속)
+disallowedTools: Write     # 차단할 도구 목록
 model: sonnet              # 사용할 모델 (sonnet, opus, haiku, inherit)
+permissionMode: default    # 권한 모드 (default, acceptEdits, plan, bypassPermissions 등)
+maxTurns: 20               # 최대 에이전틱 턴 수
+skills:                    # 시작 시 로드할 스킬
+  - api-conventions
+memory: project            # 지속적 메모리 (user, project, local)
 ---
 
 # 시스템 프롬프트
@@ -565,8 +571,9 @@ Authorization: Bearer <token>
 />
 
 <Callout type="tip" title="서브에이전트 권한 제어">
-  엔터프라이즈 환경에서는 Managed Settings의 deny 규칙으로 특정 서브에이전트를 차단할 수 있습니다.
-  예: `"deny": ["Task(Explore)", "Task(Plan)"]`
+  settings.json의 `permissions.deny` 규칙으로 특정 서브에이전트를 차단할 수 있습니다.
+  예: `"permissions": { "deny": ["Task(Explore)", "Task(my-custom-agent)"] }`
+  CLI 플래그로도 가능합니다: `claude --disallowedTools "Task(Explore)"`
 </Callout>
 
 ---
@@ -608,9 +615,10 @@ Authorization: Bearer <token>
 # - 출력 형식 지정
 # - 제약 조건 추가
 
-# 5. verbose 모드 활용
+# 5. verbose / debug 모드 활용
 # claude --verbose 플래그로 실행하면
-# 서브에이전트 호출 과정이 더 상세히 출력됩니다`}
+# 서브에이전트 호출 과정이 더 상세히 출력됩니다
+# 더 정밀한 디버깅이 필요하면 CLAUDE_DEBUG=1 환경 변수를 사용합니다`}
   language="bash"
   filename="서브에이전트 디버깅 체크리스트"
 />
@@ -657,11 +665,11 @@ Authorization: Bearer <token>
   title="서브에이전트 모델 선택 가이드"
   headers={['작업 유형', '권장 모델', '이유', '예상 비용 절감']}
   rows={[
-    { feature: '코드베이스 탐색 (Explore)', values: ['Haiku', '단순 검색과 패턴 매칭', '최대 90% 절감'] },
-    { feature: '구현 전략 수립 (Plan)', values: ['Sonnet', '분석력과 비용의 균형', '약 50% 절감'] },
+    { feature: '코드베이스 탐색 (Explore)', values: ['Haiku', '단순 검색과 패턴 매칭', 'Opus 대비 약 80% 절감'] },
+    { feature: '구현 전략 수립 (Plan)', values: ['Sonnet', '분석력과 비용의 균형', 'Opus 대비 약 40% 절감'] },
     { feature: '보안 분석', values: ['Opus', '높은 정확도 필수', '비용 절감 없음 (정확도 우선)'] },
-    { feature: '테스트 코드 생성', values: ['Sonnet', '패턴 기반 코드 생성', '약 50% 절감'] },
-    { feature: '문서 생성', values: ['Sonnet', '충분한 텍스트 생성 능력', '약 50% 절감'] },
+    { feature: '테스트 코드 생성', values: ['Sonnet', '패턴 기반 코드 생성', 'Opus 대비 약 40% 절감'] },
+    { feature: '문서 생성', values: ['Sonnet', '충분한 텍스트 생성 능력', 'Opus 대비 약 40% 절감'] },
     { feature: '복합 리팩토링', values: ['Opus', '복잡한 의존성 분석 필요', '비용 절감 없음 (품질 우선)'] },
   ]}
 />
@@ -730,7 +738,7 @@ model: sonnet         # 문서 생성은 중간 모델로 균형
 />
 
 <Callout type="info" title="비용 참고">
-  2026년 2월 기준, Opus는 Sonnet 대비 약 5배, Haiku 대비 약 50배 높은 비용입니다.
+  2026년 2월 기준, Opus는 입출력 토큰 모두 Sonnet 대비 약 1.7배, Haiku 대비 약 5배 높은 비용입니다.
   탐색 작업에 Opus를 사용하는 것은 불필요한 비용 낭비이며,
   보안 분석에 Haiku를 사용하면 취약점을 놓칠 수 있습니다.
   **작업의 중요도와 복잡도에 따라 적절한 모델을 배치하세요.**
@@ -910,7 +918,7 @@ Agent Teams의 각 팀원은 독립된 Claude Code 세션으로 실행됩니다.
 ### 세션 제한사항
 - 최대 동시 팀원 수: 환경 및 요금제에 따라 다름
 - 각 팀원의 컨텍스트 윈도우는 독립적으로 관리
-- 팀원 간 Cowork 메시지는 텍스트 기반으로 교환
+- 팀원 간 메일박스 메시지는 텍스트 기반으로 교환
 
 ### 모니터링
 - 팀 리더가 각 팀원의 진행 상황을 추적
@@ -1122,7 +1130,7 @@ Anthropic 엔지니어링 블로그에서 공개한 **Agent Teams의 가장 인�
 | **추가 검증** | 클래식 게임 Doom 컴파일 및 실행 성공 |
 
 <Callout type="info" title="출처">
-  Nicholas Carlini(Anthropic Safeguards 팀)의 공식 엔지니어링 블로그 포스트:
+  Nicholas Carlini(Anthropic 안전성 연구원)의 공식 엔지니어링 블로그 포스트:
   [Building a C compiler with Claude](https://www.anthropic.com/engineering/building-c-compiler)
 </Callout>
 
@@ -1136,7 +1144,7 @@ Anthropic 엔지니어링 블로그에서 공개한 **Agent Teams의 가장 인�
 4. **테스트 에이전트**: GCC torture test suite 기반 검증
 5. **통합 에이전트**: 각 모듈의 인터페이스 조율
 
-사람의 개입 없이 에이전트들이 자율적으로 개발을 진행했으며, Anthropic도 이렇게 빨리 가능할 것이라고 예상하지 못했다고 밝혔습니다.
+최소한의 사람 개입으로 에이전트들이 대부분 자율적으로 개발을 진행했습니다. 저자인 Carlini는 설정 후 "대부분 자리를 비웠다(mostly walked away)"고 밝혔으며, 테스트 인프라 설계와 진행 모니터링 정도만 관여했습니다.
 
 ### 이 사례에서 배울 수 있는 교훈
 
@@ -1240,7 +1248,7 @@ npm install @anthropic-ai/claude-agent-sdk`}
 <CodeBlock
   code={`# Python 예시: 에이전트 생성 및 실행
 import asyncio
-from claude_agent_sdk import query, ClaudeAgentOptions
+from claude_agent_sdk import query, ClaudeAgentOptions, AssistantMessage, TextBlock
 
 # 에이전트 정의 — 도구 구현 없이 작업만 정의하면
 # SDK가 파일 읽기, 명령 실행, 코드 편집 등을 자동 처리
@@ -1248,12 +1256,15 @@ async def main():
     async for message in query(
         prompt="src/api/ 디렉토리의 모든 엔드포인트에 rate limiting을 추가해줘",
         options=ClaudeAgentOptions(
-            model="claude-opus-4-6",
+            model="opus",
             allowed_tools=["Read", "Edit", "Bash"],
+            permission_mode="acceptEdits",
         )
     ):
-        if hasattr(message, "result"):
-            print(message.result)
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if isinstance(block, TextBlock):
+                    print(block.text)
 
 asyncio.run(main())`}
   language="python"
@@ -1275,7 +1286,7 @@ async def main():
 2. implementer 에이전트로 분석 결과를 바탕으로 리팩토링 수행
 3. tester 에이전트로 변경된 코드에 대해 테스트 작성 및 실행""",
         options=ClaudeAgentOptions(
-            model="claude-opus-4-6",
+            model="opus",
             allowed_tools=["Read", "Edit", "Bash", "Glob", "Grep", "Task"],
             agents={
                 "analyzer": AgentDefinition(
@@ -1317,7 +1328,7 @@ asyncio.run(main())`}
 
 ## 서브에이전트 통신 구조 전체 개관
 
-지금까지 다룬 서브에이전트, Agent Teams, Cowork, Agent SDK의 관계를 정리하면 다음과 같습니다.
+지금까지 다룬 서브에이전트, Agent Teams, Mailbox 메시징, Agent SDK의 관계를 정리하면 다음과 같습니다.
 
 <MermaidDiagram
   chart={`flowchart TB
@@ -1467,7 +1478,7 @@ Agent Teams의 핵심 아키텍처는 팀 리드를 중심으로 팀원들이 �
 | **팀원 (Teammates)** | 독립적인 Claude Code 인스턴스. 각자 자체 컨텍스트 윈도우를 가지며 별도 프로세스로 실행 |
 | **공유 작업 목록 (Task List)** | 모든 팀원이 접근하는 공유 작업 관리 시스템. pending, in_progress, completed 상태와 의존성 지원 |
 | **메일박스 (Messaging)** | 팀원 간 직접 메시지 교환 메커니즘. 서브에이전트와 달리 팀원끼리 직접 소통 가능 |
-| **파일 잠금 (File Locking)** | 여러 팀원이 동일 파일을 동시 수정하는 충돌을 방지하는 메커니즘 |
+| **파일 잠금 (File Locking)** | 여러 팀원이 동시에 같은 작업을 클레이밍하는 경쟁 조건을 방지하는 메커니즘 |
 
 ### 파일 구조
 
@@ -1944,7 +1955,7 @@ Agent Teams는 기존 Hook 시스템에 두 가지 새로운 이벤트를 추가
 
 ### TeammateIdle
 
-팀원이 할당된 작업을 모두 완료하고 유휴 상태가 되었을 때 발생합니다. 이 이벤트를 활용하면 유휴 팀원에게 새 작업을 자동 할당할 수 있습니다.
+팀원이 유휴 상태에 들어가려 할 때 발생합니다. exit code 2로 종료하면 피드백 메시지를 팀원에게 보내고 계속 작업하게 만들 수 있습니다.
 
 <CodeBlock
   code={`// .claude/settings.json
@@ -1969,33 +1980,24 @@ Agent Teams는 기존 Hook 시스템에 두 가지 새로운 이벤트를 추가
 <CodeBlock
   code={`#!/bin/bash
 # .claude/hooks/teammate-idle-handler.sh
-# 유휴 팀원 감지 시 자동 알림
+# 유휴 팀원 감지 시 피드백을 보내 작업 계속 지시
 
 INPUT=$(cat)
-TEAMMATE_NAME=$(echo "$INPUT" | jq -r '.teammate_name')
-COMPLETED_TASKS=$(echo "$INPUT" | jq -r '.completed_tasks | length')
 
-# Slack 또는 로그로 알림
-echo "[Agent Teams] $TEAMMATE_NAME 팀원이 유휴 상태입니다. 완료한 작업: $COMPLETED_TASKS개" >&2
+# 로그 출력
+echo "[Agent Teams] 팀원이 유휴 상태에 진입하려 합니다." >&2
 
-# 팀 리드에게 알림 메시지 반환
-cat <<EOJSON
-{
-  "hookSpecificOutput": {
-    "hookEventName": "TeammateIdle",
-    "message": "$TEAMMATE_NAME 팀원이 $COMPLETED_TASKS개 작업을 완료하고 유휴 상태입니다. 추가 작업을 할당하시겠습니까?"
-  }
-}
-EOJSON
-
-exit 0`}
+# exit 2: 피드백 메시지를 팀원에게 전달하고 유휴 진입을 방지
+# exit 0: 유휴 상태 진입 허용
+echo "남은 작업이 있는지 작업 목록을 다시 확인하고, 테스트가 모두 통과하는지 검증하세요." >&2
+exit 2`}
   language="bash"
   filename=".claude/hooks/teammate-idle-handler.sh"
 />
 
 ### TaskCompleted
 
-공유 작업 목록에서 작업이 완료 상태로 전환될 때 발생합니다. 의존성이 있는 후속 작업의 자동 시작이나, 완료 알림 전송에 활용합니다.
+작업이 완료 상태로 표시되려 할 때 발생합니다. exit code 2로 종료하면 완료를 막고 피드백을 전달하여 추가 작업을 요청할 수 있습니다.
 
 <CodeBlock
   code={`// .claude/settings.json
@@ -2020,20 +2022,16 @@ exit 0`}
 <CodeBlock
   code={`#!/bin/bash
 # .claude/hooks/task-completed-handler.sh
-# 작업 완료 시 알림 및 후속 처리
+# 작업 완료 표시 전 품질 게이트 역할
 
 INPUT=$(cat)
-TASK_ID=$(echo "$INPUT" | jq -r '.task_id')
-TASK_NAME=$(echo "$INPUT" | jq -r '.task_name')
-TEAMMATE=$(echo "$INPUT" | jq -r '.completed_by')
-DEPENDENT_TASKS=$(echo "$INPUT" | jq -r '.dependent_tasks | length')
 
-echo "[TaskCompleted] $TEAMMATE 팀원이 '$TASK_NAME' 작업을 완료했습니다." >&2
+echo "[TaskCompleted] 작업이 완료 처리되려 합니다." >&2
 
-if [ "$DEPENDENT_TASKS" -gt 0 ]; then
-  echo "[TaskCompleted] $DEPENDENT_TASKS개의 후속 작업이 시작 가능합니다." >&2
-fi
-
+# exit 0: 완료 허용
+# exit 2: 완료를 막고 stderr 메시지를 피드백으로 전달
+# 예: 테스트를 통과했는지 확인하는 게이트로 활용
+echo "작업을 완료하기 전에 관련 테스트가 모두 통과하는지 확인하세요." >&2
 exit 0`}
   language="bash"
   filename=".claude/hooks/task-completed-handler.sh"
@@ -2345,11 +2343,14 @@ Agent Teams 사용 시 자주 발생하는 문제와 해결 방법입니다.
 
 | 제한사항 | 설명 | 완화 방법 |
 |----------|------|----------|
-| **세션 재개 불가** | in-process 모드에서 세션 종료 후 팀원 복원 불가 | 중요 결과는 파일로 저장, 작업 분할을 작게 유지 |
-| **중첩 팀 불가** | 팀원이 자체적으로 하위 팀을 생성할 수 없음 | 팀 리드가 필요한 팀원을 모두 직접 생성 |
-| **단일 팀 제한** | 한 세션에서 하나의 팀만 운영 가능 | 순차적으로 팀 해산 후 새 팀 구성 |
+| **세션 재개 불가** | in-process 모드에서 /resume, /rewind로 팀원 복원 불가 | 중요 결과는 파일로 저장, 작업 분할을 작게 유지 |
+| **작업 상태 지연** | 팀원이 작업을 완료로 표시하지 않아 후속 작업이 차단될 수 있음 | 팀 리드에게 팀원을 독촉하도록 지시 |
+| **종료 지연** | 팀원이 현재 요청이나 도구 호출을 마치고 종료하므로 시간 소요 | 인내심을 갖고 대기 |
+| **단일 팀 제한** | 한 세션에서 하나의 팀만 운영 가능 | 현재 팀 해산 후 새 팀 구성 |
+| **중첩 팀 불가** | 팀원이 자체적으로 하위 팀이나 팀원을 생성할 수 없음 | 팀 리드만 팀을 관리 |
 | **리드 고정** | 팀 리더십을 다른 팀원에게 이전 불가 | 팀 리드를 신중하게 설정 |
-| **Research Preview** | API와 동작이 예고 없이 변경될 수 있음 | 핵심 워크플로우에 과도하게 의존하지 않기 |
+| **권한은 생성 시 결정** | 모든 팀원은 팀 리드의 권한 모드로 시작, 이후 개별 변경 가능 | 팀 리드 권한을 사전에 적절히 설정 |
+| **Split panes 환경 제한** | VS Code 통합 터미널, Windows Terminal, Ghostty에서 미지원 | in-process 모드 사용 또는 tmux/iTerm2 설치 |
 
 <Callout type="info" title="향후 개선 예상">
   Agent Teams는 Research Preview 단계이므로, 위 제한사항들은 향후 버전에서 개선될 가능성이 있습니다. Anthropic 공식 블로그와 릴리스 노트를 주기적으로 확인하세요.

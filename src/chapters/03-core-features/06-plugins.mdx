@@ -73,7 +73,7 @@ Plugins는 Claude Code의 **공식 확장 패키징 시스템**입니다. 지금
 <CodeBlock
   code={`my-plugin/
 ├── .claude-plugin/
-│   └── plugin.json        # 매니페스트 (필수)
+│   └── plugin.json        # 매니페스트 (name 필드만 필수)
 ├── commands/              # 커스텀 슬래시 커맨드
 │   ├── review.md
 │   ├── deploy.md
@@ -111,13 +111,12 @@ Plugins는 Claude Code의 **공식 확장 패키징 시스템**입니다. 지금
   "name": "team-code-quality",
   "version": "1.2.0",
   "description": "팀 코드 품질 관리 플러그인 — 리뷰, 테스트, 보안 스캔 통합",
-  "author": "DevOps Team",
+  "author": {
+    "name": "DevOps Team"
+  },
   "license": "MIT",
   "homepage": "https://github.com/example/team-code-quality",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/example/team-code-quality.git"
-  },
+  "repository": "https://github.com/example/team-code-quality",
   "keywords": ["code-review", "testing", "security", "quality"]
 }`}
   language="json"
@@ -129,12 +128,12 @@ Plugins는 Claude Code의 **공식 확장 패키징 시스템**입니다. 지금
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|:----:|------|
 | `name` | string | O | 플러그인 고유 이름 (네임스페이스로 사용) |
-| `version` | string | O | 시맨틱 버저닝 (SemVer) |
-| `description` | string | O | 플러그인 설명 |
-| `author` | string | - | 작성자/팀 이름 |
+| `version` | string | - | 시맨틱 버저닝 (SemVer) |
+| `description` | string | - | 플러그인 설명 |
+| `author` | object | - | 작성자 정보 (`name`, `email`, `url` 포함) |
 | `license` | string | - | 라이선스 (MIT, Apache-2.0 등) |
-| `homepage` | string | - | 플러그인 홈페이지 URL |
-| `repository` | object | - | 소스 코드 저장소 정보 |
+| `homepage` | string | - | 플러그인 홈페이지/문서 URL |
+| `repository` | string | - | 소스 코드 저장소 URL |
 | `keywords` | string[] | - | 마켓플레이스 검색 키워드 |
 
 ---
@@ -184,7 +183,9 @@ mkdir -p my-review-plugin/hooks/scripts`}
   "name": "my-review-plugin",
   "version": "0.1.0",
   "description": "코드 리뷰 자동화 플러그인",
-  "author": "My Team",
+  "author": {
+    "name": "My Team"
+  },
   "license": "MIT"
 }`}
   language="json"
@@ -425,17 +426,15 @@ tools: Read, Glob, Grep, Bash
   "mcpServers": {
     "github": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-github"],
+      "args": ["-y", "@modelcontextprotocol/server-github"],
       "env": {
-        "GITHUB_TOKEN": "env:GITHUB_TOKEN"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "env:GITHUB_PERSONAL_ACCESS_TOKEN"
       }
     },
     "postgres": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-postgres"],
-      "env": {
-        "DATABASE_URL": "env:DATABASE_URL"
-      }
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "env:DATABASE_URL"],
+      "env": {}
     },
     "custom-api": {
       "command": "node",
@@ -620,8 +619,7 @@ Plugin Marketplace는 팀이나 조직 단위로 구축할 수 있는 **플러�
 ### 마켓플레이스 설정
 
 <CodeBlock
-  code={`# 팀 마켓플레이스 추가 (/plugin 메뉴의 Discover 탭에서도 가능)
-/plugin marketplace add my-org/team-plugins
+  code={`# /plugin 메뉴의 Discover 탭에서 마켓플레이스 검색 및 플러그인 설치 가능
 
 # CLI에서 플러그인 설치
 claude plugin install team-code-quality@my-marketplace
@@ -740,20 +738,18 @@ echo "All required plugins installed."`}
 ### 플러그인 버전 고정
 
 <CodeBlock
-  code={`# 프로젝트별 플러그인 버전 고정 (.claude/plugins.lock)
-{
-  "plugins": {
-    "team-code-quality": "1.2.0",
-    "team-security-tools": "2.1.3",
-    "team-deploy-tools": "1.5.0"
-  }
-}
+  code={`# 프로젝트별 플러그인 버전 관리 전략
+# 마켓플레이스에서 특정 버전을 설치할 수 있습니다
+claude plugin install team-code-quality@my-marketplace
 
-# 잠긴 버전으로 설치
-# Claude Code가 .claude/plugins.lock을 자동 감지하여
-# 지정된 버전을 설치합니다`}
-  language="json"
-  filename=".claude/plugins.lock (버전 고정)"
+# --scope project로 설치하면 .claude/settings.json의
+# enabledPlugins에 기록되어 팀원과 공유됩니다
+claude plugin install team-code-quality@my-marketplace --scope project
+
+# 업데이트 시 최신 버전으로 갱신
+claude plugin update team-code-quality`}
+  language="bash"
+  filename="플러그인 버전 관리"
 />
 
 ### 플러그인 승인 프로세스
@@ -846,7 +842,9 @@ cat > my-plugin/.claude-plugin/plugin.json << 'MANIFEST'
   "name": "my-team-tools",
   "version": "1.0.0",
   "description": "팀 개발 도구 모음",
-  "author": "My Team"
+  "author": {
+    "name": "My Team"
+  }
 }
 MANIFEST
 
@@ -918,7 +916,7 @@ echo "[DEBUG] Input: $(cat)" >> /tmp/plugin-debug.log`}
 | Hook이 실행 안 됨 | 스크립트 권한 없음 | `chmod +x` 실행 권한 부여 |
 | Hook 경로 에러 | 상대 경로 기준 오류 | 플러그인 루트 기준 상대 경로 사용 |
 | MCP 서버 연결 실패 | 환경 변수 미설정 | `env:변수명` 형식으로 환경 변수 참조 확인 |
-| 설치 후 작동 안 함 | 버전 호환성 | `engines.claude-code` 버전 범위 확인 |
+| 설치 후 작동 안 함 | 버전 호환성 | Claude Code 최신 버전으로 업데이트 (`claude --version` 확인) |
 | 스킬 자동 호출 안 됨 | description 누락 | SKILL.md 프론트매터의 description 필드 확인 |
 
 ### 플러그인 테스트 전략
@@ -995,7 +993,9 @@ echo "[DEBUG] Input: $(cat)" >> /tmp/plugin-debug.log`}
   "name": "team-review",
   "version": "1.0.0",
   "description": "팀 코드 리뷰 플러그인 — 리뷰 규칙 자동 적용, 보안 스캔, PR 리뷰 통합",
-  "author": "Engineering Team",
+  "author": {
+    "name": "Engineering Team"
+  },
   "license": "MIT",
   "keywords": ["code-review", "security", "pr-review", "quality"]
 }`}
@@ -1194,9 +1194,9 @@ Sonnet 모델을 사용하여 빠른 응답을 제공합니다.
   "mcpServers": {
     "github": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-github"],
+      "args": ["-y", "@modelcontextprotocol/server-github"],
       "env": {
-        "GITHUB_TOKEN": "env:GITHUB_TOKEN"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "env:GITHUB_PERSONAL_ACCESS_TOKEN"
       }
     }
   }

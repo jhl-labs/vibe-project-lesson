@@ -54,10 +54,10 @@ Claude Code는 14가지 이벤트 타입을 지원합니다 (Agent Teams의 Team
     { event: 'UserPromptSubmit', timing: '프롬프트 제출 후, 처리 전', blockable: '예', matcher: '(없음)' },
     { event: 'Stop', timing: 'Claude 응답 완료 시', blockable: '예', matcher: '(없음)' },
     { event: 'SessionStart', timing: '세션 시작/재개', blockable: '아니오', matcher: 'startup, resume, clear, compact' },
-    { event: 'SessionEnd', timing: '세션 종료', blockable: '아니오', matcher: 'clear, logout, prompt_input_exit 등' },
-    { event: 'SubagentStart', timing: '서브에이전트 생성 시', blockable: '아니오', matcher: '에이전트 타입' },
-    { event: 'SubagentStop', timing: '서브에이전트 완료 시', blockable: '예', matcher: '에이전트 타입' },
-    { event: 'Notification', timing: '알림 발생 시', blockable: '아니오', matcher: '알림 유형' },
+    { event: 'SessionEnd', timing: '세션 종료', blockable: '아니오', matcher: 'clear, logout, prompt_input_exit, bypass_permissions_disabled, other' },
+    { event: 'SubagentStart', timing: '서브에이전트 생성 시', blockable: '아니오', matcher: '에이전트 타입 (Bash, Explore, Plan, 커스텀 등)' },
+    { event: 'SubagentStop', timing: '서브에이전트 완료 시', blockable: '예', matcher: '에이전트 타입 (SubagentStart와 동일)' },
+    { event: 'Notification', timing: '알림 발생 시', blockable: '아니오', matcher: 'permission_prompt, idle_prompt, auth_success, elicitation_dialog' },
     { event: 'PreCompact', timing: '컨텍스트 압축 전', blockable: '아니오', matcher: 'manual, auto' },
     { event: 'TeammateIdle', timing: '팀원 에이전트 대기 시', blockable: '예', matcher: '(없음)' },
     { event: 'TaskCompleted', timing: '할당된 작업 완료 시', blockable: '예', matcher: '(없음)' },
@@ -110,7 +110,7 @@ Claude Code가 알림을 보낼 때 호출됩니다. 기본 알림 외에 Slack 
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.notification_message' | curl -X POST -H 'Content-Type: application/json' -d @- $SLACK_WEBHOOK_URL",
+            "command": ".claude/hooks/notify-slack.sh",
             "async": true
           }
         ]
@@ -232,10 +232,16 @@ mcp__github__search_repositories`}
 | SessionStart | `startup` | 새 세션 시작 |
 | SessionStart | `resume` | 기존 세션 재개 |
 | SessionStart | `clear` | `/clear` 후 세션 재시작 |
-| SessionStart | `compact` | `/compact` 후 세션 재시작 |
+| SessionStart | `compact` | 자동/수동 컴팩션 후 세션 재시작 |
 | SessionEnd | `clear` | `/clear`로 세션 종료 |
 | SessionEnd | `logout` | 로그아웃으로 종료 |
 | SessionEnd | `prompt_input_exit` | 사용자 입력 종료 |
+| SessionEnd | `bypass_permissions_disabled` | 권한 우회 모드 비활성화 |
+| SessionEnd | `other` | 기타 종료 사유 |
+| Notification | `permission_prompt` | 도구 권한 요청 알림 |
+| Notification | `idle_prompt` | 60초 이상 입력 대기 알림 |
+| Notification | `auth_success` | 인증 성공 알림 |
+| Notification | `elicitation_dialog` | 사용자 선택 다이얼로그 알림 |
 | PreCompact | `manual` | 수동 `/compact` 실행 |
 | PreCompact | `auto` | 자동 컨텍스트 압축 |
 
@@ -251,15 +257,17 @@ Hook은 실행 시 stdin을 통해 JSON 데이터를 받고, 환경 변수를 �
 |------|------|-----------------|
 | `$CLAUDE_PROJECT_DIR` | 프로젝트 루트 경로 | 모든 이벤트 |
 | `$CLAUDE_ENV_FILE` | 환경 변수 영속화 파일 경로 | SessionStart만 |
+| `$CLAUDE_CODE_REMOTE` | 원격 웹 환경에서 `"true"` 설정 | 모든 이벤트 |
 
 ### 입력 스키마 (stdin JSON)
 
 <CodeBlock
-  code={`// PreToolUse / PostToolUse 입력
+  code={`// PreToolUse 입력
 {
   "session_id": "abc123",
   "transcript_path": "/path/to/transcript.jsonl",
   "cwd": "/path/to/project",
+  "permission_mode": "default",
   "hook_event_name": "PreToolUse",
   "tool_name": "Bash",
   "tool_input": {
@@ -272,6 +280,7 @@ Hook은 실행 시 stdin을 통해 JSON 데이터를 받고, 환경 변수를 �
   "session_id": "abc123",
   "transcript_path": "/path/to/transcript.jsonl",
   "cwd": "/path/to/project",
+  "permission_mode": "default",
   "hook_event_name": "PostToolUse",
   "tool_name": "Write",
   "tool_input": {
@@ -289,8 +298,9 @@ Hook은 실행 시 stdin을 통해 JSON 데이터를 받고, 환경 변수를 �
   "session_id": "abc123",
   "transcript_path": "/path/to/transcript.jsonl",
   "cwd": "/path/to/project",
+  "permission_mode": "default",
   "hook_event_name": "Stop",
-  "stop_reason": "end_turn"
+  "stop_hook_active": false
 }
 
 // SessionStart 입력
@@ -298,8 +308,10 @@ Hook은 실행 시 stdin을 통해 JSON 데이터를 받고, 환경 변수를 �
   "session_id": "abc123",
   "transcript_path": "/path/to/transcript.jsonl",
   "cwd": "/path/to/project",
+  "permission_mode": "default",
   "hook_event_name": "SessionStart",
-  "session_type": "startup"
+  "source": "startup",
+  "model": "claude-sonnet-4-5-20250929"
 }`}
   language="json"
   filename="이벤트별 입력 스키마"
@@ -330,11 +342,8 @@ Hook은 실행 시 stdin을 통해 JSON 데이터를 받고, 환경 변수를 �
 
 // Stop — 차단 (Claude에게 추가 작업 요청)
 {
-  "hookSpecificOutput": {
-    "hookEventName": "Stop",
-    "decision": "block",
-    "reason": "테스트가 실패했습니다. 실패한 테스트를 수정해주세요."
-  }
+  "decision": "block",
+  "reason": "테스트가 실패했습니다. 실패한 테스트를 수정해주세요."
 }
 
 // PostToolUse — 정보 피드백
@@ -432,7 +441,7 @@ Hook의 exit code에 따라 Claude Code의 동작이 달라집니다.
 
     rect rgb(255, 248, 240)
         Note over CC,S: Stop 단계
-        CC->>S: stdin (JSON: stop_reason)
+        CC->>S: stdin (JSON: stop_hook_active)
         alt exit 0
             S->>CC: 작업 완료
         else exit 2
@@ -1053,8 +1062,8 @@ Headless 모드(`claude -p`)에서도 Hook이 동일하게 작동합니다. CI/C
 
 <CodeBlock
   code={`# Headless 모드에서 Hook이 적용된 상태로 실행
-claude -p "src/ 디렉토리의 TypeScript 파일을 리팩토링해줘" \\
-  --settings .claude/settings.json
+# .claude/settings.json의 hooks 설정이 자동으로 로드됨
+claude -p "src/ 디렉토리의 TypeScript 파일을 리팩토링해줘"
 
 # 파이프라인 예시: 매일 코드 품질 리포트 생성
 # crontab: 0 9 * * * /path/to/daily-review.sh
