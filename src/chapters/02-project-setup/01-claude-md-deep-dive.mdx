@@ -714,7 +714,7 @@ src/
 
 ---
 
-## 글로벌 CLAUDE.md (~/. claude/CLAUDE.md)
+## 글로벌 CLAUDE.md (~/.claude/CLAUDE.md)
 
 홈 디렉토리의 `~/.claude/CLAUDE.md`는 **모든 프로젝트에 적용**되는 글로벌 설정입니다. 프로젝트에 관계없이 항상 적용하고 싶은 개인 선호를 여기에 작성합니다.
 
@@ -793,7 +793,7 @@ Claude Code는 `~/.claude/projects/` 디렉토리에 **영구적인 자동 메�
 - **자동 기록**: Claude Code가 대화 중 중요한 패턴을 발견하면 MEMORY.md에 자동 추가
 - **용량 제한**: MEMORY.md는 **200줄까지** 시스템 프롬프트에 포함
 - **수동 편집**: `/memory` 커맨드로 시스템 에디터에서 직접 편집 가능
-- **# 키**: 대화 중 `#`을 누르면 메모를 MEMORY.md에 빠르게 추가
+- **# 키**: 대화 중 `#`을 누르면 메모를 메모리 파일(CLAUDE.md 등)에 빠르게 추가
 - **분리 전략**: 200줄 이상의 상세 정보는 별도 파일(debugging.md, patterns.md)로 분리하고 MEMORY.md에서 참조
 
 <Callout type="tip" title="메모리 관리 팁">
@@ -1002,7 +1002,7 @@ project/
 |--------|------|
 | `/init` | 현재 프로젝트를 분석하여 CLAUDE.md 자동 생성 |
 | `/memory` | 시스템 에디터에서 메모리 파일 직접 편집 |
-| `#` 키 | 대화 중 메모리에 지침 빠르게 추가 |
+| `#` 키 | 대화 중 메모리 파일(CLAUDE.md 등)에 지침 빠르게 추가 |
 | `/compact` | 컨텍스트 압축 (긴 세션에서 메모리 효율화) |
 | `/clear` | 대화 초기화 (작업 전환 시) |
 
@@ -1104,7 +1104,7 @@ project/
     { feature: '설정 위치', values: ['프로젝트 루트 / .claude/', '.github/', '.cursor/', '프로젝트 루트'] },
     { feature: '계층 구조', values: ['yes', 'partial', 'yes', 'no'] },
     { feature: '글로벌 설정', values: ['~/.claude/CLAUDE.md', 'VS Code settings', '~/.cursor/rules/', 'no'] },
-    { feature: '조건부 적용', values: ['paths 프론트매터', 'no', 'globs 패턴', 'no'] },
+    { feature: '조건부 적용', values: ['paths 프론트매터', '.instructions.md (applyTo)', 'globs 패턴', 'no'] },
     { feature: '임포트 구문', values: ['@path/to/file', 'no', 'no', 'no'] },
     { feature: '개인 설정 분리', values: ['CLAUDE.local.md', 'no', 'no', 'no'] },
     { feature: '자동 메모리', values: ['MEMORY.md', 'no', 'no', 'no'] },
