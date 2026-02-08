@@ -1454,7 +1454,7 @@ class TestUserAPI:
 ### 여기서 배우는 것
 
 <Callout type="info" title="Python Mock vs TypeScript Mock">
-  - TypeScript: `jest.Mocked<IUserRepository>` -- `jest.fn()`으로 각 메서드를 직접 모킹
+  - TypeScript: `jest.Mocked{'<IUserRepository>'}` -- `jest.fn()`으로 각 메서드를 직접 모킹
   - Python: `AsyncMock()` -- `unittest.mock`의 비동기 모킹. `return_value`와 `assert_called_once()`로 검증
 
   문법은 다르지만 **패턴은 동일**합니다: 인터페이스를 만족하는 가짜 객체를 만들어 주입하고, 호출 여부를 검증합니다.

@@ -205,8 +205,8 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ### Claude가 생성하는 것
 
-- **`dashboard.ts`** — `StatCardProps`, `DataGridColumn<T>`, `DataGridProps<T>` 인터페이스. 제네릭 `<T>`로 어떤 데이터 타입이든 수용 가능
-- **`api.ts`** — `ApiResponse<T>`, `DashboardStats`, `Order`, `OrderStatus` 등 API 응답 타입
+- **`dashboard.ts`** — `StatCardProps`, `DataGridColumn{'<T>'}`, `DataGridProps{'<T>'}` 인터페이스. 제네릭 `{'<T>'}`로 어떤 데이터 타입이든 수용 가능
+- **`api.ts`** — `ApiResponse{'<T>'}`, `DashboardStats`, `Order`, `OrderStatus` 등 API 응답 타입
 
 ### 여기서 배우는 것
 
@@ -363,7 +363,7 @@ Tailwind CSS로 스타일링하고 다음 기능을 포함해:
 ### 여기서 배우는 것
 
 <Callout type="info" title="제네릭 컴포넌트의 가치">
-  생성된 `DataGrid`가 `<T>`를 사용하고 있는지 확인하세요. `DataGrid<Order>`, `DataGrid<User>` 처럼 **어떤 데이터 타입이든** 동일한 컴포넌트로 표현할 수 있습니다.
+  생성된 `DataGrid`가 `{'<T>'}`를 사용하고 있는지 확인하세요. `DataGrid{'<Order>'}`, `DataGrid{'<User>'}` 처럼 **어떤 데이터 타입이든** 동일한 컴포넌트로 표현할 수 있습니다.
 
   `render` prop도 확인하세요. 금액 컬럼에 `₩` 포맷팅, 상태 컬럼에 배지 스타일 등 **셀마다 다른 렌더링**을 컬럼 정의에서 선언적으로 처리합니다.
 </Callout>
