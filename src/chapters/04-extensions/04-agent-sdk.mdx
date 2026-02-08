@@ -1645,7 +1645,7 @@ async function multiAgentPipeline(task: string) {
 3. 테스트가 충분한지 평가
 4. 최종 승인 여부를 판단해주세요.\`,
     options: {
-      model: "claude-opus-4-20250514",
+      model: "claude-opus-4-5-20251101",
       maxTurns: 10,
       allowedTools: ["Read", "Glob", "Grep", "Bash(npm test)"],
       jsonSchema: {
@@ -1888,7 +1888,7 @@ case "$COMPLEXITY" in
     MAX_TURNS=$((EST_TURNS + 5))
     ;;
   "high")
-    MODEL="claude-opus-4-20250514"
+    MODEL="claude-opus-4-5-20251101"
     MAX_TURNS=$((EST_TURNS + 10))
     ;;
 esac

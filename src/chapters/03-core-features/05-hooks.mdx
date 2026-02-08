@@ -424,7 +424,7 @@ Hook의 exit code에 따라 Claude Code의 동작이 달라집니다.
 
     rect rgb(240, 255, 240)
         Note over CC,PO: PostToolUse 단계
-        CC->>PO: stdin (JSON: tool_name, tool_input, tool_output)
+        CC->>PO: stdin (JSON: tool_name, tool_input, tool_response)
         PO->>CC: 후처리 결과 / 메시지
     end
 
