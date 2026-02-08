@@ -2,7 +2,7 @@ import React from 'react';
 import { Circle } from 'lucide-react';
 
 interface TimelineEvent {
-  date: string;
+  date?: string;
   title: string;
   description: string;
   highlight?: boolean;
@@ -65,14 +65,14 @@ export const Timeline: React.FC<TimelineProps> = ({ events, title }) => {
               />
             </div>
             <div>
-              <div style={{
+              {event.date && <div style={{
                 fontSize: '12px',
                 color: event.highlight ? '#c4613e' : '#8c857c',
                 fontFamily: "'JetBrains Mono', monospace",
                 marginBottom: '4px',
               }}>
                 {event.date}
-              </div>
+              </div>}
               <div style={{
                 fontSize: '14px',
                 color: event.highlight ? '#2d2a26' : '#5c564e',
