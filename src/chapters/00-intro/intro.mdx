@@ -25,12 +25,12 @@ import { CodeBlock } from '../../components/CodeBlock';
 
 | Part | 주제 | 내용 |
 |------|------|------|
-| **Part 1** | 기초 | 바이브 코딩, Claude Code, CLAUDE.md, 엔터프라이즈 보안, 프롬프트 엔지니어링 |
-| **Part 2** | 프로젝트 템플릿 구조 | 프로젝트 지식 구조, 컨텍스트, 아키텍처, 가이드라인 |
-| **Part 3** | AI Agent 워크플로우 | 슬래시 커맨드, 프롬프트, 스킬, 서브에이전트, Hooks |
-| **Part 4** | MCP와 통합 | Model Context Protocol, GitHub Actions, MCP 서버 활용 |
+| **Part 1** | 시작하기 | 바이브 코딩, Claude Code, 개발 환경 설정, 모델 선택 가이드 |
+| **Part 2** | 프로젝트 설정 | CLAUDE.md 딥다이브, 프로젝트 지식 구조, 아키텍처, 가이드라인, 문서 템플릿 |
+| **Part 3** | 핵심 기능 | 커맨드와 스킬, 프롬프트 엔지니어링, 에이전트, Hooks, Plugins |
+| **Part 4** | 확장과 자동화 | MCP 개요, MCP 서버 활용, CI/CD 통합, Agent SDK |
 | **Part 5** | 실전 예제 | TypeScript API, Python API, 프론트엔드, E2E 워크플로우 |
-| **Part 6** | 모범 사례 | 보안, 팀 협업, 효과 측정 |
+| **Part 6** | 거버넌스 | 보안, 법적 윤리적 고려사항, 팀 협업, 효과 측정 |
 
 <Callout type="info" title="2026년 2월 업데이트">
   이 교육 자료는 **Claude Opus 4.6**, **Agent Teams**, **Cowork**, **Claude Agent SDK** 등 2026년 2월 기준 최신 기능을 포함합니다.
@@ -369,7 +369,7 @@ HIPAA, 의료기기 소프트웨어 규정 등으로 인해 보수적인 도입�
 <Callout type="warning" title="API 키 보안 주의">
   Anthropic API 키는 절대 코드에 하드코딩하거나 Git에 커밋하지 마세요.
   환경 변수(`ANTHROPIC_API_KEY`)로 관리하고, `.env` 파일은 반드시 `.gitignore`에 추가하세요.
-  이 교육의 Part 1 엔터프라이즈 보안 챕터에서 API 키 관리 모범 사례를 상세히 다룹니다.
+  이 교육의 Part 6 보안 챕터에서 API 키 관리 모범 사례를 상세히 다룹니다.
 </Callout>
 
 <CodeBlock
@@ -407,23 +407,23 @@ claude auth status
 
 | 주차 | 학습 범위 | 핵심 목표 | 실습 과제 |
 |------|----------|----------|----------|
-| **1주차** | Part 1 전체 (8챕터) | AI 코딩 기초 개념 확립, Claude Code 설치 및 첫 사용 | CLAUDE.md 작성, 프롬프트 10개 실습 |
-| **2주차** | Part 2 + Part 3 (11챕터) | 프로젝트 템플릿 구축, 워크플로우 자동화 | 자신의 프로젝트에 `.claude/` 구조 적용 |
-| **3주차** | Part 4 + Part 5 (7챕터) | MCP 통합, 실전 프로젝트 구축 | TypeScript 또는 Python API 하나를 Claude Code로 구축 |
-| **4주차** | Part 6 + 복습 (3챕터 + 종합) | 보안/협업/효과 측정, 전체 복습 | 팀 AI 코딩 가이드라인 초안 작성 |
+| **1주차** | Part 1 + Part 2 (9챕터) | AI 코딩 기초 개념 확립, Claude Code 설치, 프로젝트 설정 | CLAUDE.md 작성, 프로젝트 지식 구조 구축 |
+| **2주차** | Part 3 (6챕터) | 핵심 기능 활용, 프롬프트 엔지니어링, 에이전트 | 프롬프트 10개 실습, 커스텀 스킬 작성 |
+| **3주차** | Part 4 + Part 5 (8챕터) | MCP 통합, 실전 프로젝트 구축 | TypeScript 또는 Python API 하나를 Claude Code로 구축 |
+| **4주차** | Part 6 + 복습 (4챕터 + 종합) | 보안/거버넌스/효과 측정, 전체 복습 | 팀 AI 코딩 가이드라인 초안 작성 |
 
 ### 8주 여유 학습 (주당 3-4시간)
 
 | 주차 | 학습 범위 | 핵심 목표 |
 |------|----------|----------|
-| **1주차** | Part 1: 챕터 1-4 | Vibe Coding, Claude Code, CLAUDE.md, 보안 기초 |
-| **2주차** | Part 1: 챕터 5-8 | 프롬프트 엔지니어링, 모델 선택, 환경 설정 |
-| **3주차** | Part 2 전체 (6챕터) | 프로젝트 지식 구조 설계 |
-| **4주차** | Part 3 전체 (5챕터) | 슬래시 커맨드, 스킬, 서브에이전트, Hooks |
-| **5주차** | Part 4 전체 (3챕터) | MCP 프로토콜, GitHub Actions 연동 |
+| **1주차** | Part 1 전체 (4챕터) | Vibe Coding, Claude Code, 개발 환경 설정, 모델 선택 |
+| **2주차** | Part 2 전체 (5챕터) | CLAUDE.md 딥다이브, 프로젝트 지식 구조 설계 |
+| **3주차** | Part 3: 챕터 1-3 | 커맨드와 스킬, 프롬프트 엔지니어링, 프롬프트 라이브러리 |
+| **4주차** | Part 3: 챕터 4-6 | 에이전트, Hooks, Plugins |
+| **5주차** | Part 4 전체 (4챕터) | MCP 프로토콜, CI/CD 통합, Agent SDK |
 | **6주차** | Part 5: 챕터 1-2 | TypeScript API, Python API 구축 |
 | **7주차** | Part 5: 챕터 3-4 | 프론트엔드, E2E 워크플로우 |
-| **8주차** | Part 6 + 종합 정리 | 보안, 팀 협업, 효과 측정, 전체 복습 |
+| **8주차** | Part 6 + 종합 정리 | 보안, 법적/윤리적 고려, 팀 협업, 효과 측정, 전체 복습 |
 
 <Callout type="tip" title="학습 효과를 높이는 방법">
   각 주차를 마칠 때마다 배운 내용을 자신의 실제 프로젝트에 하나씩 적용해보세요.
@@ -443,38 +443,35 @@ claude auth status
 graph TB
     START([교육 시작]) --> P1
 
-    subgraph P1[Part 1: 기초]
+    subgraph P1[Part 1: 시작하기]
       direction LR
       A1[바이브 코딩이란?] --> A2[Claude Code란?]
-      A2 --> A3[CLAUDE.md 딥다이브]
-      A3 --> A4[엔터프라이즈 보안]
-      A4 --> A5[프롬프트 엔지니어링]
-      A5 --> A6[모델 선택 가이드]
-      A6 --> A7[개발 환경 설정]
-      A7 --> A8[법적/윤리적 고려사항]
+      A2 --> A3[개발 환경 설정]
+      A3 --> A4[모델 선택 가이드]
     end
 
-    subgraph P2[Part 2: 프로젝트 템플릿 구조]
+    subgraph P2[Part 2: 프로젝트 설정]
       direction LR
-      B1[에이전트 디렉토리] --> B2[컨텍스트와 컨벤션]
+      B1[CLAUDE.md 딥다이브] --> B2[프로젝트 지식 구조]
       B2 --> B3[아키텍처]
       B3 --> B4[가이드라인]
-      B4 --> B5[문서화 패턴]
-      B5 --> B6[고급 패턴]
+      B4 --> B5[문서 템플릿]
     end
 
-    subgraph P3[Part 3: AI Agent 워크플로우]
+    subgraph P3[Part 3: 핵심 기능]
       direction LR
-      C1[슬래시 커맨드] --> C2[프롬프트 라이브러리]
-      C2 --> C3[스킬]
-      C3 --> C4[서브에이전트]
+      C1[커맨드와 스킬] --> C2[프롬프트 엔지니어링]
+      C2 --> C3[프롬프트 라이브러리]
+      C3 --> C4[에이전트]
       C4 --> C5[Hooks]
+      C5 --> C6[Plugins]
     end
 
-    subgraph P4[Part 4: MCP와 통합]
+    subgraph P4[Part 4: 확장과 자동화]
       direction LR
-      D1[MCP 개요] --> D2[GitHub Actions]
-      D2 --> D3[MCP 서버 활용]
+      D1[MCP 개요] --> D2[MCP 서버 활용]
+      D2 --> D3[CI/CD 통합]
+      D3 --> D4[Agent SDK]
     end
 
     subgraph P5[Part 5: 실전 예제]
@@ -484,10 +481,11 @@ graph TB
       E3 --> E4[E2E 워크플로우]
     end
 
-    subgraph P6[Part 6: 모범 사례]
+    subgraph P6[Part 6: 거버넌스]
       direction LR
-      F1[보안] --> F2[팀 협업]
-      F2 --> F3[효과 측정]
+      F1[보안] --> F2[법적 윤리적 고려사항]
+      F2 --> F3[팀 협업]
+      F3 --> F4[효과 측정]
     end
 
     P1 --> P2 --> P3 --> P4 --> P5 --> P6
@@ -560,7 +558,7 @@ graph TB
 
 ## Part별 상세 학습 목표
 
-### Part 1: 기초 (8개 챕터)
+### Part 1: 시작하기 (4개 챕터)
 
 이 Part를 마치면 AI 코딩의 기본 개념을 이해하고 Claude Code를 설치하여 첫 번째 대화를 나눌 수 있습니다.
 
@@ -568,52 +566,49 @@ graph TB
 |------|----------|
 | 바이브 코딩이란? | Vibe Coding의 정의, 철학, 장점과 한계를 이해한다 |
 | Claude Code란? | Claude Code의 아키텍처, 핵심 기능, 다른 도구와의 차이를 파악한다 |
-| CLAUDE.md 딥다이브 | 프로젝트 지식을 CLAUDE.md에 체계적으로 구조화하는 방법을 익힌다 |
-| 엔터프라이즈 보안 | 기업 환경에서 AI 코딩 도구의 보안 위험과 대응 전략을 학습한다 |
-| 프롬프트 엔지니어링 | Claude Code에 최적화된 프롬프트 작성 기법을 연습한다 |
-| 모델 선택 가이드 | 작업 유형별 최적의 Claude 모델을 선택하는 기준을 세운다 |
 | 개발 환경 설정 | Claude Code의 설치, 인증, 초기 설정을 완료한다 |
-| 법적/윤리적 고려사항 | AI 생성 코드의 라이선스, 저작권, 윤리적 이슈를 인식한다 |
+| 모델 선택 가이드 | 작업 유형별 최적의 Claude 모델을 선택하는 기준을 세운다 |
 
 <Callout type="tip" title="Part 1 학습 팁">
-  Part 1은 모든 학습자에게 공통으로 권장됩니다. 특히 "CLAUDE.md 딥다이브"와 "프롬프트 엔지니어링" 챕터는
-  이후 모든 Part의 기반이 되므로 반드시 숙지하세요.
+  Part 1은 모든 학습자에게 공통으로 권장됩니다. Vibe Coding과 Claude Code의 기본 개념을 익히고
+  개발 환경을 구축하는 것이 이후 모든 Part의 기반이 됩니다.
 </Callout>
 
-### Part 2: 프로젝트 템플릿 구조 (6개 챕터)
+### Part 2: 프로젝트 설정 (5개 챕터)
 
 이 Part를 마치면 AI Agent가 프로젝트 맥락을 이해할 수 있도록 지식 구조를 설계하고 문서화할 수 있습니다.
 
 | 챕터 | 학습 목표 |
 |------|----------|
-| 에이전트 디렉토리 개요 | `.claude/` 디렉토리의 구조와 각 파일의 역할을 이해한다 |
-| 컨텍스트와 컨벤션 | 프로젝트 컨텍스트 문서와 코딩 컨벤션 파일을 작성한다 |
+| CLAUDE.md 딥다이브 | 프로젝트 지식을 CLAUDE.md에 체계적으로 구조화하는 방법을 익힌다 |
+| 프로젝트 지식 구조 | `.claude/` 디렉토리의 구조와 각 파일의 역할을 이해한다 |
 | 아키텍처 | 시스템 아키텍처를 AI가 이해할 수 있는 형태로 문서화한다 |
 | 가이드라인 | AI Agent 사용 가이드라인과 코드 리뷰 규칙을 수립한다 |
-| 문서화 패턴 | 효과적인 프로젝트 문서화의 패턴과 안티패턴을 구분한다 |
-| 고급 패턴 | 멀티 저장소 설정, 조건부 규칙 등 고급 구성을 활용한다 |
+| 문서 템플릿 | 효과적인 프로젝트 문서화의 패턴과 안티패턴을 구분한다 |
 
-### Part 3: AI Agent 워크플로우 (5개 챕터)
+### Part 3: 핵심 기능 (6개 챕터)
 
-이 Part를 마치면 Claude Code의 고급 기능을 활용하여 개발 워크플로우를 자동화할 수 있습니다.
+이 Part를 마치면 Claude Code의 핵심 기능을 활용하여 개발 워크플로우를 자동화할 수 있습니다.
 
 | 챕터 | 학습 목표 |
 |------|----------|
-| 슬래시 커맨드 | `/init`, `/review`, `/commit` 등 내장 커맨드를 활용한다 |
+| 커맨드와 스킬 | 슬래시 커맨드와 커스텀 스킬을 활용하여 작업을 자동화한다 |
+| 프롬프트 엔지니어링 | Claude Code에 최적화된 프롬프트 작성 기법을 연습한다 |
 | 프롬프트 라이브러리 | 재사용 가능한 프롬프트를 `.claude/prompts/`에 구성한다 |
-| 스킬 | 커스텀 스킬을 정의하고 `context:fork`, Lifecycle Hooks를 활용한다 |
-| 서브에이전트 | Agent Teams를 활용한 멀티 에이전트 협업 패턴을 구현한다 |
-| Hooks | Pre/Post Hook으로 CI/CD 파이프라인과 연동한다 |
+| 에이전트 | 서브에이전트와 Agent Teams를 활용한 멀티 에이전트 협업 패턴을 구현한다 |
+| Hooks | Pre/Post Hook으로 워크플로우를 자동화하고 품질을 관리한다 |
+| Plugins | 플러그인 시스템을 활용하여 Claude Code의 기능을 확장한다 |
 
-### Part 4: MCP와 통합 (3개 챕터)
+### Part 4: 확장과 자동화 (4개 챕터)
 
 이 Part를 마치면 Model Context Protocol을 이해하고 외부 도구 및 서비스와 통합할 수 있습니다.
 
 | 챕터 | 학습 목표 |
 |------|----------|
 | MCP 개요 | MCP의 아키텍처, 프로토콜, 생태계를 이해한다 |
-| GitHub Actions | Claude Code를 CI/CD 파이프라인에 통합한다 |
 | MCP 서버 활용 | 데이터베이스, API, 파일 시스템 MCP 서버를 설정하고 사용한다 |
+| CI/CD 통합 | Claude Code를 GitHub Actions 등 CI/CD 파이프라인에 통합한다 |
+| Agent SDK와 자동화 | Headless 모드와 Agent SDK로 자동화 파이프라인을 구축한다 |
 
 ### Part 5: 실전 예제 (4개 챕터)
 
@@ -626,13 +621,14 @@ graph TB
 | 프론트엔드 프로젝트 | React 프론트엔드를 Claude Code로 구축한다 |
 | E2E 워크플로우 | 기획부터 배포까지 전체 개발 사이클을 AI와 함께 수행한다 |
 
-### Part 6: 모범 사례 (3개 챕터)
+### Part 6: 거버넌스 (4개 챕터)
 
 이 Part를 마치면 팀과 조직 차원에서 AI 코딩 도구를 안전하고 효과적으로 도입/운영할 수 있습니다.
 
 | 챕터 | 학습 목표 |
 |------|----------|
 | 보안 | AI 코딩의 보안 체크리스트와 사고 대응 프로세스를 수립한다 |
+| 법적/윤리적 고려사항 | AI 생성 코드의 라이선스, 저작권, 윤리적 이슈를 인식한다 |
 | 팀 협업 | AI Agent를 활용한 팀 코드 리뷰, PR 자동화, 지식 공유를 구축한다 |
 | 효과 측정 | AI 코딩 도입 효과를 정량적/정성적으로 측정하고 보고한다 |
 
@@ -640,27 +636,18 @@ graph TB
 
 ## 추천 학습 경로
 
-모든 29개 챕터를 순서대로 학습하는 것이 가장 이상적이지만, 시간이 제한된 경우 아래의 역할별 추천 경로를 참고하세요.
+모든 27개 챕터를 순서대로 학습하는 것이 가장 이상적이지만, 시간이 제한된 경우 아래의 역할별 추천 경로를 참고하세요.
 
 <ComparisonTable
   title="역할별 추천 학습 경로"
   headers={['챕터/Part', '주니어 개발자', '시니어 개발자', '테크 리드/매니저', '비개발 직군']}
   rows={[
-    { feature: 'Part 1: 바이브 코딩이란?', values: ['yes', 'yes', 'yes', 'yes'] },
-    { feature: 'Part 1: Claude Code란?', values: ['yes', 'yes', 'yes', 'yes'] },
-    { feature: 'Part 1: CLAUDE.md 딥다이브', values: ['yes', 'yes', 'yes', 'no'] },
-    { feature: 'Part 1: 엔터프라이즈 보안', values: ['partial', 'yes', 'yes', 'yes'] },
-    { feature: 'Part 1: 프롬프트 엔지니어링', values: ['yes', 'yes', 'partial', 'yes'] },
-    { feature: 'Part 1: 모델 선택 가이드', values: ['partial', 'yes', 'yes', 'no'] },
-    { feature: 'Part 1: 개발 환경 설정', values: ['yes', 'yes', 'no', 'no'] },
-    { feature: 'Part 1: 법적/윤리적 고려사항', values: ['partial', 'partial', 'yes', 'yes'] },
-    { feature: 'Part 2: 프로젝트 템플릿 구조 전체', values: ['partial', 'yes', 'yes', 'no'] },
-    { feature: 'Part 3: AI Agent 워크플로우 전체', values: ['yes', 'yes', 'partial', 'no'] },
-    { feature: 'Part 4: MCP와 통합 전체', values: ['partial', 'yes', 'partial', 'no'] },
+    { feature: 'Part 1: 시작하기 전체', values: ['yes', 'yes', 'yes', 'yes'] },
+    { feature: 'Part 2: 프로젝트 설정 전체', values: ['partial', 'yes', 'yes', 'no'] },
+    { feature: 'Part 3: 핵심 기능 전체', values: ['yes', 'yes', 'partial', 'no'] },
+    { feature: 'Part 4: 확장과 자동화 전체', values: ['partial', 'yes', 'partial', 'no'] },
     { feature: 'Part 5: 실전 예제 전체', values: ['yes', 'yes', 'no', 'no'] },
-    { feature: 'Part 6: 보안', values: ['partial', 'yes', 'yes', 'yes'] },
-    { feature: 'Part 6: 팀 협업', values: ['partial', 'yes', 'yes', 'partial'] },
-    { feature: 'Part 6: 효과 측정', values: ['no', 'partial', 'yes', 'yes'] },
+    { feature: 'Part 6: 거버넌스 전체', values: ['partial', 'yes', 'yes', 'yes'] },
   ]}
 />
 
@@ -677,7 +664,7 @@ graph TB
 
 **시니어 개발자 (예상 학습 시간: 15-20시간)**
 
-Part 2의 프로젝트 템플릿 구조와 Part 4의 MCP 통합에 집중하세요. 이미 프로그래밍 역량이 충분하므로, AI 도구를 프로젝트 아키텍처 수준에서 활용하는 방법과 팀 전체의 생산성을 높이는 방법에 초점을 맞추세요.
+Part 2의 프로젝트 설정과 Part 4의 확장과 자동화에 집중하세요. 이미 프로그래밍 역량이 충분하므로, AI 도구를 프로젝트 아키텍처 수준에서 활용하는 방법과 팀 전체의 생산성을 높이는 방법에 초점을 맞추세요.
 
 **테크 리드/매니저 (예상 학습 시간: 10-15시간)**
 
@@ -703,7 +690,7 @@ Claude Code는 **Claude Pro($20/월)**, **Claude Max($100~200/월)**, 또는 **A
 
 **Q: AI가 생성한 코드의 보안은 어떻게 보장하나요?**
 
-이 교육의 Part 1(엔터프라이즈 보안)과 Part 6(보안 모범 사례)에서 이 주제를 깊이 다룹니다. 핵심은 **AI 생성 코드를 무조건 신뢰하지 않는 것**입니다. 기존의 코드 리뷰 프로세스, SAST/DAST 도구, 의존성 스캔을 AI 생성 코드에도 동일하게 적용해야 합니다.
+이 교육의 Part 6(거버넌스)에서 보안과 법적/윤리적 고려사항을 깊이 다룹니다. 핵심은 **AI 생성 코드를 무조건 신뢰하지 않는 것**입니다. 기존의 코드 리뷰 프로세스, SAST/DAST 도구, 의존성 스캔을 AI 생성 코드에도 동일하게 적용해야 합니다.
 
 ### 기술적 질문
 
@@ -721,7 +708,7 @@ Claude Code는 특정 언어에 제한되지 않습니다. TypeScript, Python, G
 
 **Q: 회사 코드가 Anthropic 서버로 전송되나요?**
 
-Claude Code는 대화 중 필요한 코드 스니펫을 API로 전송합니다. 엔터프라이즈 환경에서는 Anthropic의 데이터 보존 정책을 확인하고, 필요시 API 키 방식에서의 **제로 데이터 보존(Zero Data Retention)** 옵션을 활용하세요. 자세한 보안 고려사항은 Part 1의 엔터프라이즈 보안 챕터에서 다룹니다.
+Claude Code는 대화 중 필요한 코드 스니펫을 API로 전송합니다. 엔터프라이즈 환경에서는 Anthropic의 데이터 보존 정책을 확인하고, 필요시 API 키 방식에서의 **제로 데이터 보존(Zero Data Retention)** 옵션을 활용하세요. 자세한 보안 고려사항은 Part 6의 보안 챕터에서 다룹니다.
 
 ### 학습 관련 질문
 
