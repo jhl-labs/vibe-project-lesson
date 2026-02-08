@@ -42,7 +42,7 @@ Claude 4 시리즈는 2025년 5월부터 순차적으로 공개되었습니다.
     {
       date: '2025년 9월',
       title: 'Sonnet 4.5 출시',
-      description: 'SWE-bench 77.2% 달성. 비용 대비 성능의 새로운 기준 수립. Claude Code 기본 모델로 설정.',
+      description: 'SWE-bench 77.2% 달성. 비용 대비 성능의 새로운 기준 수립.',
     },
     {
       date: '2025년 10월',
@@ -72,7 +72,7 @@ Claude 4 시리즈는 2025년 5월부터 순차적으로 공개되었습니다.
   rows={[
     { feature: '모델 ID', values: ['claude-opus-4-6', 'claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5'] },
     { feature: '출시일', values: ['2026년 2월', '2025년 11월', '2025년 9월', '2025년 10월'] },
-    { feature: '컨텍스트 윈도우', values: ['1,000K (1M)', '200K (1M 베타)', '200K (1M 베타)', '200K'] },
+    { feature: '컨텍스트 윈도우', values: ['1,000K (1M 베타)', '200K', '200K (1M 베타)', '200K'] },
     { feature: '최대 출력', values: ['128,000 토큰', '64,000 토큰', '64,000 토큰', '64,000 토큰'] },
     { feature: '입력 가격 (/1M 토큰)', values: ['$5', '$5', '$3', '$1'] },
     { feature: '출력 가격 (/1M 토큰)', values: ['$25', '$25', '$15', '$5'] },
@@ -85,8 +85,8 @@ Claude 4 시리즈는 2025년 5월부터 순차적으로 공개되었습니다.
 />
 
 <Callout type="tip" title="가격 출처">
-  모든 가격은 [Anthropic 공식 가격 페이지](https://docs.anthropic.com/en/docs/about-claude/pricing) 기준입니다.
-  Opus 4.6은 이전 세대(Claude 3 Opus $15/$75) 대비 **67% 가격 인하**된 가격입니다.
+  모든 가격은 [Anthropic 공식 가격 페이지](https://platform.claude.com/docs/en/about-claude/pricing) 기준입니다.
+  Opus 4.6은 이전 세대(Claude 3 Opus / Opus 4.1: $15/$75) 대비 **67% 가격 인하**된 가격입니다.
 </Callout>
 
 ---
@@ -118,7 +118,7 @@ Opus 4.5는 SWE-bench에서 80% 임계값을 넘은 최초의 AI 모델로, **�
 - **SWE-bench 80.9%**: 역대 최고의 단일 세션 코딩 벤치마크 점수
 - **깊은 추론**: 복잡한 아키텍처 설계와 의존성 분석에 탁월
 - **Extended Thinking**: budget_tokens 파라미터로 사고 깊이 세밀 제어
-- **200K 컨텍스트 (1M 베타)**: 충분한 프로젝트 컨텍스트 처리
+- **200K 컨텍스트**: 충분한 프로젝트 컨텍스트 처리
 
 **적합한 시나리오:**
 - 레거시 시스템 마이그레이션 계획 수립
@@ -128,7 +128,7 @@ Opus 4.5는 SWE-bench에서 80% 임계값을 넘은 최초의 AI 모델로, **�
 
 ### Sonnet 4.5 — 균형의 마스터
 
-Sonnet 4.5는 **Claude Code의 기본 모델**입니다. 성능, 속도, 비용의 균형이 탁월하여 대부분의 일상적인 개발 작업에 최적입니다.
+Sonnet 4.5는 **Claude Code에서 가장 많이 사용되는 모델** 중 하나입니다. 성능, 속도, 비용의 균형이 탁월하여 대부분의 일상적인 개발 작업에 최적입니다. (참고: Opus 4.6 출시 이후 Claude Code의 기본 모델은 Opus 4.6으로 변경되었으며, 사용량 임계값 도달 시 Sonnet으로 자동 전환됩니다.)
 
 **핵심 특성:**
 - **SWE-bench 77.2%**: Opus에 근접한 코딩 성능
@@ -136,10 +136,10 @@ Sonnet 4.5는 **Claude Code의 기본 모델**입니다. 성능, 속도, 비용�
 - **빠른 응답**: Opus 대비 빠른 응답 속도로 개발 흐름 유지
 - **범용성**: 코딩, 리뷰, 문서화, 테스트 등 모든 작업에 적합
 
-<Callout type="tip" title="Sonnet 4.5가 기본 모델인 이유">
-  Anthropic이 Claude Code의 기본 모델로 Sonnet 4.5를 선택한 것은 의미가 있습니다.
+<Callout type="tip" title="Sonnet 4.5의 가치">
+  Opus 4.6이 기본 모델로 설정되어 있지만, API 종량제 사용자에게는 Sonnet 4.5가 비용 효율적인 선택입니다.
   "80%의 작업에서 Opus와 체감 차이가 미미하면서도, 비용은 40% 절감"되기 때문입니다.
-  모델 선택에 확신이 없다면 Sonnet 4.5로 시작하세요.
+  비용을 절약하면서도 높은 품질을 유지하고 싶다면 Sonnet 4.5를 고려하세요.
 </Callout>
 
 ### Haiku 4.5 — 속도와 효율의 전문가
@@ -213,7 +213,7 @@ Claude 4 시리즈는 **Extended Thinking** 기능으로 복잡한 문제에서 
   headers={['항목', 'Extended Thinking (4.5)', 'Adaptive Thinking (4.6)']}
   rows={[
     { feature: '사고 깊이 조절', values: ['수동 (budget_tokens 지정)', '자동 (작업 복잡도 기반)'] },
-    { feature: '컨텍스트 윈도우', values: ['200K (1M 베타)', '1M (기본)'] },
+    { feature: '컨텍스트 윈도우', values: ['200K', '1M (베타, tier 4+)'] },
     { feature: '최대 출력', values: ['64K 토큰', '128K 토큰'] },
     { feature: 'Effort 파라미터', values: ['미지원', '4단계 (Low/Medium/High/Max)'] },
     { feature: 'Agent Teams', values: ['미지원', '네이티브 지원'] },
@@ -245,7 +245,7 @@ Extended Thinking은 Claude가 답변 전에 단계별로 사고하는 과정을
 />
 
 <Callout type="tip" title="Extended Thinking 문서">
-  Extended Thinking에 대한 기술적 세부사항은 [Anthropic 공식 문서](https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking)를 참조하세요.
+  Extended Thinking에 대한 기술적 세부사항은 [Anthropic 공식 문서](https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking)를 참조하세요.
 </Callout>
 
 ### Effort 파라미터 4단계
