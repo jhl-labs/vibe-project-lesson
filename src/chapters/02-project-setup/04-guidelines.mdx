@@ -225,8 +225,8 @@ Claude Code는 여러 레벨의 권한 설정을 지원합니다. 상위 레벨�
 // macOS: /Library/Application Support/ClaudeCode/managed-settings.json
 // Linux: /etc/claude-code/managed-settings.json
 {
-  "disableBypassPermissionsMode": "disable",
   "permissions": {
+    "disableBypassPermissionsMode": "disable",
     "deny": [
       "Bash(rm -rf *)",
       "Bash(sudo *)",
@@ -612,9 +612,9 @@ fi
 if [ -n "$COMMAND" ] || [ -n "$FILE_PATH" ]; then
   SECRET_PATTERNS=(
     "AKIA[0-9A-Z]{16}"          # AWS Access Key
-    "sk-[a-zA-Z0-9]{48}"        # OpenAI API Key
-    "ghp_[a-zA-Z0-9]{36}"       # GitHub Token
-    "sk-ant-[a-zA-Z0-9-]{90}"   # Anthropic API Key
+    "sk-proj-[a-zA-Z0-9_-]{40,}" # OpenAI API Key (sk-proj- 접두사)
+    "ghp_[a-zA-Z0-9]{36,}"      # GitHub Token (36자 이상)
+    "sk-ant-api03-[a-zA-Z0-9_-]{40,}" # Anthropic API Key (sk-ant-api03- 접두사)
   )
 
   CONTENT=$(echo "$TOOL_INPUT" | jq -r '.content // .command // empty')
@@ -720,7 +720,7 @@ AI 에이전트의 사용 범위를 도메인의 특성에 맞게 조정해야 �
     { feature: 'AI 사용 범위', values: ['UI/UX 코드 한정, 금융 로직 수동', '비식별 데이터만, PHI 접근 금지', '보안 등급별 차등 적용'] },
     { feature: '데이터 제한', values: ['카드번호/계좌 AI 입력 금지', '환자 정보 AI 입력 금지', '3등급 이상 데이터 AI 입력 금지'] },
     { feature: '코드 리뷰', values: ['보안 전문가 필수 리뷰', '규정 준수 담당자 리뷰', '보안성 검토 필수'] },
-    { feature: '감사 요구', values: ['전체 이력 5년 보관', '전체 이력 6년 보관', '전체 이력 5년 보관'] },
+    { feature: '감사 요구', values: ['전체 이력 5년 보관', '전체 이력 5~10년 보관', '전체 이력 5년 보관'] },
     { feature: '암호화 코드', values: ['검증된 라이브러리만 사용', '검증된 라이브러리만 사용', 'KCMVP 인증 모듈 사용'] },
     { feature: '테스트 요구', values: ['모든 금융 로직 100% 커버리지', 'FDA 검증 수준 테스트', '보안 취약점 테스트 필수'] },
   ]}
@@ -862,7 +862,7 @@ SECRET_FOUND=false
 for file in $STAGED_FILES; do
   if [ -f "$file" ]; then
     # API 키, 토큰 패턴 검사
-    if grep -nE '(AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{48}|ghp_[a-zA-Z0-9]{36})' "$file"; then
+    if grep -nE '(AKIA[0-9A-Z]{16}|sk-proj-[a-zA-Z0-9_-]{40,}|ghp_[a-zA-Z0-9]{36,}|sk-ant-api03-[a-zA-Z0-9_-]{40,})' "$file"; then
       echo "ERROR: $file 에서 시크릿 패턴 감지"
       SECRET_FOUND=true
     fi
@@ -1031,9 +1031,9 @@ jobs:
       description: '전 소프트웨어 엔지니어에게 AI 코딩 가이드라인을 배포. AI 생성 코드에 대한 코드 리뷰 기준과 책임 소재를 정의했습니다 ([9to5Google](https://9to5google.com/2025/06/30/google-engineers-ai-code/)).',
     },
     {
-      date: '2025.03',
-      title: 'Anthropic - Claude Code 엔터프라이즈 보안 기능',
-      description: 'Managed Settings, 감사 로그, 엔터프라이즈 SSO 등 기업용 보안 기능을 Claude Code에 추가했습니다.',
+      date: '2025.08',
+      title: 'Anthropic - Claude Code Team/Enterprise 통합',
+      description: 'Claude Code가 Team/Enterprise 플랜에 포함되며, Managed Settings, Compliance API, 감사 로그 등 기업용 관리 기능이 추가되었습니다 ([Anthropic Blog](https://www.anthropic.com/news/claude-code-on-team-and-enterprise)).',
       highlight: true
     },
     {
@@ -1221,9 +1221,9 @@ exit 0`}
 
 <Callout type="info" title="감사 로그 보관 기간">
   감사 로그의 보관 기간은 산업 규정에 따라 다릅니다:
-  - **금융**: 최소 5년 (전자금융감독규정)
-  - **의료**: 최소 6년 (의료법 시행규칙)
-  - **공공기관**: 최소 5년 (공공기록물 관리법)
+  - **금융**: 최소 5년 (전자금융거래법 제22조)
+  - **의료**: 최소 5년~10년 (의료법 시행규칙 제15조, 진료기록부 10년/기타 5년)
+  - **공공기관**: 최소 5년 (공공기록물 관리에 관한 법률 시행령 제26조)
   - **일반 기업**: 권장 1-3년
 
   `.claude/audit-logs/` 디렉토리는 반드시 `.gitignore`에 추가하고, 별도의 로그 스토리지로 전송하세요.
