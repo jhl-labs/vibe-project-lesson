@@ -205,11 +205,11 @@ claude-code-action은 4가지 인증 방식을 지원합니다. 사용 환경에
     ACTION["claude-code-action"] --> A["Direct API Key"]
     ACTION --> B["AWS Bedrock"]
     ACTION --> C["Google Vertex AI"]
-    ACTION --> D["Azure AI Foundry"]
+    ACTION --> D["Microsoft Foundry"]
     A --> A1["anthropic_api_key"]
     B --> B1["aws_access_key_id +\naws_secret_access_key +\naws_region"]
     C --> C1["google_project_id +\ngoogle_region +\nOIDC"]
-    D --> D1["azure_endpoint +\nOIDC/API Key"]
+    D --> D1["use_foundry +\nANTHROPIC_FOUNDRY_BASE_URL +\nOIDC/API Key"]
     style ACTION fill:#fdf2ee,stroke:#da7756,color:#2d2a26
     style A fill:#e8f5e9,stroke:#16a34a,color:#2d2a26
     style B fill:#fff3e0,stroke:#d97706,color:#2d2a26
@@ -259,16 +259,23 @@ claude-code-action은 4가지 인증 방식을 지원합니다. 사용 환경에
   filename="Google Vertex AI"
 />
 
-**4. Azure AI Foundry**
+**4. Microsoft Foundry**
 
 <CodeBlock
-  code={`- uses: anthropics/claude-code-action@v1
+  code={`- name: Authenticate to Azure
+  uses: azure/login@v2
   with:
-    use_azure: "true"
-    azure_endpoint: "https://my-endpoint.services.ai.azure.com"
-    azure_api_key: \${{ secrets.AZURE_API_KEY }}`}
+    client-id: \${{ secrets.AZURE_CLIENT_ID }}
+    tenant-id: \${{ secrets.AZURE_TENANT_ID }}
+    subscription-id: \${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+- uses: anthropics/claude-code-action@v1
+  with:
+    use_foundry: "true"
+  env:
+    ANTHROPIC_FOUNDRY_BASE_URL: https://my-resource.services.ai.azure.com`}
   language="yaml"
-  filename="Azure AI Foundry"
+  filename="Microsoft Foundry"
 />
 
 <Callout type="tip" title="OIDC 인증 권장">
@@ -303,7 +310,7 @@ claude-code-action은 4가지 인증 방식을 지원합니다. 사용 환경에
     { option: 'custom_instructions', required: '아니오', defaultVal: '-', description: 'CLAUDE.md 외 추가 지시사항' },
     { option: 'use_bedrock', required: '아니오', defaultVal: 'false', description: 'AWS Bedrock 사용 여부' },
     { option: 'use_vertex', required: '아니오', defaultVal: 'false', description: 'Google Vertex AI 사용 여부' },
-    { option: 'use_azure', required: '아니오', defaultVal: 'false', description: 'Azure AI Foundry 사용 여부' },
+    { option: 'use_foundry', required: '아니오', defaultVal: 'false', description: 'Microsoft Foundry 사용 여부' },
   ]}
 />
 

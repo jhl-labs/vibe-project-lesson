@@ -631,7 +631,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-agent-sdk
+        run: npm install -g @anthropic-ai/claude-code
 
       - name: Analyze PR Changes
         env:
@@ -694,7 +694,7 @@ claude-review:
   stage: review
   image: node:20
   before_script:
-    - npm install -g @anthropic-ai/claude-agent-sdk
+    - npm install -g @anthropic-ai/claude-code
   script:
     # 변경사항 분석
     - |
@@ -724,7 +724,7 @@ claude-test-fix:
   stage: test
   image: node:20
   before_script:
-    - npm install -g @anthropic-ai/claude-agent-sdk
+    - npm install -g @anthropic-ai/claude-code
     - npm ci
   script:
     # 테스트 실행 후 실패 시 자동 수정 시도
@@ -1825,7 +1825,7 @@ docker run --rm \\
   --read-only \\
   --tmpfs /tmp \\
   node:20 bash -c "
-    npm install -g @anthropic-ai/claude-agent-sdk &&
+    npm install -g @anthropic-ai/claude-code &&
     claude -p '코드를 분석해줘' \\
       --allowedTools 'Read,Glob,Grep' \\
       --max-turns 5
