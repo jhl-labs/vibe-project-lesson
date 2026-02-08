@@ -59,8 +59,8 @@ Claude Code는 14가지 이벤트 타입을 지원합니다 (Agent Teams의 Team
     { event: 'SubagentStop', timing: '서브에이전트 완료 시', blockable: '예', matcher: '에이전트 타입' },
     { event: 'Notification', timing: '알림 발생 시', blockable: '아니오', matcher: '알림 유형' },
     { event: 'PreCompact', timing: '컨텍스트 압축 전', blockable: '아니오', matcher: 'manual, auto' },
-    { event: 'TeammateIdle', timing: '팀원 에이전트 대기 시', blockable: '아니오', matcher: '(없음)' },
-    { event: 'TaskCompleted', timing: '할당된 작업 완료 시', blockable: '아니오', matcher: '(없음)' },
+    { event: 'TeammateIdle', timing: '팀원 에이전트 대기 시', blockable: '예', matcher: '(없음)' },
+    { event: 'TaskCompleted', timing: '할당된 작업 완료 시', blockable: '예', matcher: '(없음)' },
   ]}
 />
 
@@ -267,20 +267,20 @@ Hook은 실행 시 stdin을 통해 JSON 데이터를 받고, 환경 변수를 �
   }
 }
 
-// PostToolUse 입력 (tool_output 포함)
+// PostToolUse 입력 (tool_response 포함)
 {
   "session_id": "abc123",
   "transcript_path": "/path/to/transcript.jsonl",
   "cwd": "/path/to/project",
   "hook_event_name": "PostToolUse",
-  "tool_name": "Bash",
+  "tool_name": "Write",
   "tool_input": {
-    "command": "npm test"
+    "file_path": "/path/to/file.txt",
+    "content": "file content"
   },
-  "tool_output": {
-    "stdout": "Tests: 42 passed, 42 total",
-    "stderr": "",
-    "exit_code": 0
+  "tool_response": {
+    "filePath": "/path/to/file.txt",
+    "success": true
   }
 }
 
@@ -341,7 +341,7 @@ Hook은 실행 시 stdin을 통해 JSON 데이터를 받고, 환경 변수를 �
 {
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "message": "lint 경고 3건 발견: unused-vars(2), no-console(1)"
+    "additionalContext": "lint 경고 3건 발견: unused-vars(2), no-console(1)"
   }
 }`}
   language="json"
@@ -364,9 +364,8 @@ TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name')
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
-# 도구 출력 (PostToolUse에서만 사용 가능)
-EXIT_CODE=$(echo "$INPUT" | jq -r '.tool_output.exit_code // empty')
-STDOUT=$(echo "$INPUT" | jq -r '.tool_output.stdout // empty')
+# 도구 응답 (PostToolUse에서만 사용 가능)
+TOOL_RESPONSE=$(echo "$INPUT" | jq -r '.tool_response // empty')
 
 # 프로젝트 경로
 PROJECT_DIR=$(echo "$INPUT" | jq -r '.cwd')`}
@@ -588,7 +587,7 @@ fi
 # 시크릿 패턴 검사
 SECRET_PATTERNS=(
   'AKIA[0-9A-Z]{16}'                    # AWS Access Key
-  'sk-[a-zA-Z0-9]{48}'                  # OpenAI API Key
+  'sk-proj-[a-zA-Z0-9_-]{40,}'           # OpenAI API Key
   'sk-ant-[a-zA-Z0-9-]{90,}'            # Anthropic API Key
   'ghp_[a-zA-Z0-9]{36}'                 # GitHub Personal Token
   'password\s*=\s*["\x27][^"\x27]+'     # 하드코딩된 비밀번호
@@ -779,11 +778,11 @@ exit 0`}
 
 ### Verbose 모드로 실행
 
-`--verbose` 플래그를 사용하면 Hook의 실행 상태, stdin/stdout, exit code를 확인할 수 있습니다.
+`--debug` 플래그를 사용하면 Hook의 실행 상태, stdin/stdout, exit code를 확인할 수 있습니다. 세션 중에는 `Ctrl+O`로 verbose 모드를 토글할 수 있습니다.
 
 <CodeBlock
-  code={`# verbose 모드로 Claude Code 실행
-claude --verbose
+  code={`# debug 모드로 Claude Code 실행
+claude --debug
 
 # 특정 Hook 디버깅 시 로그 파일 활용
 # Hook 스크립트 내에서 디버그 로그 작성
@@ -825,7 +824,7 @@ echo '{
   "hook_event_name": "PostToolUse",
   "tool_name": "Edit",
   "tool_input": {"file_path": "src/index.ts"},
-  "tool_output": {"stdout": "File edited successfully"}
+  "tool_response": {"filePath": "src/index.ts", "success": true}
 }' | bash .claude/hooks/auto-lint.sh`}
   language="bash"
   filename="Hook 독립 실행 테스트"
@@ -835,11 +834,11 @@ echo '{
 
 Hook이 타임아웃되면 자동으로 종료됩니다. 기본 타임아웃은 핸들러 타입별로 다릅니다.
 
-| 핸들러 타입 | 기본 타임아웃 | 최대 타임아웃 | 타임아웃 시 동작 |
-|------------|-------------|-------------|----------------|
-| command | 600초 (10분) | 제한 없음 | 프로세스 강제 종료 |
-| prompt | 30초 | 120초 | 응답 무시 |
-| agent | 60초 | 300초 | 에이전트 종료 |
+| 핸들러 타입 | 기본 타임아웃 | 타임아웃 시 동작 |
+|------------|-------------|----------------|
+| command | 600초 (10분) | 프로세스 강제 종료 |
+| prompt | 30초 | 응답 무시 |
+| agent | 60초 | 에이전트 종료 |
 
 <Callout type="warning" title="타임아웃 설정 주의">
   너무 긴 타임아웃은 전체 워크플로우를 지연시킵니다. 특히 동기(sync) Hook에서는 타임아웃 동안 Claude가 대기하므로, 오래 걸리는 작업은 반드시 `async: true`로 설정하세요.

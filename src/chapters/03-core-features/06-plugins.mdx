@@ -118,15 +118,7 @@ Plugins는 Claude Code의 **공식 확장 패키징 시스템**입니다. 지금
     "type": "git",
     "url": "https://github.com/example/team-code-quality.git"
   },
-  "keywords": ["code-review", "testing", "security", "quality"],
-  "engines": {
-    "claude-code": ">=2.1.0"
-  },
-  "dependencies": {
-    "mcp-servers": {
-      "@anthropic/mcp-server-github": "^1.0.0"
-    }
-  }
+  "keywords": ["code-review", "testing", "security", "quality"]
 }`}
   language="json"
   filename=".claude-plugin/plugin.json"
@@ -144,8 +136,6 @@ Plugins는 Claude Code의 **공식 확장 패키징 시스템**입니다. 지금
 | `homepage` | string | - | 플러그인 홈페이지 URL |
 | `repository` | object | - | 소스 코드 저장소 정보 |
 | `keywords` | string[] | - | 마켓플레이스 검색 키워드 |
-| `engines` | object | - | 호환 Claude Code 버전 |
-| `dependencies` | object | - | 의존하는 MCP 서버 등 |
 
 ---
 
@@ -159,8 +149,8 @@ Plugins는 Claude Code의 **공식 확장 패키징 시스템**입니다. 지금
     { feature: '적합한 경우', values: ['개인 워크플로우, 프로젝트 특화', '팀 공유, 커뮤니티 배포, 버전 관리'] },
     { feature: '네이밍 충돌', values: ['다른 도구와 충돌 가능', '네임스페이스로 격리'] },
     { feature: '버전 관리', values: ['프로젝트 git에 포함', '독립적 SemVer'] },
-    { feature: '설치 방법', values: ['수동 파일 배치', '/plugin install 또는 --plugin-dir'] },
-    { feature: '업데이트', values: ['수동 파일 교체', '마켓플레이스에서 업데이트'] },
+    { feature: '설치 방법', values: ['수동 파일 배치', 'claude plugin install 또는 --plugin-dir'] },
+    { feature: '업데이트', values: ['수동 파일 교체', 'claude plugin update'] },
     { feature: '재사용성', values: ['낮음 (프로젝트 종속)', '높음 (여러 프로젝트에서 사용)'] },
     { feature: '공유 범위', values: ['프로젝트 내', '팀/조직/커뮤니티'] },
   ]}
@@ -195,10 +185,7 @@ mkdir -p my-review-plugin/hooks/scripts`}
   "version": "0.1.0",
   "description": "코드 리뷰 자동화 플러그인",
   "author": "My Team",
-  "license": "MIT",
-  "engines": {
-    "claude-code": ">=2.1.0"
-  }
+  "license": "MIT"
 }`}
   language="json"
   filename="my-review-plugin/.claude-plugin/plugin.json"
@@ -345,8 +332,8 @@ git push -u origin main
 git tag v0.1.0
 git push --tags
 
-# 다른 프로젝트에서 설치
-/plugin install https://github.com/example/my-review-plugin.git`}
+# 마켓플레이스에 등록 후 다른 프로젝트에서 설치
+claude plugin install my-review-plugin@my-marketplace`}
   language="bash"
   filename="Step 7: 배포 및 설치"
 />
@@ -633,32 +620,26 @@ Plugin Marketplace는 팀이나 조직 단위로 구축할 수 있는 **플러�
 ### 마켓플레이스 설정
 
 <CodeBlock
-  code={`# 팀 마켓플레이스 연결
-claude config set marketplace https://plugins.mycompany.com
+  code={`# 팀 마켓플레이스 추가 (/plugin 메뉴의 Discover 탭에서도 가능)
+/plugin marketplace add my-org/team-plugins
 
-# 또는 --marketplace 플래그로 지정
-claude --marketplace https://plugins.mycompany.com
+# CLI에서 플러그인 설치
+claude plugin install team-code-quality@my-marketplace
 
-# 마켓플레이스에서 플러그인 검색
-/plugin search code-review
+# 프로젝트 스코프로 설치 (팀 공유)
+claude plugin install team-code-quality@my-marketplace --scope project
 
-# 플러그인 설치
-/plugin install team-code-quality
+# /plugin 메뉴에서 설치된 플러그인 관리
+/plugin
 
-# 특정 버전 설치
-/plugin install team-code-quality@1.2.0
-
-# 설치된 플러그인 목록
-/plugin list
+# 플러그인 비활성화
+claude plugin disable team-code-quality
 
 # 플러그인 업데이트
-/plugin update team-code-quality
-
-# 모든 플러그인 업데이트
-/plugin update --all
+claude plugin update team-code-quality
 
 # 플러그인 제거
-/plugin remove team-code-quality`}
+claude plugin uninstall team-code-quality`}
   language="bash"
   filename="마켓플레이스 명령어"
 />
@@ -738,25 +719,20 @@ marketplace-repo/
   code={`# 팀 온보딩 시 필수 플러그인 설치 스크립트
 #!/bin/bash
 
-# 마켓플레이스 연결
-claude config set marketplace https://plugins.mycompany.com
-
-# 필수 플러그인 설치
+# 필수 플러그인 설치 (마켓플레이스가 이미 추가된 상태)
 REQUIRED_PLUGINS=(
-  "team-code-quality"       # 코드 리뷰, 테스트
-  "team-security-tools"     # 보안 스캔, 시크릿 탐지
-  "team-deploy-tools"       # 배포 워크플로우
-  "team-conventions"        # 코딩 컨벤션 자동 검증
+  "team-code-quality@team-marketplace"       # 코드 리뷰, 테스트
+  "team-security-tools@team-marketplace"     # 보안 스캔, 시크릿 탐지
+  "team-deploy-tools@team-marketplace"       # 배포 워크플로우
+  "team-conventions@team-marketplace"        # 코딩 컨벤션 자동 검증
 )
 
 for plugin in "\${REQUIRED_PLUGINS[@]}"; do
   echo "Installing $plugin..."
-  claude -p "/plugin install $plugin"
+  claude plugin install "$plugin" --scope project
 done
 
-echo "All required plugins installed."
-echo "Installed plugins:"
-claude -p "/plugin list"`}
+echo "All required plugins installed."`}
   language="bash"
   filename="팀 온보딩 플러그인 설치 스크립트"
 />
@@ -911,7 +887,7 @@ claude --plugin-dir ./my-plugin
 claude --plugin-dir ./my-plugin
 
 # 2. 플러그인 로드 상태 확인
-/plugin list
+/plugin
 
 # 3. 특정 커맨드가 등록되었는지 확인
 /help
@@ -1021,15 +997,7 @@ echo "[DEBUG] Input: $(cat)" >> /tmp/plugin-debug.log`}
   "description": "팀 코드 리뷰 플러그인 — 리뷰 규칙 자동 적용, 보안 스캔, PR 리뷰 통합",
   "author": "Engineering Team",
   "license": "MIT",
-  "keywords": ["code-review", "security", "pr-review", "quality"],
-  "engines": {
-    "claude-code": ">=2.1.0"
-  },
-  "dependencies": {
-    "mcp-servers": {
-      "@anthropic/mcp-server-github": "^1.0.0"
-    }
-  }
+  "keywords": ["code-review", "security", "pr-review", "quality"]
 }`}
   language="json"
   filename="team-review-plugin/.claude-plugin/plugin.json"
@@ -1323,7 +1291,7 @@ exit 0`}
 
 <CodeBlock
   code={`# 플러그인 설치 후 사용
-/plugin install team-review
+claude plugin install team-review@my-marketplace
 
 # 단일 파일 리뷰
 /team-review:review src/services/user-service.ts
@@ -1537,7 +1505,7 @@ Plugins는 Claude Code의 확장 기능(커맨드, 스킬, 에이전트, Hooks, 
 - **네임스페이스**: `/plugin-name:command` 형식으로 충돌 방지
 - **마켓플레이스**: 팀/조직 단위 플러그인 저장소 구축 가능
 - **`--plugin-dir`**: 로컬 개발 및 테스트
-- **`/plugin install`**: 마켓플레이스에서 설치
+- **`claude plugin install`**: 마켓플레이스에서 설치
 - **마이그레이션**: 기존 `.claude/` 설정을 플러그인으로 변환 가능
 - **보안**: allowed-tools 최소 권한, 시크릿 환경 변수 참조, 코드 리뷰 필수
 
