@@ -147,7 +147,7 @@ Claude Code의 설치 상태, 인증, 네트워크 연결, MCP 서버 등 전반
 
 # 모델 선택 화면에서 원하는 모델 지정
 # - claude-sonnet-4-20250514: 빠른 응답, 일반 작업
-# - claude-opus-4-20250514: 복잡한 추론, 고품질 코드
+# - claude-opus-4-5-20251101: 복잡한 추론, 고품질 코드
 # - claude-opus-4-6: 최신 모델, 최상위 성능`}
   language="bash"
   filename="/model 사용 예시"
@@ -1604,7 +1604,7 @@ OWASP Top 10 기반으로 6가지 주요 취약점 패턴을 탐지합니다. �
 
 ### OWASP Top 10 체크리스트
 
-[OWASP Top 10:2025](https://owasp.org/www-project-top-ten/)는 웹 애플리케이션의 가장 치명적인 보안 위험 10가지를 정의합니다.
+[OWASP Top 10:2025](https://owasp.org/Top10/2025/)는 웹 애플리케이션의 가장 치명적인 보안 위험 10가지를 정의합니다.
 
 | 순위 | 취약점 (OWASP 2025) | 검사 내용 |
 |------|--------|----------|
@@ -1680,15 +1680,15 @@ SKILL.md 파일의 YAML 프론트매터에서 사용 가능한 전체 옵션입�
 
 <CodeBlock
   code={`---
-name: my-skill                      # 스킬 식별자 (필수)
-description: 스킬 설명               # Claude 자동 매칭에 사용 (필수)
+name: my-skill                      # 스킬 식별자 (선택, 미지정 시 디렉토리명 사용)
+description: 스킬 설명               # Claude 자동 매칭에 사용 (권장)
 context: fork                       # fork: 독립 서브에이전트로 실행 (선택)
+agent: Explore                      # 서브에이전트 타입 (context: fork 시 사용)
 model: sonnet                       # 사용할 모델 (opus, sonnet, haiku)
-tools: Read, Glob, Grep, Bash       # 사용 가능한 도구 목록
+allowed-tools: Bash, Read           # 허용 도구 제한
 disable-model-invocation: true      # Claude 자동 호출 차단
 user-invocable: false               # 사용자 수동 호출 차단
-allowed-tools: Bash, Read           # 허용 도구 제한
-max-turns: 10                       # 최대 에이전트 턴 수
+argument-hint: "[issue-number]"     # 자동완성 시 인자 힌트
 ---`}
   language="yaml"
   filename="SKILL.md 프론트매터 전체 옵션"
@@ -1697,14 +1697,16 @@ max-turns: 10                       # 최대 에이전트 턴 수
 <ComparisonTable
   headers={['옵션', '타입', '기본값', '설명']}
   data={[
-    ['name', 'string', '(필수)', '스킬 식별자. /name으로 호출'],
-    ['description', 'string', '(필수)', 'Claude 자동 매칭에 사용되는 설명'],
+    ['name', 'string', '(선택)', '스킬 식별자. 미지정 시 디렉토리명 사용. /name으로 호출'],
+    ['description', 'string', '(권장)', 'Claude 자동 매칭에 사용되는 설명. 미지정 시 본문 첫 단락 사용'],
+    ['argument-hint', 'string', '없음', '자동완성 시 인자 형식 힌트 (예: [issue-number])'],
     ['context', '"fork" | 없음', '없음', 'fork 시 독립 서브에이전트로 실행'],
+    ['agent', 'string', 'general-purpose', 'context: fork 시 사용할 서브에이전트 타입'],
     ['model', 'string', '(상속)', '사용할 모델 (opus/sonnet/haiku)'],
-    ['tools', 'string[]', '모든 도구', '스킬에서 사용 가능한 도구 제한'],
+    ['allowed-tools', 'string', '모든 도구', '스킬 활성 시 허용할 도구 제한'],
     ['disable-model-invocation', 'boolean', 'false', 'true면 사용자만 호출 가능'],
     ['user-invocable', 'boolean', 'true', 'false면 Claude만 자동 호출 가능'],
-    ['max-turns', 'number', '제한 없음', '에이전트 최대 턴 수'],
+    ['hooks', 'object', '없음', '스킬 라이프사이클에 스코프된 Hook 정의'],
   ]}
 />
 

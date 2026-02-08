@@ -19,7 +19,7 @@ import { ChapterNav } from '../../components/ChapterNav';
   Claude Code에서 프롬프트는 곧 **작업 지시서**입니다.
 </Callout>
 
-Claude Code는 터미널에서 자연어로 지시하는 도구입니다. "좋은 코드를 얻는 것"은 "좋은 지시를 내리는 것"에서 시작합니다. [Anthropic 공식 문서](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview)에서는 프롬프트 엔지니어링 기법을 **가장 범용적인 것부터 전문적인 것** 순서로 시도할 것을 권장합니다.
+Claude Code는 터미널에서 자연어로 지시하는 도구입니다. "좋은 코드를 얻는 것"은 "좋은 지시를 내리는 것"에서 시작합니다. [Anthropic 공식 문서](https://platform.claude.com/docs/en/docs/build-with-claude/prompt-engineering/overview)에서는 프롬프트 엔지니어링 기법을 **가장 범용적인 것부터 전문적인 것** 순서로 시도할 것을 권장합니다.
 
 ### 프롬프트와 코드 품질의 상관관계
 
@@ -80,10 +80,9 @@ Claude Code는 터미널에서 자연어로 지시하는 도구입니다. "좋�
     { feature: '3', values: ['Use examples (multishot)', '예제를 통해 원하는 출력 형태 시연'] },
     { feature: '4', values: ['Let Claude think (CoT)', '단계별 사고를 유도하여 정확도 향상'] },
     { feature: '5', values: ['Use XML tags', 'XML 태그로 프롬프트 구조화'] },
-    { feature: '6', values: ['Give Claude a role', '시스템 프롬프트로 역할 부여'] },
-    { feature: '7', values: ["Prefill Claude's response", 'Claude 응답의 시작 부분을 미리 채워 출력 형식 제어'] },
-    { feature: '8', values: ['Chain complex prompts', '복잡한 작업을 여러 단계로 분할'] },
-    { feature: '9', values: ['Long context tips', '긴 컨텍스트 처리 최적화'] },
+    { feature: '6', values: ['Give Claude a role (system prompts)', '시스템 프롬프트로 역할 부여'] },
+    { feature: '7', values: ['Chain complex prompts', '복잡한 작업을 여러 단계로 분할'] },
+    { feature: '8', values: ['Long context tips', '긴 컨텍스트 처리 최적화'] },
   ]}
 />
 
@@ -150,7 +149,7 @@ Claude Code에서 프롬프트는 단일 입력이 아닙니다. **시스템 프
 
 ## Claude Code 핵심 워크플로우
 
-[Anthropic 공식 베스트 프랙티스 문서](https://www.anthropic.com/engineering/claude-code-best-practices)에서 제시하는 Claude Code의 핵심 워크플로우입니다.
+[Anthropic 공식 베스트 프랙티스 문서](https://code.claude.com/docs/en/best-practices)에서 제시하는 Claude Code의 핵심 워크플로우입니다.
 
 <MermaidDiagram
   chart={`flowchart LR
@@ -161,7 +160,7 @@ Claude Code에서 프롬프트는 단일 입력이 아닙니다. **시스템 프
     style P fill:#fdf2ee,stroke:#da7756,color:#2d2a26
     style I fill:#fdf2ee,stroke:#da7756,color:#2d2a26
     style C fill:#fdf2ee,stroke:#da7756,color:#2d2a26`}
-  title="Explore → Plan → Code → Commit"
+  title="Explore → Plan → Implement → Commit"
   caption="공식 문서 권장: 탐색 → 계획 → 구현 → 커밋의 4단계 워크플로우"
 />
 
@@ -171,7 +170,7 @@ Claude Code에서 프롬프트는 단일 입력이 아닙니다. **시스템 프
   code={`# 1단계: Explore - 코드베이스 탐색
 "인증 시스템이 토큰 갱신을 어떻게 처리하는지 src/auth/ 디렉토리를 조사해줘"
 
-# 2단계: Plan - 계획 수립 (Shift+Tab 2회로 Plan Mode 진입)
+# 2단계: Plan - 계획 수립 (Shift+Tab 2회 또는 /plan으로 Plan Mode 진입)
 "조사 결과를 바탕으로 리프레시 토큰 로테이션 구현 계획을 세워줘"
 
 # 3단계: Implement - 구현
@@ -199,7 +198,7 @@ Claude Code에서 프롬프트는 단일 입력이 아닙니다. **시스템 프
 />
 
 <Callout type="tip" title="공식 권장: 검증 수단을 함께 제공하세요">
-  [Anthropic](https://www.anthropic.com/engineering/claude-code-best-practices)이 제시하는 **단일 최고 레버리지 팁**은 "Claude가 스스로 검증할 수 있게 하라"입니다.
+  [Anthropic](https://code.claude.com/docs/en/best-practices)이 제시하는 **단일 최고 레버리지 팁**은 "Claude가 스스로 검증할 수 있게 하라"입니다.
   테스트 케이스, 예상 출력, 스크린샷 등 검증 수단을 프롬프트에 포함하면
   Claude가 자기 검증 루프(self-verification loop)를 수행하여 품질이 크게 향상됩니다.
 </Callout>
@@ -550,7 +549,7 @@ Claude Code에서 가장 중요한 자원은 **컨텍스트 윈도우**입니다
 />
 
 <Callout type="warning" title="피해야 할 패턴">
-  [Anthropic 공식 문서](https://www.anthropic.com/engineering/claude-code-best-practices)에서 경고하는 일반적 실패 패턴:
+  [Anthropic 공식 문서](https://code.claude.com/docs/en/best-practices)에서 경고하는 일반적 실패 패턴:
 
   - **Kitchen Sink 세션**: 하나의 세션에 무관한 작업을 계속 쌓는 것 → `/clear`로 분리
   - **반복 교정**: 같은 이슈로 2번 이상 교정했으면 → `/clear` 후 더 나은 프롬프트로 새 시작
@@ -659,16 +658,25 @@ Claude Code에서 특별한 의미를 가지는 키워드와 패턴들이 있습
   title="사고 깊이 제어 키워드"
   headers={['키워드/패턴', '효과', '사용 시점']}
   rows={[
-    { feature: '"ultrathink" 또는 "megathink"', values: ['최대 사고 깊이로 분석', '복잡한 아키텍처 설계, 까다로운 버그 추적'] },
+    { feature: '/effort max (또는 high/medium/low)', values: ['사고 깊이를 세밀하게 제어', '작업 복잡도에 따라 사고 수준 조정'] },
+    { feature: '"ultrathink" (스킬 내 사용)', values: ['스킬 내에서 extended thinking 활성화', '스킬 본문에 포함하여 깊은 사고 유도'] },
     { feature: '"think harder"', values: ['더 깊은 사고 유도', '첫 답변이 불충분했을 때 재사고 요청'] },
     { feature: '"간단하게"', values: ['최소 사고로 빠른 응답', '단순한 수정, 보일러플레이트 생성'] },
     { feature: 'Plan Mode (Shift+Tab 2회)', values: ['코드 수정 없이 분석/계획만', '구현 전 전략 수립, 코드베이스 탐색'] },
   ]}
 />
 
+<Callout type="info" title="ultrathink/megathink 키워드 변경 사항">
+  초기 Claude Code에서는 "think", "megathink", "ultrathink" 키워드로 사고 깊이를 제어했습니다.
+  현재는 extended thinking이 기본 활성화되어 있으며, `/effort` 커맨드(low/medium/high/max)로
+  세밀한 제어가 가능합니다. 다만, 스킬(SKILL.md) 본문에 "ultrathink"을 포함하면 해당 스킬에서
+  extended thinking이 활성화되는 기능은 여전히 공식 지원됩니다.
+</Callout>
+
 <CodeBlock
-  code={`# 최대 사고 깊이 활용 (복잡한 문제)
-"ultrathink. 이 마이크로서비스 간 순환 의존성 문제를 분석하고
+  code={`# 사고 깊이 제어 (/effort 커맨드)
+/effort max
+"이 마이크로서비스 간 순환 의존성 문제를 분석하고
 해결 방안을 제시해줘. 서비스 A→B→C→A 순환이 발생하고 있어"
 
 # Plan Mode 활용 (분석만, 수정 없음)
@@ -677,6 +685,7 @@ Claude Code에서 특별한 의미를 가지는 키워드와 패턴들이 있습
 로그인부터 토큰 갱신, 로그아웃까지의 플로우를 파악해줘"
 
 # 간단한 작업 (빠른 처리)
+/effort low
 "이 변수명을 userName에서 currentUserName으로 바꿔줘"`}
   language="text"
   filename="사고 깊이 제어 예시"
@@ -1144,9 +1153,9 @@ prompts/
 />
 
 <Callout type="tip" title="Custom Slash Commands 활용">
-  Claude Code의 `.claude/commands/` 디렉토리에 자주 사용하는 프롬프트를 저장하면
-  `/project:command-name` 형식으로 즉시 실행할 수 있습니다.
-  팀 공유는 Git으로, 개인용은 `~/.claude/commands/`에 저장하세요.
+  Claude Code의 `.claude/commands/` 또는 `.claude/skills/` 디렉토리에 자주 사용하는 프롬프트를 저장하면
+  `/command-name` 형식으로 즉시 실행할 수 있습니다.
+  팀 공유는 Git으로, 개인용은 `~/.claude/commands/` 또는 `~/.claude/skills/`에 저장하세요.
 </Callout>
 
 <CodeBlock
@@ -1164,7 +1173,7 @@ prompts/
 
 ---
 
-# 사용법: /project:review 로 실행`}
+# 사용법: /review 로 실행`}
   language="markdown"
   filename=".claude/commands/review.md"
 />
