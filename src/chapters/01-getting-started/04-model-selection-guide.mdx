@@ -37,7 +37,7 @@ Claude 4 시리즈는 2025년 5월부터 순차적으로 공개되었습니다.
     {
       date: '2025년 5월',
       title: 'Claude 4 (Opus / Sonnet) GA',
-      description: 'Claude Code 1.0과 함께 출시. Extended Thinking 도입으로 복잡한 추론 능력 대폭 향상.',
+      description: 'Claude Code GA와 함께 출시. Interleaved Thinking 도입으로 에이전트 코딩 시 도구 호출 사이에도 사고 유지.',
     },
     {
       date: '2025년 9월',
@@ -72,7 +72,7 @@ Claude 4 시리즈는 2025년 5월부터 순차적으로 공개되었습니다.
   rows={[
     { feature: '모델 ID', values: ['claude-opus-4-6', 'claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5'] },
     { feature: '출시일', values: ['2026년 2월', '2025년 11월', '2025년 9월', '2025년 10월'] },
-    { feature: '컨텍스트 윈도우', values: ['1,000K (1M 베타)', '200K', '200K (1M 베타)', '200K'] },
+    { feature: '컨텍스트 윈도우', values: ['200K (1M 베타)', '200K', '200K (1M 베타)', '200K'] },
     { feature: '최대 출력', values: ['128,000 토큰', '64,000 토큰', '64,000 토큰', '64,000 토큰'] },
     { feature: '입력 가격 (/1M 토큰)', values: ['$5', '$5', '$3', '$1'] },
     { feature: '출력 가격 (/1M 토큰)', values: ['$25', '$25', '$15', '$5'] },
@@ -188,9 +188,9 @@ SWE-bench는 실제 GitHub 이슈를 기반으로 한 코딩 능력 벤치마크
   rows={[
     { feature: 'SWE-bench Verified', values: ['80.8%', '77.2%', '73.3%', '실제 GitHub 이슈 해결'] },
     { feature: 'GPQA Diamond', values: ['91.3%', '83.4%', '-', '대학원 수준 과학/수학'] },
-    { feature: 'MMMLU (다국어)', values: ['91.1%', '89.1%', '-', '다국어 다분야 지식'] },
-    { feature: 'tau2-bench Retail', values: ['91.9%', '-', '-', '에이전트 도구 사용 (소매)'] },
-    { feature: 'tau2-bench Telecom', values: ['99.3%', '-', '-', '에이전트 도구 사용 (통신)'] },
+    { feature: 'MMMLU (다국어)', values: ['91.1%', '89.5%', '-', '다국어 다분야 지식'] },
+    { feature: 'tau2-bench Retail', values: ['91.9%', '86.2%', '-', '에이전트 도구 사용 (소매)'] },
+    { feature: 'tau2-bench Telecom', values: ['99.3%', '98.0%', '-', '에이전트 도구 사용 (통신)'] },
   ]}
 />
 
@@ -212,10 +212,10 @@ Claude 4 시리즈는 **Extended Thinking** 기능으로 복잡한 문제에서 
   title="Extended Thinking vs Adaptive Thinking"
   headers={['항목', 'Extended Thinking (4.5)', 'Adaptive Thinking (4.6)']}
   rows={[
-    { feature: '사고 깊이 조절', values: ['수동 (budget_tokens 지정)', '자동 (작업 복잡도 기반)'] },
-    { feature: '컨텍스트 윈도우', values: ['200K', '1M (베타, tier 4+)'] },
+    { feature: '사고 깊이 조절', values: ['수동 (budget_tokens 지정)', '자동 (thinking: {type: "adaptive"})'] },
+    { feature: '컨텍스트 윈도우', values: ['200K', '200K (1M 베타, tier 4+)'] },
     { feature: '최대 출력', values: ['64K 토큰', '128K 토큰'] },
-    { feature: 'Effort 파라미터', values: ['미지원', '4단계 (Low/Medium/High/Max)'] },
+    { feature: 'Effort 파라미터', values: ['3단계 (low/medium/high)', '4단계 (low/medium/high/max, output_config로 설정)'] },
     { feature: 'Agent Teams', values: ['미지원', '네이티브 지원'] },
     { feature: '비용 최적화', values: ['수동 튜닝 필요', '작업에 맞게 자동 최적화'] },
   ]}
@@ -245,7 +245,8 @@ Extended Thinking은 Claude가 답변 전에 단계별로 사고하는 과정을
 />
 
 <Callout type="tip" title="Extended Thinking 문서">
-  Extended Thinking에 대한 기술적 세부사항은 [Anthropic 공식 문서](https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking)를 참조하세요.
+  Extended Thinking에 대한 기술적 세부사항은 [Anthropic 공식 문서](https://platform.claude.com/docs/en/build-with-claude/extended-thinking)를 참조하세요.
+  Opus 4.6의 Adaptive Thinking은 [Adaptive Thinking 문서](https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking)를 참조하세요.
 </Callout>
 
 ### Effort 파라미터 4단계
@@ -259,21 +260,22 @@ Opus 4.6의 Adaptive Thinking은 **Effort 파라미터**를 통해 사고 깊이
     { feature: 'Low', values: ['사고 건너뛰기', '가장 빠름', '최저', '간단한 질문, 분류, 포맷 변환'] },
     { feature: 'Medium', values: ['선택적 사고', '빠름', '중간', '일반적 코딩, 코드 리뷰, 리팩토링'] },
     { feature: 'High (기본값)', values: ['거의 항상 사고', '보통', '높음', '복잡한 디버깅, 새 기능 설계'] },
-    { feature: 'Max', values: ['최대 능력 발휘', '느림', '최고', '아키텍처 설계, 보안 분석, 마이그레이션'] },
+    { feature: 'Max (Opus 4.6 API 전용)', values: ['최대 능력 발휘', '느림', '최고', '아키텍처 설계, 보안 분석, 마이그레이션'] },
   ]}
 />
 
 <CodeBlock
-  code={`# API에서 Effort 파라미터 설정 예시
+  code={`# API에서 Effort 파라미터 설정 예시 (Opus 4.6 Adaptive Thinking)
 import anthropic
 
 client = anthropic.Anthropic()
 
-# 간단한 작업: Low effort
+# 간단한 작업: Low effort (adaptive thinking + effort in output_config)
 response_simple = client.messages.create(
     model="claude-opus-4-6",
     max_tokens=16000,
-    thinking={"type": "enabled", "budget_tokens": 5000, "effort": "low"},
+    thinking={"type": "adaptive"},
+    output_config={"effort": "low"},
     messages=[{"role": "user", "content": "이 함수의 반환 타입을 string에서 number로 바꿔줘"}]
 )
 
@@ -281,17 +283,19 @@ response_simple = client.messages.create(
 response_complex = client.messages.create(
     model="claude-opus-4-6",
     max_tokens=128000,
-    thinking={"type": "enabled", "budget_tokens": 50000, "effort": "max"},
+    thinking={"type": "adaptive"},
+    output_config={"effort": "max"},
     messages=[{"role": "user", "content": "이 마이크로서비스 아키텍처의 보안 취약점을 분석하고 개선안을 제시해줘"}]
 )`}
   language="python"
   filename="Effort 파라미터 사용 예시"
 />
 
-<Callout type="tip" title="Claude Code의 자동 Effort 조절">
-  Claude Code에서는 Adaptive Thinking이 자동으로 작동합니다. 간단한 파일 수정에는 Low effort,
-  복잡한 아키텍처 설계에는 Max effort가 자동 적용됩니다.
-  개발자가 별도로 설정할 필요 없이 최적의 사고 깊이가 선택됩니다.
+<Callout type="tip" title="Claude Code의 Effort 조절">
+  Claude Code에서는 Opus 4.6의 Adaptive Thinking이 자동으로 작동합니다.
+  `/model` 명령어에서 좌/우 화살표키로 effort 슬라이더를 조절하거나,
+  환경 변수 `CLAUDE_CODE_EFFORT_LEVEL=low|medium|high`로 설정할 수 있습니다.
+  참고: Claude Code에서는 low/medium/high 3단계만 지원되며, max는 API 전용입니다.
 </Callout>
 
 ### Interleaved Thinking (인터리브드 사고)
@@ -833,9 +837,9 @@ Managed Settings를 활용하면 팀별로 사용 가능한 모델을 제한할 
   title="주요 AI 코딩 모델 비교 (2026년 2월 기준)"
   headers={['모델', 'SWE-bench', '컨텍스트', '강점', '약점']}
   rows={[
-    { feature: 'Claude Opus 4.6', values: ['80.8%', '1M (베타)', 'Agent Teams, Adaptive Thinking, 보안 분석', '비용이 높음'] },
+    { feature: 'Claude Opus 4.6', values: ['80.8%', '200K (1M 베타)', 'Agent Teams, Adaptive Thinking, 보안 분석', '비용이 높음'] },
     { feature: 'Claude Opus 4.5', values: ['80.9%', '200K', '단일 세션 최고 추론, 아키텍처', '멀티 에이전트 미지원'] },
-    { feature: 'Claude Sonnet 4.5', values: ['77.2%', '200K', '비용 대비 최고 효율', '최상위 추론에는 한계'] },
+    { feature: 'Claude Sonnet 4.5', values: ['77.2%', '200K (1M 베타)', '비용 대비 최고 효율', '최상위 추론에는 한계'] },
     { feature: 'GPT-4o', values: ['33.2%', '128K', '범용 대화, 멀티모달', '코딩 벤치마크 상대적 저조'] },
     { feature: 'GPT-o3', values: ['71.7%', '200K', '체인 오브 소트, 수학', '고비용, 느린 속도'] },
     { feature: 'Gemini 2.5 Pro', values: ['63.8%', '1M', '긴 컨텍스트, Google 생태계', '코딩 성능 Claude 대비 낮음'] },
