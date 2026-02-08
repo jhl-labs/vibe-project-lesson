@@ -176,7 +176,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 />
 
 <Callout type="info" title="Plan Mode 활용 팁">
-  - **확장 사고(Extended Thinking)**: 기본적으로 **활성화**되어 있으며, 필요 시 설정이나 토글(Option/Alt+T)로 끌 수 있습니다 ([Anthropic Docs](https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking)).
+  - **확장 사고(Extended Thinking)**: 기본적으로 **활성화**되어 있으며, 필요 시 설정이나 토글(Alt+T)로 끌 수 있습니다 ([Anthropic Docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking)).
   - **계획 저장**: 복잡한 기능은 계획을 별도 마크다운 파일로 저장하면 세션 간 참조 가능
   - **위험도 매칭**: 고위험 변경(DB 스키마, 인증)은 Plan Mode에서 충분히 검토한 후 구현
 </Callout>
@@ -398,7 +398,7 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
 # === Day 11-12: 칸반보드 UI ===
 
 > @app/(dashboard)/projects/[id]/board/page.tsx 에 칸반보드 UI를 구현해줘.
-> - react-beautiful-dnd로 드래그 앤 드롭
+> - @hello-pangea/dnd 또는 dnd-kit으로 드래그 앤 드롭
 > - 컬럼: To Do, In Progress, Done (커스터마이징 가능)
 > - 태스크 카드: 제목, 담당자 아바타, 우선순위 배지, 마감일
 > - 낙관적 업데이트(optimistic update)로 즉각 반응
@@ -547,7 +547,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+        run: curl -fsSL https://claude.ai/install.sh | sh
 
       - name: Run Claude Review
         env:
@@ -584,8 +584,8 @@ FROM node:20-slim
 RUN apt-get update && apt-get install -y git curl && \\
     rm -rf /var/lib/apt/lists/*
 
-# Claude Code 설치
-RUN npm install -g @anthropic-ai/claude-code
+# Claude Code 설치 (네이티브 바이너리 권장)
+RUN curl -fsSL https://claude.ai/install.sh | sh
 
 # 프로젝트 설정
 WORKDIR /app
@@ -605,8 +605,6 @@ ENTRYPOINT ["claude", "-p"]`}
 
 <CodeBlock
   code={`# docker-compose.claude.yml - Claude 자동화 파이프라인
-version: '3.8'
-
 services:
   claude-review:
     build:
@@ -1026,10 +1024,10 @@ Anthropic과 기업들이 공개한 Agent Teams / 병렬 Claude Code 활용 사�
   title="Agent Teams 실증 사례"
   headers={['사례', '규모', '성과']}
   rows={[
-    { feature: 'C 컴파일러 구축 (Anthropic)', values: ['16 에이전트, 2,000 세션', '100K줄 코드, Linux 6.9 컴파일, GCC 99% 통과'] },
-    { feature: 'Ramp (핀테크 유니콘)', values: ['30일간 전사 적용', '100만줄+ AI 코드, 인시던트 조사 시간 80% 감소'] },
-    { feature: 'Anthropic 보안팀 내부', values: ['일상 업무 적용', '프로덕션 이슈 해결 10-15분 → 5분'] },
-    { feature: 'Anthropic 마케팅팀', values: ['광고 자동화', '수백 개 광고 처리 수시간 → 수분'] },
+    { feature: 'C 컴파일러 구축 (Anthropic)', values: ['16 에이전트, 2,000 세션, $20K 비용', '100K줄 Rust 코드, Linux 6.9 컴파일, GCC torture test 99.1% 통과'] },
+    { feature: 'Ramp (핀테크 유니콘)', values: ['30일간 전사 적용, 50% 주간 채택', '100만줄+ AI 코드, 인시던트 응답 시간 80% 단축'] },
+    { feature: 'Anthropic 보안팀 내부', values: ['일상 업무 적용', '스택 트레이스 분석 + 런북 자동 생성으로 인시던트 대응 가속'] },
+    { feature: 'Anthropic 마케팅팀', values: ['광고 자동화', '수백 개 광고 변형 생성 수시간 → 수분 (서브에이전트 파이프라인)'] },
   ]}
 />
 

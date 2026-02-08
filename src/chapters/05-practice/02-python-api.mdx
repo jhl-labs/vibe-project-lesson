@@ -312,7 +312,7 @@ settings = Settings()`}
 <CodeBlock
   code={`# app/domain/user/entity.py
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import re
 import uuid
@@ -324,13 +324,17 @@ class UserStatus(str, Enum):
     INACTIVE = "inactive"
 
 
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 @dataclass
 class User:
     id: str
     email: str
     name: str
     status: UserStatus = UserStatus.PENDING
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=_utc_now)
 
     # 이메일 정규식: Domain이 정의하는 비즈니스 규칙
     _EMAIL_REGEX = re.compile(
@@ -1566,7 +1570,7 @@ jobs:
         run: pytest --cov=app --cov-report=xml -v
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: coverage.xml`}
   language="yaml"
