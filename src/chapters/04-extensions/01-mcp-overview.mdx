@@ -16,7 +16,7 @@ import { templateFiles } from '../../data/template-files';
 
 ## MCP란?
 
-**MCP(Model Context Protocol)**는 Anthropic이 **2024년 11월 25일** 공개한 **개방형 표준 프로토콜**로, AI 에이전트가 외부 도구 및 서비스와 **JSON-RPC 2.0** 기반으로 양방향 통신합니다 ([Anthropic Announcement](https://www.anthropic.com/news/model-context-protocol)). 처음부터 MIT 라이선스 하에 오픈소스로 공개되었으며, 2025년 12월 9일 Anthropic은 MCP를 Linux Foundation 산하 **Agentic AI Foundation (AAIF)**에 기부하여 오픈 거버넌스로 전환했습니다 ([Linux Foundation](https://www.linuxfoundation.org/press/mcp-donation)). 현재 스펙 버전은 **2025-11-25**이며, Claude Code, VS Code, Cursor, GitHub Copilot, JetBrains IDE 등 주요 AI 코딩 도구가 MCP를 지원합니다.
+**MCP(Model Context Protocol)**는 Anthropic이 **2024년 11월 25일** 공개한 **개방형 표준 프로토콜**로, AI 에이전트가 외부 도구 및 서비스와 **JSON-RPC 2.0** 기반으로 양방향 통신합니다 ([Anthropic Announcement](https://www.anthropic.com/news/model-context-protocol)). 처음부터 MIT 라이선스 하에 오픈소스로 공개되었으며, 2025년 12월 9일 Anthropic은 MCP를 Linux Foundation 산하 **Agentic AI Foundation (AAIF)**에 기부하여 오픈 거버넌스로 전환했습니다 ([Linux Foundation](https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation)). 현재 스펙 버전은 **2025-11-25**이며, Claude Code, VS Code, Cursor, GitHub Copilot, JetBrains IDE 등 주요 AI 코딩 도구가 MCP를 지원합니다.
 
 <Callout type="info" title="비유">
   MCP는 AI 에이전트의 "USB 포트"와 같습니다.
@@ -61,7 +61,7 @@ MCP는 2024년 말 공개 이후 빠르게 발전하며 업계 표준으로 자�
     {
       date: '2025-11-25',
       title: '스펙 버전 2025-11-25 릴리스',
-      description: '최신 스펙 버전. Tool Search, 향상된 보안 모델, 성능 최적화 포함.',
+      description: '최신 스펙 버전. 비동기 Tasks, 향상된 OAuth(CIMD), Extensions 프레임워크, URL 모드 Elicitation 포함.',
       highlight: true,
     },
     {
@@ -532,8 +532,8 @@ MCP 서버 설정은 프로젝트 루트의 `.mcp.json` 파일에서 관리합�
     { lineStart: 1, lineEnd: 2, text: '설정 파일은 .mcp.json.example로 제공됩니다. 실제 사용 시 .mcp.json으로 복사하고 프로젝트에 맞게 수정합니다.' },
     { lineStart: 3, lineEnd: 9, text: 'Filesystem MCP 서버입니다. 프로젝트 디렉토리 내 파일을 읽고 쓸 수 있게 합니다.' },
     { lineStart: 10, lineEnd: 14, text: 'Git MCP 서버입니다. 커밋, 브랜치, 히스토리 등 Git 작업을 수행합니다.' },
-    { lineStart: 15, lineEnd: 23, text: 'GitHub MCP 서버입니다. PR, 이슈, 리뷰 등 GitHub API를 사용합니다. GITHUB_TOKEN 환경 변수가 필요합니다.' },
-    { lineStart: 24, lineEnd: 32, text: 'PostgreSQL MCP 서버입니다. 데이터베이스 쿼리를 직접 실행할 수 있습니다. disabled: true로 기본 비활성화되어 있습니다.' },
+    { lineStart: 15, lineEnd: 23, text: 'GitHub MCP 서버(stdio)입니다. 현재는 HTTP 방식(https://api.githubcopilot.com/mcp/)이 권장됩니다. stdio 패키지는 archived 상태입니다.' },
+    { lineStart: 24, lineEnd: 32, text: 'PostgreSQL MCP 서버입니다. 이 패키지는 archived 상태이며, @bytebase/dbhub 사용을 권장합니다. disabled: true로 기본 비활성화되어 있습니다.' },
     { lineStart: 40, lineEnd: 45, text: 'Fetch MCP 서버입니다. 외부 API 호출이나 웹 콘텐츠를 가져올 수 있습니다.' },
   ]}
 />
@@ -548,14 +548,15 @@ MCP 서버 설정은 프로젝트 루트의 `.mcp.json` 파일에서 관리합�
 |------|------|---------------|
 | **filesystem** | 파일 읽기/쓰기 | 없음 |
 | **git** | Git 작업 | 없음 |
-| **github** | GitHub API (PR, 이슈) | `GITHUB_TOKEN` |
-| **postgres** | PostgreSQL 쿼리 | `DATABASE_URL` |
-| **sqlite** | SQLite 쿼리 | 없음 (DB 경로 지정) |
+| **github** | GitHub API (PR, 이슈) | OAuth (HTTP) |
 | **fetch** | HTTP 요청 | 없음 |
-| **puppeteer** | 브라우저 자동화 | 없음 |
-| **slack** | Slack 연동 | `SLACK_BOT_TOKEN` |
 | **memory** | 세션 간 지식 유지 | 없음 |
 | **sequential-thinking** | 체계적 추론 | 없음 |
+
+<Callout type="info" title="Archived 서버와 대안">
+  postgres, sqlite, puppeteer, slack 등 일부 레퍼런스 서버는 `modelcontextprotocol/servers-archived`로 이동되어 더 이상 유지보수되지 않습니다.
+  DB 연동은 **DBHub**(`@bytebase/dbhub`), GitHub는 **HTTP 방식**(`https://api.githubcopilot.com/mcp/`), Slack은 커뮤니티 서버 사용을 권장합니다.
+</Callout>
 
 ### 서버별 활용 사례 상세
 
@@ -609,13 +610,14 @@ claude mcp add --transport stdio sqlite -- \\
   filename="Database 서버"
 />
 
-**slack** -- Slack 워크스페이스와 연동하여 메시지 전송, 채널 관리, 대화 검색 등을 수행합니다.
+**slack** -- Slack 워크스페이스와 연동하여 메시지 전송, 채널 관리, 대화 검색 등을 수행합니다. (`@modelcontextprotocol/server-slack`은 현재 archived 상태이며, 커뮤니티 서버를 사용할 수도 있습니다.)
 
 <CodeBlock
-  code={`# Slack MCP 서버 설정
-claude mcp add --transport stdio slack -- \\
-  npx -y @modelcontextprotocol/server-slack \\
-  --env SLACK_BOT_TOKEN=xoxb-your-token
+  code={`# Slack MCP 서버 설정 (환경 변수 필요)
+claude mcp add --transport stdio \\
+  --env SLACK_BOT_TOKEN=xoxb-your-token \\
+  --env SLACK_TEAM_ID=T0123456789 \\
+  slack -- npx -y @modelcontextprotocol/server-slack
 
 # 활용 예시
 # "배포 완료 알림을 #deployments 채널에 보내줘"
@@ -701,7 +703,7 @@ MCP 서버가 50개 이상의 도구를 노출할 수 있고, 사용자가 7개 
 
 [Tool Search] 필요한 도구만 동적 검색
 → ~5,000 토큰 소비, 정확도 74% (Opus 4)
-→ 토큰 85% 감소 + 정확도 51% 향상`}
+→ 토큰 85% 감소 + 정확도 +25%p 향상`}
   language="text"
   filename="Tool Search 성능 비교"
 />

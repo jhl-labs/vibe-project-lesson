@@ -298,19 +298,17 @@ claude-code-action은 4가지 인증 방식을 지원합니다. 사용 환경에
   data={[
     { option: 'anthropic_api_key', required: '조건부', defaultVal: '-', description: 'Anthropic API 키 (Direct 방식 시 필수)' },
     { option: 'prompt', required: '아니오', defaultVal: '-', description: '자동 실행할 프롬프트 (설정 시 Automation 모드)' },
-    { option: 'claude_args', required: '아니오', defaultVal: '-', description: 'Claude Code CLI 추가 인자' },
+    { option: 'claude_args', required: '아니오', defaultVal: '-', description: 'Claude Code CLI 추가 인자 (--max-turns, --model 등)' },
     { option: 'trigger_phrase', required: '아니오', defaultVal: '@claude', description: 'Interactive 모드 트리거 문구' },
-    { option: 'assignee_trigger', required: '아니오', defaultVal: 'true', description: '이슈 할당 시 자동 트리거 여부' },
-    { option: 'label_trigger', required: '아니오', defaultVal: '-', description: '특정 라벨 추가 시 트리거' },
-    { option: 'timeout_minutes', required: '아니오', defaultVal: '60', description: '실행 제한 시간 (분)' },
-    { option: 'model', required: '아니오', defaultVal: 'Sonnet (최신)', description: '사용할 Claude 모델 (claude-sonnet-4-*, claude-opus-4-* 등)' },
-    { option: 'max_turns', required: '아니오', defaultVal: '-', description: '최대 에이전트 턴 수' },
-    { option: 'allowed_tools', required: '아니오', defaultVal: '-', description: '허용할 도구 목록 (쉼표 구분)' },
-    { option: 'disallowed_tools', required: '아니오', defaultVal: '-', description: '차단할 도구 목록 (쉼표 구분)' },
-    { option: 'custom_instructions', required: '아니오', defaultVal: '-', description: 'CLAUDE.md 외 추가 지시사항' },
+    { option: 'assignee_trigger', required: '아니오', defaultVal: '-', description: '이슈 할당 시 자동 트리거할 사용자명' },
+    { option: 'label_trigger', required: '아니오', defaultVal: 'claude', description: '특정 라벨 추가 시 트리거' },
+    { option: 'settings', required: '아니오', defaultVal: '-', description: 'Claude Code 설정 (JSON 문자열 또는 파일 경로)' },
+    { option: 'mcp_config', required: '아니오', defaultVal: '-', description: 'MCP 서버 설정 (JSON 문자열)' },
     { option: 'use_bedrock', required: '아니오', defaultVal: 'false', description: 'AWS Bedrock 사용 여부' },
     { option: 'use_vertex', required: '아니오', defaultVal: 'false', description: 'Google Vertex AI 사용 여부' },
     { option: 'use_foundry', required: '아니오', defaultVal: 'false', description: 'Microsoft Foundry 사용 여부' },
+    { option: 'use_sticky_comment', required: '아니오', defaultVal: 'false', description: '하나의 코멘트로 결과 전달' },
+    { option: 'track_progress', required: '아니오', defaultVal: 'false', description: '진행 상황 추적 코멘트 활성화' },
   ]}
 />
 
@@ -325,9 +323,10 @@ claude-code-action은 4가지 인증 방식을 지원합니다. 사용 환경에
     prompt: "이 PR을 리뷰해주세요"
     claude_args: >-
       --max-turns 10
-      --model claude-sonnet-4-20250514  # 또는 claude-opus-4-* 등
+      --model claude-sonnet-4-20250514
       --allowedTools "Bash,Read,Write,Edit"
-      --disallowedTools "WebFetch"`}
+      --disallowedTools "WebFetch"
+    # 참고: model, max-turns 등은 claude_args를 통해 CLI 옵션으로 전달합니다`}
   language="yaml"
   filename="claude_args 사용 예시"
 />
@@ -363,7 +362,7 @@ claude-code-action은 실행 후 다양한 출력값을 제공하며, 후속 스
 | `execution_file` | 전체 실행 로그 파일 경로 |
 | `branch_name` | Claude가 생성한 브랜치 이름 (있는 경우) |
 | `session_id` | Claude Code 세션 ID |
-| `structured_output` | 구조화된 JSON 출력 (structured_output_prompt 사용 시) |
+| `structured_output` | 구조화된 JSON 출력 (claude_args에 --json-schema 사용 시) |
 
 <CodeBlock
   code={`jobs:
@@ -378,9 +377,8 @@ claude-code-action은 실행 후 다양한 출력값을 제공하며, 후속 스
         with:
           anthropic_api_key: \${{ secrets.ANTHROPIC_API_KEY }}
           prompt: "이 코드의 복잡도를 분석해주세요"
-          structured_output_prompt: |
-            JSON 형식으로 결과를 반환해주세요:
-            {"complexity": "low|medium|high", "issues": [...]}
+          claude_args: >-
+            --json-schema '{"type":"object","properties":{"complexity":{"type":"string","enum":["low","medium","high"]},"issues":{"type":"array","items":{"type":"string"}}},"required":["complexity","issues"]}'
 
   notify:
     needs: analyze
@@ -831,7 +829,7 @@ claude-code-action이 PR에 남기는 리뷰 코멘트의 실제 모습입니다
 - **모델 선택**: 간단한 작업에는 Sonnet 계열, 복잡한 작업에만 Opus 계열 사용
 - **경로 필터링**: `paths` 트리거로 불필요한 파일 변경 시 실행 방지
 - **트리거 조건**: `if` 조건으로 특정 상황에서만 실행
-- **timeout_minutes**: 적절한 타임아웃 설정으로 비정상 실행 방지
+- **job timeout-minutes**: GitHub Actions의 `timeout-minutes` 설정으로 비정상 실행 방지
 
 ### 보안
 
@@ -860,7 +858,7 @@ v1.0에서는 여러 설정 옵션이 변경되었습니다. 기존 Beta 버전 
     { feature: '할당 트리거', values: ['없음', 'assignee_trigger (신규)'] },
     { feature: '라벨 트리거', values: ['없음', 'label_trigger (신규)'] },
     { feature: 'MCP 설정', values: ['없음', 'mcp_config (신규)'] },
-    { feature: '구조화 출력', values: ['없음', 'structured_output_prompt (신규)'] },
+    { feature: '구조화 출력', values: ['없음', 'claude_args --json-schema (신규)'] },
     { feature: 'Action 참조', values: ['anthropics/claude-code-action@beta', 'anthropics/claude-code-action@v1'] },
   ]}
 />

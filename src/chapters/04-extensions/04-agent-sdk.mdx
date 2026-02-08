@@ -155,9 +155,10 @@ claude -p "src/auth.ts 파일을 리뷰해줘" \\
     "required": ["severity", "issues", "summary", "score"]
   }'
 
-# 결과 예시 (result 필드에 JSON 문자열):
+# 결과 예시 (structured_output 필드에 파싱된 객체):
 # {
-#   "result": "{\"severity\":\"warning\",\"issues\":[{\"line\":15,...}],\"summary\":\"...\",\"score\":72}",
+#   "result": "분석 텍스트...",
+#   "structured_output": {"severity":"warning","issues":[{"line":15,...}],"summary":"...","score":72},
 #   "session_id": "...",
 #   "cost_usd": 0.005
 # }
@@ -166,7 +167,7 @@ claude -p "src/auth.ts 파일을 리뷰해줘" \\
 claude -p "코드를 분석해줘" \\
   --output-format json \\
   --json-schema '{"type":"object","properties":{"score":{"type":"number"},"issues":{"type":"array","items":{"type":"string"}}}}' \\
-  | jq -r '.result | fromjson | .issues[]'`}
+  | jq -r '.structured_output.issues[]'`}
   language="bash"
   filename="JSON Schema 구조화 출력"
 />
@@ -360,124 +361,133 @@ Agent SDK는 Python과 TypeScript 패키지로 제공되며, Claude Code를 프�
   code={`// TypeScript Agent SDK 설치
 // npm install @anthropic-ai/claude-agent-sdk
 
-import { query, type ToolUseBlock } from "@anthropic-ai/claude-agent-sdk";
+import { query } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 
 // --- 기본 사용법 ---
 async function basicUsage() {
-  const response = await query({
+  let resultText = "";
+  let totalCost = 0;
+  let sessionId = "";
+
+  for await (const message of query({
     prompt: "src/auth.ts 파일을 분석해줘",
     options: {
       maxTurns: 5,
       allowedTools: ["Read", "Glob", "Grep"],
     },
-  });
-
-  // 결과 텍스트 추출
-  const resultText = response.messages
-    .filter(msg => msg.role === "assistant")
-    .flatMap(msg => msg.content)
-    .filter(block => block.type === "text")
-    .map(block => block.text)
-    .join("\\n");
+  })) {
+    // 어시스턴트 메시지에서 텍스트 추출
+    if (message.type === "assistant") {
+      for (const block of message.message.content) {
+        if (block.type === "text") {
+          resultText += block.text + "\\n";
+        }
+      }
+    }
+    // 최종 결과에서 비용과 세션 정보 추출
+    if (message.type === "result" && message.subtype === "success") {
+      totalCost = message.total_cost_usd;
+      sessionId = message.session_id;
+    }
+  }
 
   console.log("분석 결과:", resultText);
-  console.log("비용:", response.costUsd, "USD");
-  console.log("세션 ID:", response.sessionId);
+  console.log("비용:", totalCost, "USD");
+  console.log("세션 ID:", sessionId);
 }
 
 // --- 구조화된 출력 ---
 async function structuredOutput() {
-  const response = await query({
+  for await (const message of query({
     prompt: "src/ 디렉토리의 코드 품질을 분석해줘",
     options: {
       maxTurns: 10,
       allowedTools: ["Read", "Glob", "Grep"],
-      jsonSchema: {
-        type: "object",
-        properties: {
-          overallScore: { type: "number" },
-          categories: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                name: { type: "string" },
-                score: { type: "number" },
-                issues: { type: "array", items: { type: "string" } },
+      outputFormat: {
+        type: "json_schema",
+        schema: {
+          type: "object",
+          properties: {
+            overallScore: { type: "number" },
+            categories: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  score: { type: "number" },
+                  issues: { type: "array", items: { type: "string" } },
+                },
+                required: ["name", "score", "issues"],
               },
-              required: ["name", "score", "issues"],
+            },
+            recommendations: {
+              type: "array",
+              items: { type: "string" },
             },
           },
-          recommendations: {
-            type: "array",
-            items: { type: "string" },
-          },
+          required: ["overallScore", "categories", "recommendations"],
         },
-        required: ["overallScore", "categories", "recommendations"],
       },
     },
-  });
-
-  // 구조화된 결과 파싱
-  const lastAssistantMsg = response.messages
-    .filter(msg => msg.role === "assistant")
-    .pop();
-  const textBlock = lastAssistantMsg?.content
-    .find(block => block.type === "text");
-
-  if (textBlock) {
-    const analysis = JSON.parse(textBlock.text);
-    console.log("전체 점수:", analysis.overallScore);
-    analysis.categories.forEach(cat => {
-      console.log(\`  \${cat.name}: \${cat.score}/100\`);
-    });
+  })) {
+    // 최종 결과에서 구조화된 출력 추출
+    if (message.type === "result" && message.subtype === "success") {
+      if (message.structured_output) {
+        const analysis = message.structured_output;
+        console.log("전체 점수:", analysis.overallScore);
+        analysis.categories.forEach(cat => {
+          console.log(\`  \${cat.name}: \${cat.score}/100\`);
+        });
+      }
+    }
   }
 }
 
-// --- 도구 승인 콜백 ---
-async function toolApprovalCallback() {
-  const response = await query({
+// --- 도구 승인 콜백 (canUseTool) ---
+async function toolApprovalExample() {
+  for await (const message of query({
     prompt: "불필요한 파일을 정리해줘",
     options: {
       maxTurns: 15,
       // 도구 호출 시마다 이 콜백이 실행됨
-      toolApprovalCallback: async (toolUse: ToolUseBlock) => {
-        const toolName = toolUse.name;
-        const input = toolUse.input as Record<string, unknown>;
-
+      canUseTool: async (toolName, input, { signal }) => {
         // 읽기 전용 도구는 항상 승인
         if (["Read", "Glob", "Grep"].includes(toolName)) {
-          return { approved: true };
+          return { behavior: "allow", updatedInput: input };
         }
 
         // 파일 삭제는 특정 패턴만 허용
         if (toolName === "Bash") {
-          const command = input.command as string;
+          const command = (input as Record<string, unknown>).command as string;
           if (command.includes("rm") && !command.includes("node_modules")) {
             return {
-              approved: false,
-              reason: "node_modules 외 파일 삭제는 금지됩니다",
+              behavior: "deny",
+              message: "node_modules 외 파일 삭제는 금지됩니다",
             };
           }
         }
 
         // Edit 도구는 테스트 파일만 허용
         if (toolName === "Edit") {
-          const filePath = input.file_path as string;
+          const filePath = (input as Record<string, unknown>).file_path as string;
           if (!filePath.includes(".test.") && !filePath.includes(".spec.")) {
             return {
-              approved: false,
-              reason: "테스트 파일만 수정할 수 있습니다",
+              behavior: "deny",
+              message: "테스트 파일만 수정할 수 있습니다",
             };
           }
         }
 
-        return { approved: true };
+        return { behavior: "allow", updatedInput: input };
       },
     },
-  });
-
-  return response;
+  })) {
+    if (message.type === "result") {
+      console.log("작업 완료:", message.subtype);
+    }
+  }
 }`}
   language="typescript"
   filename="TypeScript Agent SDK 사용법"
@@ -490,57 +500,51 @@ async function toolApprovalCallback() {
 # pip install claude-agent-sdk
 
 import asyncio
-from claude_agent_sdk import query, ClaudeAgentOptions, Message
+from claude_agent_sdk import query, ClaudeAgentOptions
+from claude_agent_sdk import AssistantMessage, TextBlock, ResultMessage
 
 # --- 기본 사용법 ---
 async def basic_usage():
-    response = await query(
+    async for message in query(
         prompt="src/auth.py 파일을 분석해줘",
         options=ClaudeAgentOptions(
             max_turns=5,
             allowed_tools=["Read", "Glob", "Grep"],
         ),
-    )
-
-    # 응답 메시지에서 텍스트 추출
-    for message in response.messages:
-        if message.role == "assistant":
+    ):
+        # 어시스턴트 메시지에서 텍스트 추출
+        if isinstance(message, AssistantMessage):
             for block in message.content:
-                if hasattr(block, "text"):
+                if isinstance(block, TextBlock):
                     print("분석 결과:", block.text)
 
-    print(f"비용: {response.cost_usd} USD")
-    print(f"세션 ID: {response.session_id}")
+        # 최종 결과에서 비용과 세션 정보 추출
+        if isinstance(message, ResultMessage):
+            print(f"비용: {message.total_cost_usd} USD")
+            print(f"세션 ID: {message.session_id}")
 
 # --- 스트리밍 응답 처리 ---
 async def streaming_usage():
     """실시간으로 응답을 받아 처리합니다"""
-    async for event in query(
+    async for message in query(
         prompt="전체 코드베이스를 분석해줘",
         options=ClaudeAgentOptions(
             max_turns=10,
             allowed_tools=["Read", "Glob", "Grep"],
-            output_format="stream-json",
         ),
     ):
-        if event.type == "assistant":
+        if isinstance(message, AssistantMessage):
             # 어시스턴트의 텍스트 응답
-            for block in event.message.content:
-                if hasattr(block, "text"):
+            for block in message.content:
+                if isinstance(block, TextBlock):
                     print(f"[응답] {block.text[:100]}...")
 
-        elif event.type == "tool_use":
-            # 도구 호출 정보
-            print(f"[도구 호출] {event.tool.name}")
-
-        elif event.type == "result":
+        elif isinstance(message, ResultMessage):
             # 최종 결과
-            print(f"[완료] 비용: {event.cost_usd} USD")
+            print(f"[완료] 비용: {message.total_cost_usd} USD")
 
 # --- 구조화된 출력 ---
 async def structured_analysis():
-    import json
-
     schema = {
         "type": "object",
         "properties": {
@@ -564,26 +568,22 @@ async def structured_analysis():
         "required": ["bugs", "total_issues"],
     }
 
-    response = await query(
+    async for message in query(
         prompt="프로젝트에서 잠재적 버그를 찾아줘",
         options=ClaudeAgentOptions(
             max_turns=15,
             allowed_tools=["Read", "Glob", "Grep"],
-            json_schema=schema,
+            output_format={"type": "json_schema", "schema": schema},
         ),
-    )
-
-    # 결과 파싱
-    for message in response.messages:
-        if message.role == "assistant":
-            for block in message.content:
-                if hasattr(block, "text"):
-                    result = json.loads(block.text)
-                    print(f"발견된 이슈: {result['total_issues']}개")
-                    for bug in result["bugs"]:
-                        print(f"  [{bug['severity']}] "
-                              f"{bug['file']}:{bug['line']} - "
-                              f"{bug['description']}")
+    ):
+        # 최종 결과에서 구조화된 출력 추출
+        if isinstance(message, ResultMessage) and message.structured_output:
+            result = message.structured_output
+            print(f"발견된 이슈: {result['total_issues']}개")
+            for bug in result["bugs"]:
+                print(f"  [{bug['severity']}] "
+                      f"{bug['file']}:{bug['line']} - "
+                      f"{bug['description']}")
 
 # 실행
 asyncio.run(basic_usage())`}
@@ -598,11 +598,11 @@ asyncio.run(basic_usage())`}
     { feature: '설치', values: ['Claude Code CLI만 필요', '별도 패키지 설치 필요'] },
     { feature: '실행 방식', values: ['셸 명령어', '프로그래밍 코드'] },
     { feature: '출력 형식', values: ['text, json, stream-json', '네이티브 객체'] },
-    { feature: '도구 승인', values: ['--allowedTools 목록', '콜백 함수 (동적 제어)'] },
+    { feature: '도구 승인', values: ['--allowedTools 목록', 'canUseTool 콜백 (동적 제어)'] },
     { feature: '에러 처리', values: ['exit code, stderr', 'try/catch, 예외 처리'] },
     { feature: '대화 관리', values: ['--continue, --resume', '세션 객체 직접 관리'] },
     { feature: '스트리밍', values: ['stream-json 파싱 필요', '네이티브 async iterator'] },
-    { feature: '구조화 출력', values: ['--json-schema (문자열)', 'jsonSchema (객체)'] },
+    { feature: '구조화 출력', values: ['--json-schema (문자열)', 'outputFormat (객체)'] },
     { feature: '유연성', values: ['중간', '높음'] },
     { feature: '적합한 환경', values: ['셸 스크립트, CI/CD', '복잡한 에이전트 시스템'] },
   ]}
@@ -1020,7 +1020,10 @@ async function reviewPR(owner: string, repo: string, prNumber: number) {
   ).join("\\n\\n");
 
   // Claude로 리뷰
-  const response = await query({
+  let review: ReviewResult = { score: 0, issues: [], summary: "", approved: false };
+  let totalCost = 0;
+
+  for await (const message of query({
     prompt: \`다음 PR을 리뷰해주세요.
 
 PR 제목: \${pr.title}
@@ -1033,38 +1036,42 @@ PR 설명: \${pr.body || "없음"}
     options: {
       maxTurns: 10,
       allowedTools: ["Read", "Glob", "Grep"],
-      jsonSchema: {
-        type: "object",
-        properties: {
-          score: { type: "number", minimum: 0, maximum: 100 },
-          issues: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                severity: { type: "string",
-                            enum: ["critical", "warning", "info"] },
-                file: { type: "string" },
-                line: { type: "number" },
-                description: { type: "string" },
-                suggestion: { type: "string" },
+      outputFormat: {
+        type: "json_schema",
+        schema: {
+          type: "object",
+          properties: {
+            score: { type: "number", minimum: 0, maximum: 100 },
+            issues: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  severity: { type: "string",
+                              enum: ["critical", "warning", "info"] },
+                  file: { type: "string" },
+                  line: { type: "number" },
+                  description: { type: "string" },
+                  suggestion: { type: "string" },
+                },
+                required: ["severity", "file", "description"],
               },
-              required: ["severity", "file", "description"],
             },
+            summary: { type: "string" },
+            approved: { type: "boolean" },
           },
-          summary: { type: "string" },
-          approved: { type: "boolean" },
+          required: ["score", "issues", "summary", "approved"],
         },
-        required: ["score", "issues", "summary", "approved"],
       },
     },
-  });
-
-  // 결과 파싱
-  const lastMsg = response.messages
-    .filter(m => m.role === "assistant").pop();
-  const textBlock = lastMsg?.content.find(b => b.type === "text");
-  const review: ReviewResult = JSON.parse(textBlock?.text || "{}");
+  })) {
+    if (message.type === "result" && message.subtype === "success") {
+      if (message.structured_output) {
+        review = message.structured_output as ReviewResult;
+      }
+      totalCost = message.total_cost_usd;
+    }
+  }
 
   // PR에 리뷰 코멘트 작성
   const reviewBody = \`## AI 코드 리뷰 결과
@@ -1081,7 +1088,7 @@ PR 설명: \${pr.body || "없음"}
 ).join("\\n")}
 
 ---
-*비용: \${response.costUsd} USD*\`;
+*비용: \${totalCost} USD*\`;
 
   await octokit.pulls.createReview({
     owner, repo, pull_number: prNumber,
@@ -1412,7 +1419,70 @@ interface HealthReport {
 }
 
 async function generateHealthReport(): Promise<HealthReport> {
-  const response = await query({
+  let report: HealthReport = {} as HealthReport;
+  let totalCost = 0;
+
+  const healthSchema = {
+    type: "object" as const,
+    properties: {
+      overallScore: { type: "number" },
+      categories: {
+        type: "object",
+        properties: {
+          security: {
+            type: "object",
+            properties: {
+              score: { type: "number" },
+              issues: { type: "array", items: { type: "string" } },
+            },
+            required: ["score", "issues"],
+          },
+          performance: {
+            type: "object",
+            properties: {
+              score: { type: "number" },
+              issues: { type: "array", items: { type: "string" } },
+            },
+            required: ["score", "issues"],
+          },
+          maintainability: {
+            type: "object",
+            properties: {
+              score: { type: "number" },
+              issues: { type: "array", items: { type: "string" } },
+            },
+            required: ["score", "issues"],
+          },
+          testCoverage: {
+            type: "object",
+            properties: {
+              score: { type: "number" },
+              issues: { type: "array", items: { type: "string" } },
+            },
+            required: ["score", "issues"],
+          },
+          documentation: {
+            type: "object",
+            properties: {
+              score: { type: "number" },
+              issues: { type: "array", items: { type: "string" } },
+            },
+            required: ["score", "issues"],
+          },
+        },
+        required: ["security", "performance",
+                    "maintainability", "testCoverage",
+                    "documentation"],
+      },
+      recommendations: { type: "array", items: { type: "string" } },
+      trend: { type: "string",
+               enum: ["improving", "stable", "declining"] },
+    },
+    required: ["overallScore", "categories",
+                "recommendations", "trend"],
+  };
+
+  for await (const message of query({
     prompt: \`프로젝트 전체의 코드 건강도를 분석해주세요.
 
 다음 영역을 평가하세요:
@@ -1426,72 +1496,16 @@ src/ 디렉토리를 분석하세요.\`,
     options: {
       maxTurns: 20,
       allowedTools: ["Read", "Glob", "Grep", "Bash(wc -l)"],
-      jsonSchema: {
-        type: "object",
-        properties: {
-          overallScore: { type: "number" },
-          categories: {
-            type: "object",
-            properties: {
-              security: {
-                type: "object",
-                properties: {
-                  score: { type: "number" },
-                  issues: { type: "array", items: { type: "string" } },
-                },
-                required: ["score", "issues"],
-              },
-              performance: {
-                type: "object",
-                properties: {
-                  score: { type: "number" },
-                  issues: { type: "array", items: { type: "string" } },
-                },
-                required: ["score", "issues"],
-              },
-              maintainability: {
-                type: "object",
-                properties: {
-                  score: { type: "number" },
-                  issues: { type: "array", items: { type: "string" } },
-                },
-                required: ["score", "issues"],
-              },
-              testCoverage: {
-                type: "object",
-                properties: {
-                  score: { type: "number" },
-                  issues: { type: "array", items: { type: "string" } },
-                },
-                required: ["score", "issues"],
-              },
-              documentation: {
-                type: "object",
-                properties: {
-                  score: { type: "number" },
-                  issues: { type: "array", items: { type: "string" } },
-                },
-                required: ["score", "issues"],
-              },
-            },
-            required: ["security", "performance",
-                        "maintainability", "testCoverage",
-                        "documentation"],
-          },
-          recommendations: { type: "array", items: { type: "string" } },
-          trend: { type: "string",
-                   enum: ["improving", "stable", "declining"] },
-        },
-        required: ["overallScore", "categories",
-                    "recommendations", "trend"],
-      },
+      outputFormat: { type: "json_schema", schema: healthSchema },
     },
-  });
-
-  const lastMsg = response.messages
-    .filter(m => m.role === "assistant").pop();
-  const text = lastMsg?.content.find(b => b.type === "text")?.text;
-  const report: HealthReport = JSON.parse(text || "{}");
+  })) {
+    if (message.type === "result" && message.subtype === "success") {
+      if (message.structured_output) {
+        report = message.structured_output as HealthReport;
+      }
+      totalCost = message.total_cost_usd;
+    }
+  }
 
   // 리포트 저장
   const reportDate = new Date().toISOString().split("T")[0];
@@ -1518,7 +1532,7 @@ src/ 디렉토리를 분석하세요.\`,
     console.log(\`\${i + 1}. \${rec}\`)
   );
 
-  console.log(\`\\n비용: \${response.costUsd} USD\`);
+  console.log(\`\\n비용: \${totalCost} USD\`);
   console.log(\`리포트 저장: \${reportPath}\`);
 
   return report;
@@ -1569,10 +1583,24 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 async function multiAgentPipeline(task: string) {
   console.log("=== 멀티 에이전트 파이프라인 시작 ===");
 
+  // 헬퍼: query 결과에서 구조화 출력과 비용 추출
+  async function collectResult(iter: AsyncIterable<any>) {
+    let structured: any = null;
+    let cost = 0;
+    for await (const msg of iter) {
+      if (msg.type === "result" && msg.subtype === "success") {
+        structured = msg.structured_output;
+        cost = msg.total_cost_usd;
+      }
+    }
+    return { structured, cost };
+  }
+
   // 1단계: 분석 에이전트 — 작업 분해
   console.log("[1/3] 분석 에이전트 실행...");
-  const analysisResult = await query({
-    prompt: \`다음 작업을 분석하고 세부 실행 계획을 수립해주세요.
+  const { structured: analysis, cost: analysisCost } = await collectResult(
+    query({
+      prompt: \`다음 작업을 분석하고 세부 실행 계획을 수립해주세요.
 작업: \${task}
 
 코드베이스를 분석하여:
@@ -1580,36 +1608,34 @@ async function multiAgentPipeline(task: string) {
 2. 각 파일의 변경 내용
 3. 예상 테스트 범위
 를 JSON으로 반환하세요.\`,
-    options: {
-      model: "claude-sonnet-4-20250514",
-      maxTurns: 10,
-      allowedTools: ["Read", "Glob", "Grep"],
-      jsonSchema: {
-        type: "object",
-        properties: {
-          files_to_change: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                path: { type: "string" },
-                changes: { type: "string" },
+      options: {
+        model: "claude-sonnet-4-20250514",
+        maxTurns: 10,
+        allowedTools: ["Read", "Glob", "Grep"],
+        outputFormat: {
+          type: "json_schema",
+          schema: {
+            type: "object",
+            properties: {
+              files_to_change: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    path: { type: "string" },
+                    changes: { type: "string" },
+                  },
+                  required: ["path", "changes"],
+                },
               },
-              required: ["path", "changes"],
+              test_scope: { type: "array", items: { type: "string" } },
+              risk_assessment: { type: "string" },
             },
+            required: ["files_to_change", "test_scope", "risk_assessment"],
           },
-          test_scope: { type: "array", items: { type: "string" } },
-          risk_assessment: { type: "string" },
         },
-        required: ["files_to_change", "test_scope", "risk_assessment"],
       },
-    },
-  });
-
-  const analysis = JSON.parse(
-    analysisResult.messages
-      .filter(m => m.role === "assistant").pop()
-      ?.content.find(b => b.type === "text")?.text || "{}"
+    })
   );
 
   console.log(\`  변경 파일: \${analysis.files_to_change.length}개\`);
@@ -1617,24 +1643,27 @@ async function multiAgentPipeline(task: string) {
 
   // 2단계: 코딩 에이전트 — 코드 변경 실행
   console.log("[2/3] 코딩 에이전트 실행...");
-  const codingResult = await query({
-    prompt: \`다음 분석 결과를 바탕으로 코드를 수정해주세요.
+  const { cost: codingCost } = await collectResult(
+    query({
+      prompt: \`다음 분석 결과를 바탕으로 코드를 수정해주세요.
 
 변경 계획:
 \${JSON.stringify(analysis.files_to_change, null, 2)}
 
 각 파일을 계획대로 수정하고, 테스트도 함께 작성하세요.\`,
-    options: {
-      model: "claude-sonnet-4-20250514",
-      maxTurns: 20,
-      allowedTools: ["Read", "Edit", "Glob", "Bash(npm test)"],
-    },
-  });
+      options: {
+        model: "claude-sonnet-4-20250514",
+        maxTurns: 20,
+        allowedTools: ["Read", "Edit", "Glob", "Bash(npm test)"],
+      },
+    })
+  );
 
   // 3단계: 리뷰 에이전트 — 변경 검증
   console.log("[3/3] 리뷰 에이전트 실행...");
-  const reviewResult = await query({
-    prompt: \`방금 수행된 코드 변경사항을 검증해주세요.
+  const { structured: review, cost: reviewCost } = await collectResult(
+    query({
+      prompt: \`방금 수행된 코드 변경사항을 검증해주세요.
 
 원래 작업: \${task}
 변경 계획: \${JSON.stringify(analysis.files_to_change, null, 2)}
@@ -1644,32 +1673,28 @@ async function multiAgentPipeline(task: string) {
 2. 보안 취약점이 없는지 확인
 3. 테스트가 충분한지 평가
 4. 최종 승인 여부를 판단해주세요.\`,
-    options: {
-      model: "claude-opus-4-5-20251101",
-      maxTurns: 10,
-      allowedTools: ["Read", "Glob", "Grep", "Bash(npm test)"],
-      jsonSchema: {
-        type: "object",
-        properties: {
-          approved: { type: "boolean" },
-          issues: { type: "array", items: { type: "string" } },
-          summary: { type: "string" },
+      options: {
+        model: "claude-opus-4-5-20251101",
+        maxTurns: 10,
+        allowedTools: ["Read", "Glob", "Grep", "Bash(npm test)"],
+        outputFormat: {
+          type: "json_schema",
+          schema: {
+            type: "object",
+            properties: {
+              approved: { type: "boolean" },
+              issues: { type: "array", items: { type: "string" } },
+              summary: { type: "string" },
+            },
+            required: ["approved", "issues", "summary"],
+          },
         },
-        required: ["approved", "issues", "summary"],
       },
-    },
-  });
-
-  const review = JSON.parse(
-    reviewResult.messages
-      .filter(m => m.role === "assistant").pop()
-      ?.content.find(b => b.type === "text")?.text || "{}"
+    })
   );
 
   // 총 비용 계산
-  const totalCost = analysisResult.costUsd
-    + codingResult.costUsd
-    + reviewResult.costUsd;
+  const totalCost = analysisCost + codingCost + reviewCost;
 
   console.log("\\n=== 파이프라인 완료 ===");
   console.log(\`승인: \${review.approved ? "통과" : "거부"}\`);
@@ -1692,37 +1717,37 @@ Agent SDK의 도구 승인 콜백을 활용하여 상황에 따라 동적으로 
 
 <CodeBlock
   code={`// scripts/conditional-approval.ts
-import { query, type ToolUseBlock } from "@anthropic-ai/claude-agent-sdk";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 
 // 프로덕션 안전 모드 — 위험한 작업을 점진적으로 제어
 async function productionSafeMode() {
   let editCount = 0;
   const MAX_EDITS = 5;
 
-  const response = await query({
+  for await (const message of query({
     prompt: "프로젝트의 코드 품질을 개선해줘",
     options: {
       maxTurns: 20,
-      toolApprovalCallback: async (toolUse: ToolUseBlock) => {
-        const input = toolUse.input as Record<string, unknown>;
+      canUseTool: async (toolName, input, { signal }) => {
+        const inputData = input as Record<string, unknown>;
 
         // 1. 읽기 전용 도구 — 항상 승인
-        if (["Read", "Glob", "Grep"].includes(toolUse.name)) {
-          return { approved: true };
+        if (["Read", "Glob", "Grep"].includes(toolName)) {
+          return { behavior: "allow", updatedInput: input };
         }
 
         // 2. Edit 도구 — 횟수 제한
-        if (toolUse.name === "Edit") {
+        if (toolName === "Edit") {
           editCount++;
           if (editCount > MAX_EDITS) {
             return {
-              approved: false,
-              reason: \`최대 편집 횟수(\${MAX_EDITS})에 도달했습니다\`,
+              behavior: "deny",
+              message: \`최대 편집 횟수(\${MAX_EDITS})에 도달했습니다\`,
             };
           }
 
           // 핵심 파일 수정 차단
-          const filePath = input.file_path as string;
+          const filePath = inputData.file_path as string;
           const protectedPaths = [
             "package.json",
             "tsconfig.json",
@@ -1731,17 +1756,17 @@ async function productionSafeMode() {
           ];
           if (protectedPaths.some(p => filePath.endsWith(p))) {
             return {
-              approved: false,
-              reason: \`설정 파일(\${filePath})은 수정할 수 없습니다\`,
+              behavior: "deny",
+              message: \`설정 파일(\${filePath})은 수정할 수 없습니다\`,
             };
           }
 
-          return { approved: true };
+          return { behavior: "allow", updatedInput: input };
         }
 
         // 3. Bash 도구 — 화이트리스트 기반
-        if (toolUse.name === "Bash") {
-          const command = input.command as string;
+        if (toolName === "Bash") {
+          const command = inputData.command as string;
           const allowedCommands = [
             /^npm test/,
             /^npm run lint/,
@@ -1756,24 +1781,26 @@ async function productionSafeMode() {
 
           if (!isAllowed) {
             return {
-              approved: false,
-              reason: \`허용되지 않은 명령어: \${command}\`,
+              behavior: "deny",
+              message: \`허용되지 않은 명령어: \${command}\`,
             };
           }
-          return { approved: true };
+          return { behavior: "allow", updatedInput: input };
         }
 
         // 4. 기타 도구 — 기본 거부
         return {
-          approved: false,
-          reason: \`알 수 없는 도구: \${toolUse.name}\`,
+          behavior: "deny",
+          message: \`알 수 없는 도구: \${toolName}\`,
         };
       },
     },
-  });
-
-  console.log(\`편집 횟수: \${editCount}/\${MAX_EDITS}\`);
-  return response;
+  })) {
+    // 메시지 처리
+    if (message.type === "result") {
+      console.log(\`편집 횟수: \${editCount}/\${MAX_EDITS}\`);
+    }
+  }
 }`}
   language="typescript"
   filename="scripts/conditional-approval.ts"

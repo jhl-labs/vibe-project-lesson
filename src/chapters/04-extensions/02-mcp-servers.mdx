@@ -26,7 +26,7 @@ MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하�
 
 ## 주요 공식 MCP 서버
 
-아래는 `modelcontextprotocol/servers` 저장소에서 제공하는 공식 레퍼런스 서버입니다. 이 서버들은 Anthropic이 직접 개발하고 유지보수하며, MCP 프로토콜의 표준 구현 참조로 사용됩니다.
+아래는 `modelcontextprotocol/servers` 저장소에서 제공하는 공식 레퍼런스 서버입니다. MCP 프로토콜의 표준 구현 참조로 사용되며, 현재 AAIF(Agentic AI Foundation) 커뮤니티에서 유지보수합니다.
 
 <DataTable
   title="Reference MCP 서버 (modelcontextprotocol/servers)"
@@ -77,8 +77,8 @@ MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하�
     { server: 'Atlassian', provider: 'Atlassian', description: 'Jira 이슈/Confluence 문서 연동', transport: 'HTTP' },
     { server: 'Linear', provider: 'Linear', description: '프로젝트 관리, 이슈 추적', transport: 'HTTP' },
     { server: 'Prisma', provider: 'Prisma', description: '데이터베이스 스키마 관리, 마이그레이션', transport: 'stdio' },
-    { server: 'DBHub', provider: 'Bytebase', description: 'DB 쿼리 실행 (PostgreSQL, MySQL, SQLite 등 6개 DB 지원)', transport: 'stdio' },
-    { server: 'Puppeteer', provider: 'Anthropic', description: '브라우저 자동화, 스크린샷, 웹 스크래핑', transport: 'stdio' },
+    { server: 'DBHub', provider: 'Bytebase', description: 'DB 쿼리 실행 (PostgreSQL, MySQL, MariaDB, SQL Server, SQLite 지원)', transport: 'stdio' },
+    { server: 'Puppeteer', provider: 'Anthropic', description: '브라우저 자동화, 스크린샷, 웹 스크래핑 (archived)', transport: 'stdio' },
   ]}
 />
 
@@ -162,7 +162,7 @@ claude mcp add --transport http sentry https://mcp.sentry.dev/mcp
 # stdio 전송 방식 서버 (로컬 프로세스)
 # ═══════════════════════════════════════════
 
-# Database (DBHub) — PostgreSQL, MySQL, SQLite 등 6개 DB 쿼리 실행
+# Database (DBHub) — PostgreSQL, MySQL, MariaDB, SQL Server, SQLite 쿼리 실행
 # --dsn으로 접속 정보 지정 (읽기 전용 계정 권장)
 claude mcp add --transport stdio db -- \\
   npx -y @bytebase/dbhub \\
@@ -938,10 +938,10 @@ Slack MCP 서버는 채널 메시지 읽기/쓰기, 사용자 정보 조회, 파
 
 <CodeBlock
   code={`# Slack MCP 서버 설정 (Bot Token 필요)
-claude mcp add --transport stdio slack -- \\
-  npx -y @modelcontextprotocol/server-slack \\
+claude mcp add --transport stdio \\
   --env SLACK_BOT_TOKEN=\${SLACK_BOT_TOKEN} \\
-  --env SLACK_TEAM_ID=\${SLACK_TEAM_ID}
+  --env SLACK_TEAM_ID=\${SLACK_TEAM_ID} \\
+  slack -- npx -y @modelcontextprotocol/server-slack
 
 # 주요 도구:
 # - list_channels: 채널 목록 조회
@@ -1626,12 +1626,16 @@ describe("MCP 서버 통합 테스트", () => {
 <CodeBlock
   code={`# MCP 서버 체이닝을 위한 설정
 # 1단계: 데이터 수집 서버들
-claude mcp add --transport http jira https://mcp.atlassian.com/mcp
+claude mcp add --transport http jira https://mcp.atlassian.com/v1/mcp
 claude mcp add --transport http github https://api.githubcopilot.com/mcp/
 claude mcp add --transport http sentry https://mcp.sentry.dev/mcp
 
 # 2단계: 분석 결과 전달 서버들
-claude mcp add --transport http slack https://mcp.slack.com/mcp
+# Slack은 stdio 서버를 사용 (HTTP 서버는 제한적 파트너 롤아웃 중)
+claude mcp add --transport stdio \\
+  --env SLACK_BOT_TOKEN=\${SLACK_BOT_TOKEN} \\
+  --env SLACK_TEAM_ID=\${SLACK_TEAM_ID} \\
+  slack -- npx -y @modelcontextprotocol/server-slack
 claude mcp add --transport stdio memory -- \\
   npx -y @modelcontextprotocol/server-memory
 
