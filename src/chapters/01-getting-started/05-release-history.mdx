@@ -1,0 +1,345 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Callout } from '../../components/Callout';
+import { CodeBlock } from '../../components/CodeBlock';
+import { ComparisonTable } from '../../components/ComparisonTable';
+import { Timeline } from '../../components/Timeline';
+import { ChapterNav } from '../../components/ChapterNav';
+
+<Meta title="Part 1: 시작하기/릴리스 히스토리" />
+
+# Claude Code 릴리스 히스토리
+
+> 12개월, 325+ 버전 — Research Preview에서 Agent Teams까지의 진화
+
+## 개요
+
+Claude Code는 2025년 2월 Research Preview로 시작하여, 불과 12개월 만에 **AI 코딩 에이전트의 표준**으로 자리잡았습니다. 주 평균 6회 릴리스라는 빠른 개발 속도를 유지하며, 터미널 기반 도구에서 멀티 에이전트 플랫폼으로 진화했습니다.
+
+<Callout type="info" title="릴리스 단계 구분">
+  Claude Code의 발전은 크게 4단계로 나뉩니다:
+  **Phase 1** Research Preview (v0.2.x) → **Phase 2** GA (v1.0.x) → **Phase 3** Major Redesign (v2.0.x) → **Phase 4** Current (v2.1.x)
+</Callout>
+
+---
+
+## 주요 마일스톤 타임라인
+
+<Timeline
+  title="Claude Code 핵심 마일스톤"
+  events={[
+    {
+      date: '2025.02',
+      title: 'Research Preview 출시 (v0.2.x)',
+      description: 'Claude Code가 터미널 기반 AI 코딩 에이전트로 처음 공개. 베타 프리뷰 단계 시작',
+      highlight: true,
+    },
+    {
+      date: '2025.05',
+      title: 'GA 출시 (v1.0.0)',
+      description: 'Claude 4 (Opus / Sonnet)와 함께 정식 출시',
+      highlight: true,
+    },
+    {
+      date: '2025.06',
+      title: 'SDK 출시 & Hooks 도입 (v1.0.23~38)',
+      description: 'TypeScript/Python SDK 출시(v1.0.23)와 Hooks 시스템 도입(v1.0.38)으로 프로그래밍 방식 제어 및 워크플로우 자동화',
+    },
+    {
+      date: '2025.07',
+      title: 'Windows 지원 (v1.0.51)',
+      description: 'Windows 정식 지원(PowerShell/cmd)으로 크로스 플랫폼 확대',
+    },
+    {
+      date: '2025.09',
+      title: 'Claude Code 2.0 출시 (v2.0.0)',
+      description: 'VS Code 확장, 체크포인트 시스템, 서브에이전트 아키텍처. Sonnet 4.5와 동시 출시',
+      highlight: true,
+    },
+    {
+      date: '2025.10',
+      title: 'Skills & 웹 버전 & Native Installer (v2.0.20~23)',
+      description: 'Skills 시스템 도입(v2.0.20), 브라우저 기반 웹 버전 공개(~v2.0.23), Native Installer GA',
+    },
+    {
+      date: '2025.11',
+      title: 'Desktop 앱 & Opus 4.5 (v2.0.51)',
+      description: 'Claude Code Desktop(Electron) 출시. Opus 4.5 모델 지원',
+    },
+    {
+      date: '2025.12',
+      title: 'LSP & Chrome 확장 (v2.0.74)',
+      description: 'Language Server Protocol 지원, Chrome 확장 공개. Bun 인수 직후',
+    },
+    {
+      date: '2026.01',
+      title: 'Claude Code 2.1 (v2.1.0)',
+      description: 'Hooks 직접 통합, Skills hot reload, Analytics API. Anthropic Labs 출범과 동시 발표',
+      highlight: true,
+    },
+    {
+      date: '2026.02',
+      title: 'Agent Teams (v2.1.30+)',
+      description: 'Opus 4.6 기반 네이티브 멀티 에이전트 협업. Fast mode, Task 관리 내장',
+      highlight: true,
+    },
+  ]}
+/>
+
+---
+
+## Phase 1: Research Preview (v0.2.x, 2025.02 ~ 2025.05)
+
+터미널에서 동작하는 AI 코딩 에이전트의 첫 공개. 핵심 기능의 기초가 빠르게 구축된 단계입니다.
+
+<ComparisonTable
+  title="Phase 1 주요 버전"
+  headers={['버전', '날짜', '주요 기능']}
+  rows={[
+    { feature: 'v0.2.21', values: ['2025.03', '커스텀 슬래시 커맨드(.claude/commands/) 도입'] },
+    { feature: 'v0.2.31', values: ['2025.03', 'Extended Thinking(thinking mode) 지원 시작'] },
+    { feature: 'v0.2.44', values: ['2025.04', '대화 재개(conversation resume) 기능 추가'] },
+    { feature: 'v0.2.47', values: ['2025.04', '자동 컴팩션(auto-compaction) 도입으로 긴 세션 지원'] },
+    { feature: 'v0.2.93', values: ['2025.05', 'Preview 마지막 버전. MCP 기본 지원, 안정화'] },
+  ]}
+/>
+
+<Callout type="tip" title="Phase 1 핵심 성과">
+  3개월 만에 커스텀 커맨드, 사고 모드, 대화 재개, 자동 컴팩션이라는 **4대 핵심 기능**을 구축했습니다. 이 기능들은 이후 모든 버전의 기반이 됩니다.
+</Callout>
+
+---
+
+## Phase 2: GA (v1.0.x, 2025.05 ~ 2025.09)
+
+정식 출시와 함께 SDK, Hooks, 엔터프라이즈 기능이 추가된 성숙 단계입니다.
+
+<ComparisonTable
+  title="Phase 2 주요 버전"
+  headers={['버전', '날짜', '주요 기능']}
+  rows={[
+    { feature: 'v1.0.0', values: ['2025.05.22', 'GA 출시. Claude 4 Opus/Sonnet과 함께 공개'] },
+    { feature: 'v1.0.23', values: ['2025.06', 'TypeScript/Python SDK 출시. 프로그래밍 방식으로 Claude Code 제어 가능'] },
+    { feature: 'v1.0.38', values: ['2025.06', 'Hooks 시스템 도입 (PreToolUse, PostToolUse 등). MCP OAuth 2.1 지원'] },
+    { feature: 'v1.0.51', values: ['2025.07', 'Windows 공식 지원 (PowerShell/cmd). 크로스 플랫폼 확대'] },
+    { feature: 'v1.0.128', values: ['2025.09', '1.x 마지막 버전. 2.0 리디자인 준비 완료'] },
+  ]}
+/>
+
+<Callout type="info" title="Phase 2의 의미">
+  GA 직후 출시된 **Claude Code SDK**(v1.0.23)는 프로그래밍 방식으로 Claude Code를 제어할 수 있게 하여, CI/CD 통합과 자동화 파이프라인의 기반이 되었습니다. **Hooks 시스템**(v1.0.38)은 CLAUDE.md의 "권고(advisory)" 한계를 넘어 결정론적 실행을 보장하는 혁신이었습니다.
+</Callout>
+
+---
+
+## Phase 3: Major Redesign (v2.0.x, 2025.09 ~ 2026.01)
+
+UI/UX 전면 재설계와 함께 VS Code 확장, 체크포인트, 플러그인 등 플랫폼 수준의 확장이 이루어진 단계입니다.
+
+<ComparisonTable
+  title="Phase 3 주요 버전"
+  headers={['버전', '날짜', '주요 기능']}
+  rows={[
+    { feature: 'v2.0.0', values: ['2025.09.29', 'Major Redesign. VS Code 확장 공개, 체크포인트 시스템, 서브에이전트 아키텍처. Sonnet 4.5와 동시 출시'] },
+    { feature: 'v2.0.12', values: ['2025.10', '플러그인 시스템(Plugins) 도입. 서드파티 확장 가능'] },
+    { feature: 'v2.0.20', values: ['2025.10', 'Skills 시스템 도입. 웹 버전 공개(~v2.0.23). Native Installer GA (Node.js 불필요)'] },
+    { feature: 'v2.0.51', values: ['2025.11', 'Claude Code Desktop(Electron 앱) 출시. Opus 4.5 모델 지원'] },
+    { feature: 'v2.0.64', values: ['2025.12', 'Compaction API 개선 (대기 시간 제거). 안정성 대폭 강화'] },
+    { feature: 'v2.0.74', values: ['2025.12', 'LSP(Language Server Protocol) 지원. Chrome 확장 공개. 코드 인텔리전스 강화'] },
+  ]}
+/>
+
+<Callout type="tip" title="Phase 3 하이라이트">
+  2.0의 가장 큰 변화는 **터미널 전용 도구에서 멀티 플랫폼으로의 확장**입니다.
+  VS Code 확장, 웹 버전, Desktop 앱, Chrome 확장까지 — 개발자가 어디서든 Claude Code를 사용할 수 있게 되었습니다.
+  **체크포인트 시스템**은 Git과 별개로 작업 상태를 저장/복원할 수 있어 실험적 코딩을 안전하게 만들었습니다.
+</Callout>
+
+---
+
+## Phase 4: Current (v2.1.x, 2026.01 ~ 현재)
+
+Agent Teams, Fast mode, Task 관리 등 멀티 에이전트 협업 기능이 핵심인 현재 진행 중인 단계입니다.
+
+<ComparisonTable
+  title="Phase 4 주요 버전"
+  headers={['버전', '날짜', '주요 기능']}
+  rows={[
+    { feature: 'v2.1.0', values: ['2026.01.07', 'Hooks 직접 통합 (설정 파일 기반), Skills hot reload, Analytics API, 워크플로우 강화'] },
+    { feature: 'v2.1.2', values: ['2026.01', 'Vim motions 지원 (hjkl 네비게이션). 터미널 UX 개선'] },
+    { feature: 'v2.1.15', values: ['2026.01', 'npm 설치 방식 공식 deprecated. 네이티브 설치로 전환 권고'] },
+    { feature: 'v2.1.16', values: ['2026.01', 'Task 관리 시스템 내장 (TodoWrite/TodoRead). 복잡한 작업의 체계적 추적'] },
+    { feature: 'v2.1.30', values: ['2026.02', 'Agent Teams 출시. Opus 4.6과 함께 네이티브 멀티 에이전트 협업'] },
+    { feature: 'v2.1.32', values: ['2026.02', 'Fast mode (동일 모델, 빠른 출력). /fast 토글로 전환'] },
+    { feature: 'v2.1.45', values: ['2026.02', '최신 버전 (2026.02 기준). 안정성 개선 및 Agent Teams 최적화'] },
+  ]}
+/>
+
+<Callout type="info" title="Phase 4의 방향성">
+  2.1의 핵심 테마는 **"팀으로 일하는 AI"**입니다. Agent Teams로 여러 에이전트가 병렬 협업하고,
+  Task 관리로 복잡한 작업을 체계적으로 추적하며, Fast mode로 일상적 작업의 속도를 높입니다.
+  16개 Opus 4.6 에이전트가 C 컴파일러를 구축한 사례는 이 방향성의 정점을 보여줍니다.
+</Callout>
+
+---
+
+## Claude 모델 출시 타임라인
+
+Claude Code의 기능 확장은 기반 모델의 발전과 밀접하게 연결되어 있습니다.
+
+<Timeline
+  title="Claude 모델 출시 히스토리"
+  events={[
+    {
+      date: '2025.02',
+      title: 'Claude 3.7 Sonnet (Claude Code 초기 모델)',
+      description: 'Research Preview와 함께 출시된 초기 모델. 코딩 벤치마크에서 강력한 성능',
+    },
+    {
+      date: '2025.05',
+      title: 'Claude 4 Opus / Sonnet',
+      description: 'Claude Code GA와 동시 출시. Interleaved Thinking 도입으로 에이전트 코딩 품질 비약적 향상',
+      highlight: true,
+    },
+    {
+      date: '2025.09',
+      title: 'Claude Sonnet 4.5',
+      description: 'SWE-bench 77.2%. Claude Code 2.0과 동시 출시. 비용 대비 성능의 새 기준',
+      highlight: true,
+    },
+    {
+      date: '2025.10',
+      title: 'Claude Haiku 4.5',
+      description: 'SWE-bench 73.3%. 경량 모델로서 보일러플레이트, 문서화 등 반복 작업에 최적',
+    },
+    {
+      date: '2025.11',
+      title: 'Claude Opus 4.5',
+      description: 'SWE-bench 80.9% — 80% 임계값 돌파 최초 모델. 단일 세션 최강 추론',
+      highlight: true,
+    },
+    {
+      date: '2026.02',
+      title: 'Claude Opus 4.6',
+      description: 'Agent Teams 네이티브 지원, 1M 컨텍스트(베타), Adaptive Thinking. 128K 출력 토큰',
+      highlight: true,
+    },
+  ]}
+/>
+
+---
+
+## Anthropic 기업 이벤트 타임라인
+
+Claude Code의 성장 배경에는 Anthropic의 급속한 기업 확장이 있습니다.
+
+<Timeline
+  title="Anthropic 주요 기업 이벤트"
+  events={[
+    {
+      date: '2025.02',
+      title: 'Claude Code Research Preview 공개',
+      description: 'Anthropic이 터미널 기반 AI 코딩 에이전트를 처음 공개',
+    },
+    {
+      date: '2025.05',
+      title: 'Claude Code GA + Claude 4 출시',
+      description: '정식 출시와 함께 AI 코딩 에이전트 시장 본격 진입',
+      highlight: true,
+    },
+    {
+      date: '2025.12',
+      title: 'Bun 인수 & Claude Code $1B 달성',
+      description: 'JavaScript 런타임 Bun을 인수하여 개발자 도구 생태계 확장. Claude Code 연간 매출 $10억 달성 ([Anthropic, 2025.12.03](https://www.anthropic.com/news/anthropic-acquires-bun-as-claude-code-reaches-usd1b-milestone))',
+      highlight: true,
+    },
+    {
+      date: '2025.12',
+      title: 'MCP → Linux Foundation (AAIF)',
+      description: 'Model Context Protocol을 Linux Foundation 산하 Agentic AI Foundation에 기부. OpenAI, Google, Microsoft 등 참여 ([Press](https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation))',
+    },
+    {
+      date: '2026.01',
+      title: 'Claude for Healthcare (HIPAA) 발표',
+      description: 'HIPAA 준수 의료 AI 솔루션 출시. 헬스케어 산업 본격 진입 (2026.01.11)',
+    },
+    {
+      date: '2026.01',
+      title: 'Anthropic Labs 출범',
+      description: '실험적 AI 제품을 개발하는 독립 부서 출범. Claude Code 이외의 새 프로덕트 예고 (2026.01.13)',
+      highlight: true,
+    },
+    {
+      date: '2026.01',
+      title: 'Claude Cowork 발표',
+      description: 'Claude Desktop에서 코딩 없이 파일 읽기/편집/생성이 가능한 지식 근로자용 AI 에이전트 (2026.01.12)',
+      highlight: true,
+    },
+    {
+      date: '2026.02',
+      title: 'Opus 4.6 + Agent Teams 출시',
+      description: 'SWE-bench 80.8%, 1M 컨텍스트(베타), 네이티브 멀티 에이전트. 500+ 제로데이 취약점 발견 (2026.02.05)',
+      highlight: true,
+    },
+    {
+      date: '2026.02',
+      title: 'Series G: $30B 투자 ($380B 밸류에이션)',
+      description: 'AI 스타트업 역대 최대 규모 투자 유치. 기업가치 $3,800억 달성 ([Reuters, 2026.02.12](https://www.reuters.com/technology/anthropic-closes-30-billion-funding-round-2026-02-12/))',
+      highlight: true,
+    },
+  ]}
+/>
+
+---
+
+## 향후 전망
+
+<Callout type="warning" title="주의">
+  아래 내용은 공개된 정보와 업계 분석을 기반으로 한 **예상**이며, 공식 로드맵이 아닙니다.
+</Callout>
+
+### 모델 발전
+
+| 예상 시기 | 내용 | 근거 |
+|-----------|------|------|
+| **2026 중반** | Claude 5 출시 | Anthropic의 연간 모델 출시 주기 (Claude 3: 2024.03, Claude 4: 2025.05) |
+| **2026 후반** | 자동 모델 라우팅 보편화 | Opus 4.6 Adaptive Thinking이 그 방향의 첫 단계 |
+
+### MCP 생태계
+
+| 예상 시기 | 내용 | 근거 |
+|-----------|------|------|
+| **2026** | AAIF 표준 1.0 발표 | Linux Foundation 이관 (2025.12) 이후 표준화 진행 중 |
+| **2026** | MCP 서버 마켓플레이스 활성화 | 플러그인 시스템과 MCP의 결합으로 생태계 확대 |
+
+### 엔터프라이즈 확장
+
+| 예상 시기 | 내용 | 근거 |
+|-----------|------|------|
+| **2026** | Claude for Healthcare 확대 | HIPAA 인증 (2026.01) 기반 의료 산업 침투 |
+| **2026** | FedRAMP 인증 (공공 부문) | AWS Bedrock 채널을 통한 공공 부문 진입 가능성 |
+
+### Claude Code 진화
+
+| 예상 시기 | 내용 | 근거 |
+|-----------|------|------|
+| **2026** | Agent Teams 고도화 | 현재 Opus 4.6 전용 → 다양한 모델 조합으로 확대 가능 |
+| **2026** | Cowork 생태계 성장 | Claude Desktop의 비개발자용 에이전트가 개발 워크플로우와 연결 |
+| **2026** | Labs의 새 프로덕트 | Anthropic Labs 출범 (2026.01)으로 실험적 AI 제품 기대 |
+
+---
+
+## 공식 출처
+
+| 출처 | URL |
+|------|-----|
+| Claude Code Changelog (npm) | [npmjs.com/@anthropic-ai/claude-code](https://www.npmjs.com/package/@anthropic-ai/claude-code?activeTab=versions) |
+| Anthropic 공식 블로그 | [anthropic.com/news](https://www.anthropic.com/news) |
+| Anthropic Engineering 블로그 | [anthropic.com/engineering](https://www.anthropic.com/engineering) |
+| Claude Code 공식 문서 | [code.claude.com/docs](https://code.claude.com/docs) |
+| Anthropic API 변경 로그 | [platform.claude.com/docs/en/resources/changelog](https://platform.claude.com/docs/en/resources/changelog) |
+| MCP 공식 저장소 | [github.com/modelcontextprotocol](https://github.com/modelcontextprotocol) |
+
+<ChapterNav
+  prev={{ title: '모델 선택 가이드', path: '/docs/part-1--시작하기-모델-선택-가이드' }}
+  next={{ title: 'CLAUDE.md 딥다이브', path: '/docs/part-2--프로젝트-설정-claude-md-딥다이브' }}
+/>
