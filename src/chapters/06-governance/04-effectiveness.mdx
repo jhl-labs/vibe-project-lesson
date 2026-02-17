@@ -152,7 +152,7 @@ AI 도구 도입의 효과를 체감하는 것과 **증명**하는 것은 다릅
     { feature: '팀 생산성 향상', values: ['62%의 응답자가 AI 도구로 25% 이상 개발 속도 향상을 체감', 'Jellyfish 2025 State of Engineering Management'] },
     { feature: '코드 리뷰 품질', values: ['AI 코드 리뷰 활용 팀의 81%가 품질 개선을 경험 (미사용 팀 55%)', 'Qodo 2025 State of AI Code Quality'] },
     { feature: '테스트 신뢰도', values: ['AI 테스트 작성 활용 시 신뢰도 61% (미사용 시 27%)', 'Qodo 2025 State of AI Code Quality'] },
-    { feature: '전체 코드 중 AI 비율', values: ['2024년 기준 전체 코드의 41%가 AI 도구로 작성 또는 보조', 'GitClear 2025 Code Quality Report'] },
+    { feature: '전체 코드 중 AI 비율', values: ['2024년 기준 전체 코드의 41%가 AI 도구로 작성 또는 보조', 'GitClear 2025 Code Quality Report (추정치)'] },
   ]}
 />
 
@@ -1115,8 +1115,8 @@ r2 = client.messages.create(model="claude-opus-4-6", system=system,
   headers={['사례', '최적화 전 (월)', '최적화 후 (월)', '절감률']}
   rows={[
     { feature: 'Ramp (핀테크)', values: ['측정 안 됨', '인시던트 조사 80% 시간 감소', '80%'] },
-    { feature: 'Anthropic 마케팅팀', values: ['수시간/배치', '수분/배치 (Figma 연동)', '95%+'] },
-    { feature: 'Anthropic 보안팀', values: ['10-15분/이슈', '~5분/이슈', '67%'] },
+    { feature: 'Anthropic 마케팅팀', values: ['수시간/배치', '수분/배치 (Figma 연동)', '대폭 단축'] },
+    { feature: 'Anthropic 보안팀', values: ['수동 분석', '스택 트레이스 자동 분석 + 런북 생성', '대폭 단축'] },
   ]}
 />
 

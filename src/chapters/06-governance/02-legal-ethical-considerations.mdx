@@ -507,10 +507,10 @@ EU의 GDPR(일반 데이터 보호 규정)과 미국 캘리포니아의 CCPA(소
 
 Claude Code 사용 시 데이터 처리에 대한 이해는 필수입니다.
 
-- **Pro/Max 플랜 사용자**: 대화 내용이 모델 훈련에 사용되지 않음 (기본 설정)
+- **Pro/Max 플랜 사용자**: 2025년 9월 28일부로 대화 내용이 모델 훈련에 **기본적으로 사용**됨 (사용자가 직접 [설정에서 opt-out](https://privacy.claude.com/en/articles/10023580-is-my-data-used-for-model-training) 필요)
 - **API 사용자**: 입력/출력 데이터가 모델 훈련에 사용되지 않음 (이용약관 명시)
-- **Enterprise 플랜**: 데이터 격리, SOC 2 준수, 맞춤형 데이터 보존 정책 적용 가능
-- **데이터 보존**: API 사용 시 안전 평가 목적으로 최대 30일 보존 후 삭제 (단, 모델 훈련 미사용)
+- **Enterprise 플랜**: 데이터 격리, SOC 2 준수, 맞춤형 데이터 보존 정책 적용 가능. 모델 훈련 미사용
+- **데이터 보존**: API 사용 시 안전 평가 목적으로 최대 **7일** 보존 후 삭제 ([Anthropic Privacy](https://privacy.claude.com/en/articles/10023548-how-long-do-you-store-my-data)). 안전 정책 위반 플래그 시 최대 2년 보존
 
 <CodeBlock
   code={`# .gitignore에 민감 정보 파일 반드시 포함

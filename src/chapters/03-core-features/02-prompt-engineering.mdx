@@ -19,7 +19,7 @@ import { ChapterNav } from '../../components/ChapterNav';
   Claude Code에서 프롬프트는 곧 **작업 지시서**입니다.
 </Callout>
 
-Claude Code는 터미널에서 자연어로 지시하는 도구입니다. "좋은 코드를 얻는 것"은 "좋은 지시를 내리는 것"에서 시작합니다. [Anthropic 공식 문서](https://platform.claude.com/docs/en/docs/build-with-claude/prompt-engineering/overview)에서는 프롬프트 엔지니어링 기법을 **가장 범용적인 것부터 전문적인 것** 순서로 시도할 것을 권장합니다.
+Claude Code는 터미널에서 자연어로 지시하는 도구입니다. "좋은 코드를 얻는 것"은 "좋은 지시를 내리는 것"에서 시작합니다. [Anthropic 공식 문서](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview)에서는 프롬프트 엔지니어링 기법을 **가장 범용적인 것부터 전문적인 것** 순서로 시도할 것을 권장합니다.
 
 ### 프롬프트와 코드 품질의 상관관계
 
@@ -659,7 +659,7 @@ Claude Code에서 특별한 의미를 가지는 키워드와 패턴들이 있습
   headers={['키워드/패턴', '효과', '사용 시점']}
   rows={[
     { feature: 'Effort Level (/model에서 좌우 화살표 또는 환경변수)', values: ['사고 깊이를 세밀하게 제어 (low/medium/high)', '작업 복잡도에 따라 사고 수준 조정'] },
-    { feature: '"ultrathink" (스킬 내 사용)', values: ['스킬 내에서 extended thinking 활성화', '스킬 본문에 포함하여 깊은 사고 유도'] },
+    { feature: '"ultrathink" (스킬 내 사용, deprecated)', values: ['스킬 내에서 extended thinking 활성화 (현재는 기본 활성화됨)', '스킬 본문에 포함하여 깊은 사고 유도'] },
     { feature: '"think harder"', values: ['더 깊은 사고 유도', '첫 답변이 불충분했을 때 재사고 요청'] },
     { feature: '"간단하게"', values: ['최소 사고로 빠른 응답', '단순한 수정, 보일러플레이트 생성'] },
     { feature: 'Plan Mode (Shift+Tab 2회 또는 /plan)', values: ['코드 수정 없이 분석/계획만', '구현 전 전략 수립, 코드베이스 탐색'] },

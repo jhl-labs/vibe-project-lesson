@@ -548,14 +548,15 @@ MCP 서버 설정은 프로젝트 루트의 `.mcp.json` 파일에서 관리합�
 |------|------|---------------|
 | **filesystem** | 파일 읽기/쓰기 | 없음 |
 | **git** | Git 작업 | 없음 |
-| **github** | GitHub API (PR, 이슈) | OAuth (HTTP) |
 | **fetch** | HTTP 요청 | 없음 |
 | **memory** | 세션 간 지식 유지 | 없음 |
 | **sequential-thinking** | 체계적 추론 | 없음 |
+| **time** | 시간대 변환 | 없음 |
+| **everything** | 테스트/레퍼런스 구현 | 없음 |
 
 <Callout type="info" title="Archived 서버와 대안">
-  postgres, sqlite, puppeteer, slack 등 일부 레퍼런스 서버는 `modelcontextprotocol/servers-archived`로 이동되어 더 이상 유지보수되지 않습니다.
-  DB 연동은 **DBHub**(`@bytebase/dbhub`), GitHub는 **HTTP 방식**(`https://api.githubcopilot.com/mcp/`), Slack은 커뮤니티 서버 사용을 권장합니다.
+  postgres, sqlite, puppeteer, slack, **github** 등 일부 레퍼런스 서버는 `modelcontextprotocol/servers-archived`로 이동되어 더 이상 유지보수되지 않습니다.
+  DB 연동은 **DBHub**(`@bytebase/dbhub`), GitHub는 **GitHub 공식 MCP 서버**(`github/github-mcp-server`) 또는 **HTTP 방식**(`https://api.githubcopilot.com/mcp/`), Slack은 커뮤니티 서버 사용을 권장합니다.
 </Callout>
 
 ### 서버별 활용 사례 상세
