@@ -644,8 +644,7 @@ jobs:
             중복 가능성이 있는 이슈를 찾아주세요.
             중복이 발견되면 관련 이슈 번호를 언급하고
             'duplicate' 라벨을 추가해주세요.
-          max_turns: "5"
-          allowed_tools: "Read,Bash(gh issue list),Bash(gh issue view)"`}
+          claude_args: "--max-turns 5 --allowedTools Read,Bash(gh issue list),Bash(gh issue view)"`}
   language="yaml"
   filename="claude-duplicate-detect.yml"
 />

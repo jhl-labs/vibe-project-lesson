@@ -733,7 +733,7 @@ AI 에이전트의 사용 범위를 도메인의 특성에 맞게 조정해야 �
     { feature: 'AI 사용 범위', values: ['UI/UX 코드 한정, 금융 로직 수동', '비식별 데이터만, PHI 접근 금지', '보안 등급별 차등 적용'] },
     { feature: '데이터 제한', values: ['카드번호/계좌 AI 입력 금지', '환자 정보 AI 입력 금지', '3등급 이상 데이터 AI 입력 금지'] },
     { feature: '코드 리뷰', values: ['보안 전문가 필수 리뷰', '규정 준수 담당자 리뷰', '보안성 검토 필수'] },
-    { feature: '감사 요구', values: ['전체 이력 5년 보관', '전체 이력 5~10년 보관', '전체 이력 5년 보관'] },
+    { feature: '감사 요구', values: ['전체 이력 5년 보관', '전체 이력 5~10년 보관', '전체 이력 1년~영구 보관 (유형별 차등)'] },
     { feature: '암호화 코드', values: ['검증된 라이브러리만 사용', '검증된 라이브러리만 사용', 'KCMVP 인증 모듈 사용'] },
     { feature: '테스트 요구', values: ['모든 금융 로직 100% 커버리지', 'FDA 검증 수준 테스트', '보안 취약점 테스트 필수'] },
   ]}
@@ -1029,7 +1029,7 @@ jobs:
     {
       date: '2023.05',
       title: 'Samsung - 내부 AI 사용 제한 발표',
-      description: '2023년 4월 ChatGPT에 소스코드 유출 사건 이후, 5월 1일부터 사내 생성형 AI 사용을 금지하고 내부 AI 플랫폼 개발을 시작했습니다 ([TechCrunch](https://techcrunch.com/2023/05/02/samsung-bans-use-of-generative-ai-tools-like-chatgpt-after-april-internal-data-leak/)).',
+      description: '2023년 4월 ChatGPT에 소스코드 유출 사건 이후, 5월 1일부터 사내 생성형 AI 사용을 제한했습니다 ([TechCrunch](https://techcrunch.com/2023/05/02/samsung-bans-use-of-generative-ai-tools-like-chatgpt-after-april-internal-data-leak/)).',
       highlight: true
     },
     {
@@ -1041,7 +1041,7 @@ jobs:
     {
       date: '2025.06',
       title: 'Google - 내부 AI 코딩 가이드라인 공개',
-      description: '전 소프트웨어 엔지니어에게 AI 코딩 가이드라인을 배포. AI 생성 코드에 대한 코드 리뷰 기준과 책임 소재를 정의했습니다 ([9to5Google](https://9to5google.com/2025/06/30/google-engineers-ai-code/)).',
+      description: '전 소프트웨어 엔지니어에게 AI 코딩 가이드라인을 배포. 코드 리뷰, 보안, 유지보수에서 엄격성 유지를 강조했습니다 ([9to5Google](https://9to5google.com/2025/06/30/google-engineers-ai-code/)).',
     },
     {
       date: '2025.08',
