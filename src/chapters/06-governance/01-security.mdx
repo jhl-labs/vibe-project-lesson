@@ -63,8 +63,10 @@ AI 코딩 에이전트를 사용할 때 발생하는 보안 위협은 크게 세
   caption="각 영역은 서로 다른 방어 전략이 필요합니다"
 />
 
-OWASP는 2025년 **[Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)**에서 프롬프트 인젝션을 1위,
-2026년 **[Top 10 for Agentic Applications](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)**에서 에이전트 목표 탈취(Goal Hijack)를 1위로 선정했습니다.
+OWASP는 2025년 **[Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)**에서 프롬프트 인젝션을 1위(LLM01),
+2026년 **[Top 10 for Agentic Applications](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)**에서 에이전트 목표 탈취(ASI01 Agent Goal Hijack)를 1위로 선정했습니다.
+Agentic Top 10은 100명 이상의 보안 전문가가 참여하여 2025년 12월에 공개되었으며,
+에이전트를 **목표·도구·메모리·프로토콜을 가진 주체(principal)**로 취급하고 각각을 공격 표면으로 식별합니다.
 아래에서 각 위협과 개발자 레벨 방어 전략을 구체적으로 다룹니다.
 
 ## 프롬프트 인젝션 공격
@@ -103,8 +105,10 @@ def sanitize_input(text: str) -> str:
 ### 간접 프롬프트 인젝션
 
 외부 파일, 웹 페이지, 이슈 트래커 등에 숨겨진 악성 지시를 에이전트가 읽어들일 때 발생합니다.
-2025년 GitHub Copilot의 [CVE-2025-53773](https://nvd.nist.gov/vuln/detail/CVE-2025-53773)은 소스 코드 파일이나 GitHub 이슈에 삽입된
-악성 프롬프트를 통해 원격 코드 실행이 가능했던 실제 사례입니다(CVSS 7.8).
+2025년 8월 공개된 GitHub Copilot의 [CVE-2025-53773](https://nvd.nist.gov/vuln/detail/CVE-2025-53773)은 소스 코드 파일이나 GitHub 이슈에 삽입된
+악성 프롬프트를 통해 원격 코드 실행이 가능했던 실제 사례입니다(CVSS 7.8, Microsoft 2025년 8월 Patch Tuesday에서 수정).
+공격자는 `.vscode/settings.json`에 `"chat.tools.autoApprove": true`를 주입하여 Copilot을 "YOLO 모드"로 전환시킨 후
+사용자 승인 없이 임의 명령을 실행할 수 있었습니다.
 
 <CodeBlock
   code={`// 외부 파일에 숨겨진 악성 지시 예시
@@ -143,6 +147,10 @@ function processData(input) {
   Claude Code는 기본적으로 파일 시스템 접근, 셸 명령 실행 등 위험한 작업 전에
   사용자 확인을 요청합니다. **AllowedTools 설정을 최소한으로 유지**하고,
   자동 승인 범위를 신중하게 관리하세요.
+  2026년부터 Anthropic은 **샌드박싱을 모든 환경의 기본 설정으로 권장**합니다.
+  샌드박스는 Linux bubblewrap / macOS seatbelt을 사용하여 OS 수준에서
+  파일 시스템과 네트워크를 격리하며, 내부 테스트에서 권한 프롬프트를 **84% 감소**시키면서
+  **15ms 미만의 지연**만 추가합니다.
 </Callout>
 
 ## AI 코드 환각 방어
@@ -229,6 +237,8 @@ check_npm_package "flask-ai-utils" # ❌ 환각 가능성`}
 
 OWASP Top 10 for Agentic Applications(2026)의 **ASI03 Identity & Privilege Abuse**는
 에이전트의 과도한 권한이 핵심 위험임을 경고합니다.
+OWASP가 제시하는 핵심 방어 원칙은 **최소 에이전시 원칙(Least Agency)** — AI 에이전트에게
+의도된 작업 수행에 필요한 최소한의 자율성, 도구 접근, 자격 증명 범위만 부여하는 것입니다.
 Claude Code에서는 `.claude/settings.json`으로 에이전트의 도구 사용 권한을 세밀하게 제어할 수 있습니다.
 
 ### 권한 설정 예시
@@ -623,19 +633,19 @@ exit 0`}
 ## OWASP Top 10 체크리스트
 
 <ComparisonTable
-  title="OWASP Top 10 (2025) 점검"
+  title="OWASP Top 10 (2025) 웹 애플리케이션 보안 점검"
   headers={['순위', '취약점', 'AI 코드 위험도', '대응 방법']}
   rows={[
-    { feature: 'A01', values: ['접근 제어 취약점', '높음', '모든 엔드포인트 인가 확인'] },
-    { feature: 'A02', values: ['보안 설정 오류', '높음', '기본 설정 변경, 최소 권한'] },
-    { feature: 'A03', values: ['소프트웨어 공급망 실패', '높음', '의존성 스캔 자동화, lock 파일 커밋'] },
-    { feature: 'A04', values: ['암호화 실패', '중간', '검증된 암호화 라이브러리 사용'] },
-    { feature: 'A05', values: ['인젝션', '높음', '파라미터화 쿼리, ORM 사용'] },
-    { feature: 'A06', values: ['불안전한 설계', '중간', '위협 모델링 수행'] },
-    { feature: 'A07', values: ['인증 실패', '중간', '검증된 인증 라이브러리 사용'] },
-    { feature: 'A08', values: ['데이터 무결성 실패', '중간', '서명 검증, 공급망 보안'] },
-    { feature: 'A09', values: ['보안 로깅 및 알림 실패', '중간', '구조화된 로깅과 알림 구현'] },
-    { feature: 'A10', values: ['예외 처리 미흡', '중간', '체계적 에러 핸들링 구현'] },
+    { feature: 'A01', values: ['접근 제어 취약점 (Broken Access Control)', '높음', '모든 엔드포인트 인가 확인'] },
+    { feature: 'A02', values: ['보안 설정 오류 (Security Misconfiguration)', '높음', '기본 설정 변경, 최소 권한'] },
+    { feature: 'A03', values: ['소프트웨어 공급망 실패 (Supply Chain Failures)', '높음', '의존성 스캔 자동화, lock 파일 커밋'] },
+    { feature: 'A04', values: ['암호화 실패 (Cryptographic Failures)', '중간', '검증된 암호화 라이브러리 사용'] },
+    { feature: 'A05', values: ['인젝션 (Injection)', '높음', '파라미터화 쿼리, ORM 사용'] },
+    { feature: 'A06', values: ['불안전한 설계 (Insecure Design)', '중간', '위협 모델링 수행'] },
+    { feature: 'A07', values: ['인증 실패 (Identification and Authentication Failures)', '중간', '검증된 인증 라이브러리 사용'] },
+    { feature: 'A08', values: ['데이터 무결성 실패 (Data Integrity Failures)', '중간', '서명 검증, 공급망 보안'] },
+    { feature: 'A09', values: ['보안 로깅 및 모니터링 실패 (Security Logging Failures)', '중간', '구조화된 로깅과 알림 구현'] },
+    { feature: 'A10', values: ['예외 처리 미흡 (Mishandling of Exceptional Conditions)', '중간', '체계적 에러 핸들링 구현'] },
   ]}
 />
 
@@ -755,7 +765,7 @@ if (!API_KEY) {
 
 ## 사례 연구: Opus 4.6의 500+ 제로데이 발견
 
-2026년 2월, Anthropic은 Claude Opus 4.6이 **오픈소스 코드에서 500개 이상의 미발견 제로데이 취약점을 발견**했다고 발표했습니다.
+2026년 2월 5일, Anthropic의 Frontier Red Team은 Claude Opus 4.6이 **프로덕션 오픈소스 소프트웨어에서 500개 이상의 고심각도 제로데이 취약점을 발견**했다고 발표했습니다.
 
 ### 발견 과정의 주목할 점
 
@@ -763,10 +773,11 @@ if (!API_KEY) {
   title="Opus 4.6 제로데이 발견"
   headers={['항목', '내용']}
   rows={[
-    { feature: '사용 도구', values: ['Opus 4.6 기본 기능만 (커스텀 도구, 스캐폴딩, 전문 프롬프팅 없음)'] },
-    { feature: '대상', values: ['수년간 퍼저(fuzzer)가 실행된 가장 잘 테스트된 오픈소스 코드베이스'] },
-    { feature: '결과', values: ['500+ 미발견 제로데이 취약점 (수십 년간 미탐지된 고심각도 포함)'] },
-    { feature: '검증', values: ['Anthropic 팀 및 외부 보안 연구원이 모든 취약점 확인'] },
+    { feature: '사용 도구', values: ['Opus 4.6 + Python, 디버거, 퍼저 등 기본 분석 도구 (전문 프롬프팅이나 커스텀 스캐폴딩 없음)'] },
+    { feature: '대상', values: ['수년간 퍼저(fuzzer)가 실행된 가장 잘 테스트된 프로덕션 오픈소스 코드베이스'] },
+    { feature: '방법', values: ['랜덤 입력 생성이 아닌 코드 읽기·추론 — 데이터 흐름 추적, 커밋 히스토리 분석, 부분 수정 버그의 변종 탐지'] },
+    { feature: '결과', values: ['500+ 고심각도 제로데이 취약점 (수십 년간 전문가 리뷰와 퍼저를 통과한 버그 포함)'] },
+    { feature: '검증', values: ['Anthropic Frontier Red Team 및 외부 보안 연구원이 모든 취약점 확인'] },
   ]}
 />
 
@@ -809,7 +820,7 @@ jobs:
   filename=".github/workflows/weekly-security-scan.yml"
 />
 
-**출처:** [Anthropic Red Team Blog](https://red.anthropic.com/2026/zero-days/), [Axios](https://www.axios.com/2026/02/05/anthropic-claude-opus-46-software-hunting)
+**출처:** [Anthropic Frontier Red Team Blog](https://red.anthropic.com/2026/zero-days/), [Axios](https://www.axios.com/2026/02/05/anthropic-claude-opus-46-software-hunting), [VentureBeat](https://venturebeat.com/security/anthropic-claude-code-security-reasoning-vulnerability-hunting), [The Hacker News](https://thehackernews.com/2026/02/claude-opus-46-finds-500-high-severity.html)
 
 ---
 
