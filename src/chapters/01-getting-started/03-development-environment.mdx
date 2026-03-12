@@ -205,7 +205,7 @@ IntelliJ IDEA, PyCharm, WebStorm, PhpStorm, GoLand, Android Studio를 지원합�
 />
 
 <Callout type="warning" title="JetBrains 플러그인은 베타">
-  2026년 1월 기준, JetBrains 플러그인은 아직 베타 상태입니다.
+  2026년 3월 기준, JetBrains 플러그인은 아직 베타 상태입니다.
   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/27310-claude-code-beta-)에서 최신 상태를 확인하세요.
   상세 문서는 [Claude Code JetBrains 문서](https://code.claude.com/docs/en/jetbrains)를 참조하세요.
 </Callout>
@@ -227,7 +227,7 @@ return {
     provider = "claude",
     claude = {
       endpoint = "https://api.anthropic.com",
-      model = "claude-sonnet-4-20250514",
+      model = "claude-sonnet-4-6-20260217",
       temperature = 0,
       max_tokens = 4096,
     },
@@ -656,7 +656,7 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
   },
   "env": {
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16384",
-    "ANTHROPIC_MODEL": "claude-sonnet-4-20250514"
+    "ANTHROPIC_MODEL": "claude-sonnet-4-6-20260217"
   },
   "preferredNotifChannel": "terminal_bell"
 }`}
@@ -785,11 +785,11 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
 # 각 프로젝트 루트에 .envrc 파일 생성
 
 # ~/projects/react-app/.envrc
-export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+export ANTHROPIC_MODEL="claude-sonnet-4-6-20260217"
 export NODE_ENV="development"
 
 # ~/projects/python-api/.envrc
-export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+export ANTHROPIC_MODEL="claude-sonnet-4-6-20260217"
 export VIRTUAL_ENV="$PWD/.venv"
 export PATH="$VIRTUAL_ENV/bin:$PATH"
 
@@ -912,8 +912,8 @@ alias claude-personal='CLAUDE_CONFIG_DIR=~/.claude-personal claude'`}
 <CodeBlock
   code={`# SSH로 원격 서버에 Claude Code 사용
 
-# 1. 원격 서버에 Claude Code CLI 설치
-ssh your-server "npm install -g @anthropic-ai/claude-code"
+# 1. 원격 서버에 Claude Code CLI 설치 (네이티브 설치 권장)
+ssh your-server "curl -fsSL https://claude.ai/install.sh | bash"
 
 # 2. API 키 전달 (SSH 포워딩 또는 원격 환경 변수)
 # 방법 A: SSH 접속 시 환경 변수 전달
@@ -942,7 +942,7 @@ ssh -o SendEnv=ANTHROPIC_API_KEY your-server
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-  "postCreateCommand": "npm install -g @anthropic-ai/claude-code && npm install",
+  "postCreateCommand": "curl -fsSL https://claude.ai/install.sh | bash && npm install",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -990,7 +990,7 @@ ssh -o SendEnv=ANTHROPIC_API_KEY your-server
 # GitPod 설정 (.gitpod.yml)
 # image: gitpod/workspace-full
 # tasks:
-#   - init: npm install -g @anthropic-ai/claude-code
+#   - init: curl -fsSL https://claude.ai/install.sh | bash
 #     command: claude
 # vscode:
 #   extensions:
@@ -1278,7 +1278,7 @@ npm install
 echo "[3/6] Claude Code CLI 확인..."
 if ! command -v claude &> /dev/null; then
   echo "Claude Code CLI를 설치합니다..."
-  npm install -g @anthropic-ai/claude-code
+  curl -fsSL https://claude.ai/install.sh | bash
 fi
 
 # 4. 터미널 설정
@@ -1407,7 +1407,7 @@ echo "  3. /terminal-setup으로 키바인딩 설정"`}
     {
       date: 'Step 1',
       title: 'Claude Code CLI 설치',
-      description: '네이티브 설치 권장. npm install -g @anthropic-ai/claude-code 또는 플랫폼별 설치 스크립트 사용.',
+      description: '네이티브 설치 권장. macOS/Linux: curl -fsSL https://claude.ai/install.sh | bash, Windows: irm https://claude.ai/install.ps1 | iex',
       highlight: true,
     },
     {

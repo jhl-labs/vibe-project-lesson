@@ -25,7 +25,7 @@ Claude Code는 여러 모델을 지원하며, 모델에 따라 **추론 능력, 
 
 ---
 
-## Claude 모델 패밀리 (2026년 2월 기준)
+## Claude 모델 패밀리 (2026년 3월 기준)
 
 ### 모델 출시 타임라인
 
@@ -212,7 +212,7 @@ SWE-bench는 실제 GitHub 이슈를 기반으로 한 코딩 능력 벤치마크
 ### 다중 벤치마크 종합 비교
 
 <ComparisonTable
-  title="주요 벤치마크 종합 비교 (2026년 2월 기준)"
+  title="주요 벤치마크 종합 비교 (2026년 3월 기준)"
   headers={['벤치마크', 'Opus 4.6', 'Sonnet 4.6', 'Sonnet 4.5', 'Haiku 4.5', '측정 영역']}
   rows={[
     { feature: 'SWE-bench Verified', values: ['80.8%', '79.6%', '77.2%', '73.3%', '실제 GitHub 이슈 해결'] },
@@ -245,7 +245,7 @@ Claude 4 시리즈는 **Extended Thinking** 기능으로 복잡한 문제에서 
     { feature: '사고 깊이 조절', values: ['수동 (budget_tokens 지정)', '자동 (thinking: {type: "adaptive"})'] },
     { feature: '컨텍스트 윈도우', values: ['200K', '200K (1M 베타, tier 4+)'] },
     { feature: '최대 출력', values: ['64K 토큰', '128K 토큰'] },
-    { feature: 'Effort 파라미터', values: ['3단계 (low/medium/high)', '4단계 (low/medium/high/max, output_config로 설정)'] },
+    { feature: 'Effort 파라미터', values: ['3단계 (low/medium/high)', '3단계 (low/medium/high, 2026년 3월 기준 max 제거)'] },
     { feature: 'Agent Teams', values: ['미지원', '네이티브 지원'] },
     { feature: '비용 최적화', values: ['수동 튜닝 필요', '작업에 맞게 자동 최적화'] },
   ]}
@@ -279,18 +279,17 @@ Extended Thinking은 Claude가 답변 전에 단계별로 사고하는 과정을
   Opus 4.6의 Adaptive Thinking은 [Adaptive Thinking 문서](https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking)를 참조하세요.
 </Callout>
 
-### Effort 파라미터 4단계
+### Effort 파라미터 3단계
 
-Opus 4.6의 Adaptive Thinking은 **Effort 파라미터**를 통해 사고 깊이를 4단계로 제어할 수 있습니다. Claude Code에서는 이것이 자동으로 적용되지만, API 사용 시 명시적으로 설정할 수 있습니다.
+Opus 4.6의 Adaptive Thinking은 **Effort 파라미터**를 통해 사고 깊이를 3단계로 제어할 수 있습니다. 2026년 3월 업데이트에서 기존 4단계(low/medium/high/max)가 3단계(low/medium/high)로 간소화되었습니다. Claude Code에서는 이것이 자동으로 적용되지만, API 사용 시 명시적으로 설정할 수 있습니다. Opus 4.6은 Max/Team 구독자에게 기본 medium effort로 설정됩니다.
 
 <ComparisonTable
   title="Effort 단계별 비교"
   headers={['단계', '사고 방식', '속도', '비용', '적합한 작업']}
   rows={[
-    { feature: 'Low', values: ['사고 건너뛰기', '가장 빠름', '최저', '간단한 질문, 분류, 포맷 변환'] },
-    { feature: 'Medium', values: ['선택적 사고', '빠름', '중간', '일반적 코딩, 코드 리뷰, 리팩토링'] },
-    { feature: 'High (기본값)', values: ['거의 항상 사고', '보통', '높음', '복잡한 디버깅, 새 기능 설계'] },
-    { feature: 'Max (Opus 4.6 API 전용)', values: ['최대 능력 발휘', '느림', '최고', '아키텍처 설계, 보안 분석, 마이그레이션'] },
+    { feature: 'Low (○)', values: ['사고 건너뛰기', '가장 빠름', '최저', '간단한 질문, 분류, 포맷 변환'] },
+    { feature: 'Medium (◐)', values: ['선택적 사고', '빠름', '중간', '일반적 코딩, 코드 리뷰, 리팩토링'] },
+    { feature: 'High (●, 기본값)', values: ['거의 항상 사고', '보통', '높음', '복잡한 디버깅, 새 기능 설계, 아키텍처'] },
   ]}
 />
 
@@ -309,12 +308,12 @@ response_simple = client.messages.create(
     messages=[{"role": "user", "content": "이 함수의 반환 타입을 string에서 number로 바꿔줘"}]
 )
 
-# 복잡한 작업: Max effort
+# 복잡한 작업: High effort
 response_complex = client.messages.create(
     model="claude-opus-4-6",
     max_tokens=128000,
     thinking={"type": "adaptive"},
-    output_config={"effort": "max"},
+    output_config={"effort": "high"},
     messages=[{"role": "user", "content": "이 마이크로서비스 아키텍처의 보안 취약점을 분석하고 개선안을 제시해줘"}]
 )`}
   language="python"
@@ -325,7 +324,7 @@ response_complex = client.messages.create(
   Claude Code에서는 Opus 4.6의 Adaptive Thinking이 자동으로 작동합니다.
   `/model` 명령어에서 좌/우 화살표키로 effort 슬라이더를 조절하거나,
   환경 변수 `CLAUDE_CODE_EFFORT_LEVEL=low|medium|high`로 설정할 수 있습니다.
-  참고: Claude Code에서는 low/medium/high 3단계만 지원되며, max는 API 전용입니다.
+  2026년 3월부터 effort는 low/medium/high 3단계로 간소화되었으며, 기존 max 단계는 high에 통합되었습니다.
 </Callout>
 
 ### Interleaved Thinking (인터리브드 사고)
@@ -865,7 +864,7 @@ Managed Settings를 활용하면 팀별로 사용 가능한 모델을 제한할 
 ### AI 코딩 에이전트 생태계 포지셔닝
 
 <ComparisonTable
-  title="주요 AI 코딩 모델 비교 (2026년 2월 기준)"
+  title="주요 AI 코딩 모델 비교 (2026년 3월 기준)"
   headers={['모델', 'SWE-bench', '컨텍스트', '강점', '약점']}
   rows={[
     { feature: 'Claude Opus 4.6', values: ['80.8%', '200K (1M 베타)', 'Agent Teams, Adaptive Thinking, 보안 분석', '비용이 높음'] },
