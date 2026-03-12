@@ -211,6 +211,15 @@ maxTurns: 20               # 최대 에이전틱 턴 수
 skills:                    # 시작 시 로드할 스킬
   - api-conventions
 memory: project            # 지속적 메모리 (user, project, local)
+mcpServers:                # 에이전트 전용 MCP 서버 설정
+  - github
+  - filesystem
+hooks:                     # 에이전트 전용 Hook 설정
+  PostToolUse:
+    - matcher: "Write"
+      hooks:
+        - type: command
+          command: "npx prettier --write $TOOL_INPUT_path"
 ---
 
 # 시스템 프롬프트

@@ -76,7 +76,7 @@ Claude Code의 슬래시 커맨드는 크게 **내장 커맨드**와 **커스텀
 
 | 커맨드 | 설명 | 주요 사용 시점 |
 |--------|------|---------------|
-| `/review` | 코드 리뷰 (내장) | 코드 검토 시 |
+| `/review` | 코드 리뷰 (deprecated, `/simplify`로 대체) | 코드 검토 시 |
 | `/bug` | 버그 리포트 제출 | Claude Code 버그 발견 시 |
 | `/export` | 대화 내용 내보내기 | 대화 저장 시 |
 
@@ -1688,6 +1688,9 @@ allowed-tools: Bash, Read           # 허용 도구 제한
 disable-model-invocation: true      # Claude 자동 호출 차단
 user-invocable: false               # 사용자 수동 호출 차단
 argument-hint: "[issue-number]"     # 자동완성 시 인자 힌트
+mode: plan                          # 실행 모드 (plan: 코드 수정 없이 분석만)
+skills:                             # 이 스킬에서 로드할 하위 스킬 목록
+  - api-conventions
 ---`}
   language="yaml"
   filename="SKILL.md 프론트매터 전체 옵션"
@@ -1704,6 +1707,8 @@ argument-hint: "[issue-number]"     # 자동완성 시 인자 힌트
     { feature: 'allowed-tools', values: ['string', '모든 도구', '스킬 활성 시 허용할 도구 제한'] },
     { feature: 'disable-model-invocation', values: ['boolean', 'false', 'true면 사용자만 호출 가능'] },
     { feature: 'user-invocable', values: ['boolean', 'true', 'false면 Claude만 자동 호출 가능'] },
+    { feature: 'mode', values: ['string', '없음', 'plan 설정 시 코드 수정 없이 분석/계획만 수행'] },
+    { feature: 'skills', values: ['list', '없음', '이 스킬 실행 시 함께 로드할 하위 스킬 목록'] },
   ]}
 />
 

@@ -659,19 +659,21 @@ Claude Code에서 특별한 의미를 가지는 키워드와 패턴들이 있습
   headers={['키워드/패턴', '효과', '사용 시점']}
   rows={[
     { feature: 'Effort Level (/model에서 좌우 화살표 또는 환경변수)', values: ['사고 깊이를 세밀하게 제어 (low/medium/high)', '작업 복잡도에 따라 사고 수준 조정'] },
-    { feature: '"ultrathink" (스킬 내 사용, deprecated)', values: ['스킬 내에서 extended thinking 활성화 (현재는 기본 활성화됨)', '스킬 본문에 포함하여 깊은 사고 유도'] },
-    { feature: '"think harder"', values: ['더 깊은 사고 유도', '첫 답변이 불충분했을 때 재사고 요청'] },
+    { feature: '"think" 키워드', values: ['extended thinking 활성화 (~4K 토큰 예산)', '중간 복잡도 작업에 사고 과정 추가'] },
+    { feature: '"megathink" 키워드', values: ['더 깊은 사고 활성화 (~10K 토큰 예산)', '복잡한 분석이 필요한 작업'] },
+    { feature: '"ultrathink" / "think harder" / "think really hard" / "think very hard"', values: ['최대 사고 깊이 활성화 (~32K 토큰 예산)', 'v2.1.68에서 복원. 아키텍처 설계, 복잡한 디버깅 등'] },
     { feature: '"간단하게"', values: ['최소 사고로 빠른 응답', '단순한 수정, 보일러플레이트 생성'] },
     { feature: 'Plan Mode (Shift+Tab 2회 또는 /plan)', values: ['코드 수정 없이 분석/계획만', '구현 전 전략 수립, 코드베이스 탐색'] },
   ]}
 />
 
-<Callout type="info" title="ultrathink/megathink 키워드 변경 사항">
+<Callout type="info" title="ultrathink/megathink 키워드 — 최신 현황 (2026.03)">
   초기 Claude Code에서는 "think", "megathink", "ultrathink" 키워드로 사고 깊이를 제어했습니다.
-  현재는 extended thinking이 기본 활성화되어 있으며, `/model`에서 좌우 화살표로 effort level(low/medium/high)을
+  한때 ultrathink가 제거되었으나, 커뮤니티 피드백을 반영하여 **v2.1.68에서 ultrathink가 복원**되었습니다.
+  각 키워드의 토큰 예산: **think ~4K, megathink ~10K, ultrathink ~32K 토큰**.
+  "think harder", "think really hard", "think very hard" 등의 표현도 모두 ultrathink로 매핑됩니다.
+  Opus 4.6 모델은 기본적으로 medium effort로 동작하며, `/model`에서 좌우 화살표로 effort level(low/medium/high)을
   조정하거나 환경변수 `CLAUDE_CODE_EFFORT_LEVEL`로 설정할 수 있습니다. (API에서는 `max` 레벨도 지원)
-  다만, 스킬(SKILL.md) 본문에 "ultrathink"을 포함하면 해당 스킬에서
-  extended thinking이 활성화되는 기능은 여전히 공식 지원됩니다.
 </Callout>
 
 <CodeBlock
