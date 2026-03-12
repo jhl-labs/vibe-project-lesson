@@ -1480,7 +1480,7 @@ class TestUserAPI:
 
 <CodeBlock
   code={`# Dockerfile
-FROM python:3.12-slim AS base
+FROM python:3.13-slim AS base
 
 WORKDIR /app
 
@@ -1554,7 +1554,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: "pip"
 
       - name: Install dependencies

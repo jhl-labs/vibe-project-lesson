@@ -588,10 +588,10 @@ Testing Library를 사용하고 다음 케이스를 커버해:
   title="프론트엔드 테스트 레벨별 비교"
   headers={['레벨', '대상', '도구', '실행 속도', '커버리지']}
   rows={[
-    { feature: '단위 테스트', values: ['훅, 유틸 함수', 'Vitest / Jest', '매우 빠름 (ms)', '로직 검증'] },
+    { feature: '단위 테스트', values: ['훅, 유틸 함수', 'Vitest 4.x / Jest 30', '매우 빠름 (ms)', '로직 검증'] },
     { feature: '컴포넌트 테스트', values: ['개별 컴포넌트', 'Testing Library', '빠름 (ms~s)', '렌더링 + 인터랙션'] },
     { feature: '통합 테스트', values: ['페이지 단위', 'Testing Library + MSW', '보통 (s)', 'API 연동 포함'] },
-    { feature: 'E2E 테스트', values: ['사용자 시나리오', 'Playwright / Cypress', '느림 (s~min)', '전체 흐름'] },
+    { feature: 'E2E 테스트', values: ['사용자 시나리오', 'Playwright 1.58+ / Cypress', '느림 (s~min)', '전체 흐름'] },
   ]}
 />
 
@@ -829,7 +829,7 @@ function Dashboard() {
     { feature: 'Tailwind CSS', values: ['빠른 개발, 일관된 디자인 토큰', '긴 className, 학습 곡선', '대부분의 프로젝트, 특히 디자인 시스템'] },
     { feature: 'CSS Modules', values: ['스코프된 CSS, 기존 CSS 지식 활용', '타입 안전성 부족, 동적 스타일 어려움', 'CSS 전문 지식이 있는 팀'] },
     { feature: 'Styled Components', values: ['JS에서 동적 스타일, 테마 지원', '런타임 비용, 번들 크기 증가', '복잡한 테마, 동적 스타일 필요 시'] },
-    { feature: 'Vanilla Extract', values: ['타입 안전, 제로 런타임', '설정 복잡, 생태계 작음', '성능 중시 대규모 프로젝트'] },
+    { feature: 'Vanilla Extract', values: ['타입 안전, 제로 런타임', '설정 복잡, 생태계 상대적으로 작음', '성능 중시 대규모 프로젝트'] },
   ]}
 />
 
@@ -1157,10 +1157,10 @@ export function Dashboard() {
   title="프론트엔드 주요 도구 선택 가이드"
   headers={['카테고리', '추천 도구', '대안', '선택 기준']}
   rows={[
-    { feature: '번들러', values: ['Vite', 'webpack, Turbopack', 'Vite: 빠른 HMR, 간단한 설정'] },
-    { feature: '테스트', values: ['Vitest + Testing Library', 'Jest + Testing Library', 'Vitest: Vite 생태계 통합, 빠른 실행'] },
-    { feature: 'E2E', values: ['Playwright', 'Cypress', 'Playwright: 멀티 브라우저, 빠른 실행'] },
-    { feature: '상태 관리', values: ['Zustand + React Query', 'Redux Toolkit, Jotai', 'Zustand: 간결한 API, 작은 번들'] },
+    { feature: '번들러', values: ['Vite 7.x (Rolldown 기반)', 'webpack, Turbopack', 'Vite: 빠른 HMR, 간단한 설정'] },
+    { feature: '테스트', values: ['Vitest 4.x + Testing Library', 'Jest 30 + Testing Library', 'Vitest: Vite 생태계 통합, 빠른 실행'] },
+    { feature: 'E2E', values: ['Playwright 1.58+', 'Cypress', 'Playwright: 멀티 브라우저, 에이전트 친화 CLI'] },
+    { feature: '상태 관리', values: ['Zustand + TanStack Query', 'Redux Toolkit, Jotai', 'Zustand: 간결한 API, 작은 번들'] },
     { feature: '스타일링', values: ['Tailwind CSS', 'CSS Modules, Styled Components', 'Tailwind: 빠른 개발, 디자인 토큰'] },
     { feature: '폼 처리', values: ['React Hook Form + Zod', 'Formik + Yup', 'RHF: 렌더링 최적화, Zod: TS 통합'] },
     { feature: '컴포넌트 문서', values: ['Storybook', 'Docusaurus', 'Storybook: 인터랙티브 컴포넌트 문서'] },

@@ -548,9 +548,9 @@ export class Container {
   title="Express vs Fastify 비교"
   headers={['항목', 'Express', 'Fastify']}
   rows={[
-    { feature: '성능 (req/sec)', values: ['약 20,000~30,000', '약 48,000~80,000 ([공식 벤치마크](https://fastify.dev/benchmarks/))'] },
+    { feature: '성능 (req/sec)', values: ['약 20,000~25,000', '약 43,000~80,000 ([공식 벤치마크](https://fastify.dev/benchmarks/))'] },
     { feature: '생태계', values: ['가장 넓음 (10년+)', '빠르게 성장 중'] },
-    { feature: 'TypeScript 지원', values: ['@types/express 필요', '내장 타입 지원'] },
+    { feature: 'TypeScript 지원', values: ['@types/express 필요 (v5부터 개선)', '내장 타입 지원'] },
     { feature: '스키마 검증', values: ['별도 라이브러리 필요', 'JSON Schema 내장'] },
     { feature: 'Plugin 시스템', values: ['미들웨어 체인', '캡슐화된 플러그인'] },
     { feature: '학습 자료', values: ['매우 풍부', '충분함'] },
@@ -558,7 +558,7 @@ export class Container {
 />
 
 <Callout type="info" title="이 실습에서 Express를 선택한 이유">
-  Clean Architecture에서는 **프레임워크가 세부사항(detail)**입니다. Express든 Fastify든 Presentation Layer에만 영향을 미치고, Domain/Application Layer는 변경되지 않습니다. Express를 선택한 이유는 학습 자료가 가장 풍부하고, 대부분의 Node.js 개발자에게 익숙하기 때문입니다.
+  Clean Architecture에서는 **프레임워크가 세부사항(detail)**입니다. Express든 Fastify든 Presentation Layer에만 영향을 미치고, Domain/Application Layer는 변경되지 않습니다. Express 5.x(2024년 10월 출시)를 선택한 이유는 학습 자료가 가장 풍부하고, 대부분의 Node.js 개발자에게 익숙하기 때문입니다. Express 5는 Promise 기반 미들웨어와 향상된 보안을 제공합니다.
 </Callout>
 
 ### 여기서 배우는 것
@@ -707,6 +707,7 @@ npx prisma generate && npx prisma db push로 DB 초기화까지 해줘.`}
     { feature: '쿼리 스타일', values: ['객체 기반 API', 'Active Record / Repository', 'SQL-like 빌더'] },
     { feature: '학습 곡선', values: ['낮음', '중간', '낮음'] },
     { feature: '성능', values: ['좋음', '보통', '매우 좋음 (가벼움)'] },
+    { feature: '최신 버전 (2026.03)', values: ['7.x (Rust-free 아키텍처)', '0.3.x', '1.0.0-beta (v1 로드맵 진행 중)'] },
     { feature: 'Clean Architecture 친화도', values: ['높음 (Repository 패턴)', '높음 (Repository 패턴)', '중간 (쿼리 중심)'] },
   ]}
 />
