@@ -323,7 +323,7 @@ claude-code-action은 4가지 인증 방식을 지원합니다. 사용 환경에
     prompt: "이 PR을 리뷰해주세요"
     claude_args: >-
       --max-turns 10
-      --model claude-sonnet-4-20250514
+      --model claude-sonnet-4-6
       --allowedTools "Bash,Read,Write,Edit"
       --disallowedTools "WebFetch"
     # 참고: model, max-turns 등은 claude_args를 통해 CLI 옵션으로 전달합니다`}
@@ -825,7 +825,8 @@ claude-code-action이 PR에 남기는 리뷰 코멘트의 실제 모습입니다
 </Callout>
 
 - **max_turns 제한**: `claude_args: "--max-turns 10"`으로 에이전트 턴 수 제한
-- **모델 선택**: 간단한 작업에는 Sonnet 계열, 복잡한 작업에만 Opus 계열 사용
+- **모델 선택**: 간단한 작업에는 Haiku 4.5(`claude-haiku-4-5`)나 Sonnet 4.6(`claude-sonnet-4-6`)을, 복잡한 작업에만 Opus 4.8(`claude-opus-4-8`)을 사용
+- **노력(effort) 제어**: Opus 4.8은 effort 파라미터가 기본 `high`입니다. 간단한 작업에는 `/effort low`로 토큰 사용량을, 고난도 작업에만 `/effort xhigh`로 품질을 우선해 비용을 세밀하게 조절하세요
 - **경로 필터링**: `paths` 트리거로 불필요한 파일 변경 시 실행 방지
 - **트리거 조건**: `if` 조건으로 특정 상황에서만 실행
 - **job timeout-minutes**: GitHub Actions의 `timeout-minutes` 설정으로 비정상 실행 방지

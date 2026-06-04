@@ -205,7 +205,7 @@ IntelliJ IDEA, PyCharm, WebStorm, PhpStorm, GoLand, Android Studio를 지원합�
 />
 
 <Callout type="warning" title="JetBrains 플러그인은 베타">
-  2026년 3월 기준, JetBrains 플러그인은 아직 베타 상태입니다.
+  2026년 6월 기준, JetBrains 플러그인은 아직 베타 상태입니다.
   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/27310-claude-code-beta-)에서 최신 상태를 확인하세요.
   상세 문서는 [Claude Code JetBrains 문서](https://code.claude.com/docs/en/jetbrains)를 참조하세요.
 </Callout>
@@ -227,7 +227,7 @@ return {
     provider = "claude",
     claude = {
       endpoint = "https://api.anthropic.com",
-      model = "claude-sonnet-4-6-20260217",
+      model = "claude-sonnet-4-6",
       temperature = 0,
       max_tokens = 4096,
     },
@@ -594,9 +594,8 @@ alias cc='claude'
 alias ccc='claude --continue'
 alias ccr='claude --resume'
 
-# Bash 자동완성 (별도 플러그인 설치 필요)
-# https://github.com/cldotdev/claude-bash-completion 참조
-# Claude Code CLI 내부에서는 Tab 자동완성이 기본 지원됩니다
+# Bash 자동완성
+# Claude Code CLI 내부에서는 Tab으로 파일/경로 자동완성이 기본 지원됩니다
 
 # 프롬프트에 현재 프로젝트 표시
 parse_git_branch() {
@@ -656,7 +655,7 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
   },
   "env": {
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16384",
-    "ANTHROPIC_MODEL": "claude-sonnet-4-6-20260217"
+    "ANTHROPIC_MODEL": "claude-sonnet-4-6"
   },
   "preferredNotifChannel": "terminal_bell"
 }`}
@@ -713,7 +712,7 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
     ]
   },
   "env": {
-    "ANTHROPIC_MODEL": "claude-opus-4-5-20251101",
+    "ANTHROPIC_MODEL": "claude-opus-4-8",
     "DATABASE_URL": "postgresql://localhost:5432/mydb"
   }
 }`}
@@ -745,6 +744,29 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
 
 <Callout type="info" title="설정 문서">
   설정 시스템의 전체 구조와 옵션은 [Claude Code 설정 문서](https://code.claude.com/docs/en/settings)를 참조하세요.
+</Callout>
+
+### /usage 와 Auto mode
+
+2026년 들어 추가된 두 가지 설정 관련 기능입니다.
+
+<CodeBlock
+  code={`# 플랜 사용량을 항목별로 분해해 표시
+/usage
+# skill, subagent, plugin, MCP 서버 단위로 토큰/한도 소비를 확인할 수 있습니다.
+
+# Auto mode: 권한 프롬프트를 분류기가 자동 처리
+# 안전한 작업은 자동 실행, 위험한 작업은 차단합니다.
+# --dangerously-skip-permissions(전부 승인)와 수동 승인의 중간 단계입니다.
+# hard deny 규칙으로 절대 허용하지 않을 작업을 지정할 수 있습니다.`}
+  language="text"
+  filename="/usage 와 Auto mode"
+/>
+
+<Callout type="tip" title="Auto mode 활용">
+  Auto mode는 2026년 3월 research preview로 도입되어 이후 Pro 플랜까지 지원이 확대되었습니다.
+  반복적인 안전 작업(파일 읽기, 테스트 실행 등)은 자동 승인하되,
+  파괴적 명령은 hard deny 규칙으로 차단해 두면 흐름을 끊지 않으면서도 안전하게 작업할 수 있습니다.
 </Callout>
 
 ---
@@ -785,16 +807,16 @@ Claude Code는 계층적 설정 시스템을 사용합니다.
 # 각 프로젝트 루트에 .envrc 파일 생성
 
 # ~/projects/react-app/.envrc
-export ANTHROPIC_MODEL="claude-sonnet-4-6-20260217"
+export ANTHROPIC_MODEL="claude-sonnet-4-6"
 export NODE_ENV="development"
 
 # ~/projects/python-api/.envrc
-export ANTHROPIC_MODEL="claude-sonnet-4-6-20260217"
+export ANTHROPIC_MODEL="claude-sonnet-4-6"
 export VIRTUAL_ENV="$PWD/.venv"
 export PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # ~/projects/critical-service/.envrc
-export ANTHROPIC_MODEL="claude-opus-4-5-20251101"
+export ANTHROPIC_MODEL="claude-opus-4-8"
 # --max-turns는 CLI 플래그로 사용: claude --max-turns 50
 
 # direnv 설치 및 활성화
@@ -1181,7 +1203,7 @@ data/raw/
     { feature: '.claudeignore', values: ['선택', '권장', '필수'] },
     { feature: '서브트리 CLAUDE.md', values: ['불필요', '선택', '강력 권장'] },
     { feature: '.claude/rules/', values: ['불필요', '선택', '필수'] },
-    { feature: '모델 선택', values: ['Sonnet', 'Sonnet', 'Sonnet (Opus는 복잡한 작업만)'] },
+    { feature: '모델 선택', values: ['Sonnet 4.6', 'Sonnet 4.6', 'Sonnet 4.6 (복잡한 작업은 Opus 4.8)'] },
     { feature: 'max_output_tokens', values: ['기본값', '기본값', '필요 시 조정'] },
     { feature: '워크스페이스 분리', values: ['불필요', '선택', '모노레포 시 권장'] },
   ]}
@@ -1386,13 +1408,13 @@ echo "  3. /terminal-setup으로 키바인딩 설정"`}
   rows={[
     { feature: 'macOS', values: ['13.0 (Ventura) 이상', '네이티브 설치 권장'] },
     { feature: 'Linux', values: ['Ubuntu 20.04+ / Debian 10+', '네이티브 설치 권장'] },
-    { feature: 'Windows', values: ['Windows 10 1809+', 'Git Bash 필요, 네이티브 또는 WSL 실행'] },
+    { feature: 'Windows', values: ['Windows 10 1809+', '네이티브 또는 WSL 실행 (Git for Windows 불필요)'] },
   ]}
 />
 
 <Callout type="tip" title="Windows 네이티브 지원">
-  Windows에서는 네이티브 실행(Git Bash 필요) 또는 WSL 내 실행을 지원합니다.
-  네이티브 실행에는 [Git for Windows](https://git-scm.com/downloads/win)가 설치되어 있어야 합니다.
+  Windows에서는 네이티브 실행 또는 WSL 내 실행을 지원합니다.
+  더 이상 Git for Windows(Git Bash)가 필요하지 않습니다. Bash가 없는 환경에서는 Claude Code가 PowerShell을 shell 도구로 사용합니다.
   설치 방법: `irm https://claude.ai/install.ps1 | iex`
   상세 설정은 [Claude Code 설치 문서](https://code.claude.com/docs/en/setup)를 참조하세요.
 </Callout>
@@ -1457,6 +1479,7 @@ echo "  3. /terminal-setup으로 키바인딩 설정"`}
 | Shift+Enter | 터미널에서 Shift+Enter | 줄바꿈 |
 | IDE 확장 | 확장 패널 확인 | Claude Code 활성화 |
 | 설정 파일 | `/config` 실행 | 설정 목록 표시 |
+| 사용량 확인 | `/usage` 실행 | skill/subagent/MCP별 소비 표시 |
 | .claudeignore | `claude` 실행 시 속도 | node_modules 등 제외 |
 | CLAUDE.md | `/init` 또는 직접 작성 | 프로젝트 규칙 로드 |
 

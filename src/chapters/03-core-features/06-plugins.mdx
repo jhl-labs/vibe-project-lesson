@@ -100,6 +100,15 @@ Plugins는 Claude Code의 **공식 확장 패키징 시스템**입니다. 지금
 
 각 디렉토리는 선택 사항입니다. 커맨드만 제공하는 플러그인이라면 `commands/` 디렉토리와 매니페스트만 있으면 됩니다.
 
+<Callout type="tip" title="2026년 Plugins 워크플로우 개선">
+  최근 Claude Code는 플러그인 제작/배포 경험을 크게 단순화했습니다 (출처: [Claude Code What's New](https://code.claude.com/docs/en/release-notes), 2026.05).
+
+  - **`.claude/skills` 자동 로드**: 프로젝트의 `.claude/skills` 디렉토리에 둔 스킬은 마켓플레이스 없이 자동으로 로드됩니다.
+  - **`claude plugin init`**: 플러그인 골격(매니페스트, 디렉토리 구조)을 한 번에 스캐폴딩합니다.
+  - **`--plugin-dir`의 `.zip` 지원**: 디렉토리뿐 아니라 `.zip` 아카이브도 직접 로드할 수 있습니다.
+  - **`--plugin-url`**: 원격 아카이브 URL을 fetch하여 플러그인을 로드합니다.
+</Callout>
+
 ---
 
 ## Plugin 매니페스트 (plugin.json)
@@ -695,6 +704,12 @@ marketplace-repo/
   가장 간단한 방법은 GitHub 조직의 전용 저장소를 사용하는 것입니다.
 </Callout>
 
+<Callout type="info" title="공식 플러그인 예시: security-guidance">
+  Anthropic은 2026년 5월 **security-guidance** 플러그인을 공개했습니다 (출처: [Claude Code What's New](https://code.claude.com/docs/en/release-notes), 2026.05).
+  이 플러그인은 작업 중 Claude가 만든 변경사항을 **취약점 관점에서 리뷰**하여, 코드 작성 흐름 안에서 보안 이슈를 조기에 식별하도록 돕습니다.
+  팀 마켓플레이스를 구성할 때 이런 검증된 공식 플러그인을 기본 셋에 포함하는 것을 권장합니다.
+</Callout>
+
 ---
 
 ## 팀 플러그인 관리 전략
@@ -916,7 +931,7 @@ echo "[DEBUG] Input: $(cat)" >> /tmp/plugin-debug.log`}
 | Hook이 실행 안 됨 | 스크립트 권한 없음 | `chmod +x` 실행 권한 부여 |
 | Hook 경로 에러 | 상대 경로 기준 오류 | 플러그인 루트 기준 상대 경로 사용 |
 | MCP 서버 연결 실패 | 환경 변수 미설정 | `env:변수명` 형식으로 환경 변수 참조 확인 |
-| 설치 후 작동 안 함 | 버전 호환성 | Claude Code 최신 버전으로 업데이트 (`claude --version` 확인) |
+| 설치 후 작동 안 함 | 버전 호환성 | Claude Code 최신 안정 버전(2026.06 기준 v2.1.x, 예: 2.1.162)으로 업데이트 후 `claude --version` 확인 |
 | 스킬 자동 호출 안 됨 | description 누락 | SKILL.md 프론트매터의 description 필드 확인 |
 
 ### 플러그인 테스트 전략
@@ -1302,8 +1317,12 @@ claude plugin install team-review@my-marketplace
 # 보안 집중 리뷰
 /team-review:review-security src/api/
 
-# 심층 리뷰 에이전트 호출 (독립 서브에이전트)
-/team-review:deep-reviewer
+# 심층 리뷰 에이전트 호출 (서브에이전트)
+# 서브에이전트는 슬래시로 직접 호출하지 않습니다.
+# (1) description 기반 자동 위임: 아래처럼 자연어로 요청하면
+#     deep-reviewer의 description과 매칭되어 Claude가 자동 위임합니다.
+"전체 코드베이스를 심층 리뷰해줘"
+# (2) 또는 Task 도구로 명시적으로 deep-reviewer 서브에이전트를 지정해 실행합니다.
 
 # 빠른 리뷰 (자동 매칭 — description 기반)
 # "변경된 파일 빠르게 리뷰해줘" 입력 시 자동 호출`}

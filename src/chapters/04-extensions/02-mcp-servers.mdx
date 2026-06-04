@@ -78,7 +78,7 @@ MCP 서버는 Claude Code에 **외부 도구와 데이터 소스를 연결**하�
     { server: 'Linear', provider: 'Linear', description: '프로젝트 관리, 이슈 추적', transport: 'HTTP' },
     { server: 'Prisma', provider: 'Prisma', description: '데이터베이스 스키마 관리, 마이그레이션', transport: 'stdio' },
     { server: 'DBHub', provider: 'Bytebase', description: 'DB 쿼리 실행 (PostgreSQL, MySQL, MariaDB, SQL Server, SQLite 지원)', transport: 'stdio' },
-    { server: 'Puppeteer', provider: 'Anthropic', description: '브라우저 자동화, 스크린샷, 웹 스크래핑 (archived)', transport: 'stdio' },
+    { server: 'Puppeteer', provider: 'Reference 서버', description: '브라우저 자동화, 스크린샷, 웹 스크래핑 (archived)', transport: 'stdio' },
   ]}
 />
 
@@ -469,7 +469,7 @@ claude mcp add --transport stdio memory -- \\
 
 2. **최소 권한 원칙**: 필요한 서버만 활성화하세요. 사용하지 않는 서버는 `disabled: true`로 비활성화합니다.
 
-3. **.mcp.json은 .gitignore에 추가**: 실제 설정 파일에 민감한 정보가 포함될 수 있으므로 Git에 커밋하지 마세요. 대신 `.mcp.json.example`을 템플릿으로 제공합니다.
+3. **시크릿이 하드코딩된 .mcp.json만 .gitignore에 추가**: 시크릿을 `${VAR}` 형식의 환경 변수 참조로만 두면 `.mcp.json`을 저장소에 커밋하는 것은 팀 공유를 위한 정상적인 패턴입니다(앞의 "팀 공유용" 절 참조). 다만 토큰/키를 파일에 직접 하드코딩한 경우에는 절대 커밋하지 말고 `.gitignore`에 추가한 뒤, `.mcp.json.example`을 템플릿으로 제공하세요.
 
 4. **DB 접근 제한**: 프로덕션 DB에 직접 연결하지 마세요. 반드시 **읽기 전용 계정**을 사용하고, 가능하면 개발/스테이징 환경의 DB를 사용합니다.
 
@@ -478,13 +478,14 @@ claude mcp add --transport stdio memory -- \\
 6. **서드파티 서버 검증**: 커뮤니티 서버를 사용할 때는 소스 코드를 확인하고, 어떤 데이터에 접근하는지 파악한 후 사용하세요.
 
 <CodeBlock
-  code={`# .gitignore에 추가
+  code={`# 시크릿을 파일에 하드코딩한 경우에만 .gitignore에 추가
+# (시크릿을 \${VAR} 환경 변수 참조로만 두었다면 .mcp.json은 커밋해도 됨)
 .mcp.json
 
 # .mcp.json.example은 커밋 (템플릿으로 제공)
 !.mcp.json.example`}
   language="bash"
-  filename=".gitignore 설정"
+  filename=".gitignore 설정 (시크릿 하드코딩 시)"
 />
 
 ### 보안 설정 예시
@@ -845,7 +846,7 @@ GitHub MCP 서버는 OAuth 기반으로 동작하며, 리포지토리 관리, �
   code={`# GitHub MCP 서버 설정
 claude mcp add --transport http github https://api.githubcopilot.com/mcp/
 
-# 제공되는 주요 도구 (30개 이상):
+# 제공되는 주요 도구 (예시 — 도구 구성과 이름은 서버 버전에 따라 다를 수 있음):
 # 리포지토리: create_repository, fork_repository, list_commits
 # 이슈: create_issue, list_issues, update_issue, add_issue_comment
 # PR: create_pull_request, list_pull_requests, merge_pull_request
@@ -1971,7 +1972,7 @@ claude mcp add --transport http devtools \\
   rows={[
     { feature: '인증 정보', values: ['환경 변수 참조 (${VAR})', '.mcp.json에 직접 기입'] },
     { feature: '팀 설정 공유', values: ['.mcp.json을 저장소에 커밋', '각자 수동으로 설정'] },
-    { feature: '민감한 설정', values: ['.mcp.json.example 템플릿 제공', '.mcp.json을 그대로 커밋'] },
+    { feature: '민감한 설정', values: ['시크릿은 ${VAR} 참조 후 .mcp.json 커밋', '시크릿을 하드코딩한 채 커밋'] },
     { feature: 'DB 접근', values: ['읽기 전용 계정, 개발 DB', '프로덕션 DB 직접 연결'] },
     { feature: '서버 범위', values: ['필요한 서버만 활성화', '모든 서버 상시 활성화'] },
     { feature: '파일 접근', values: ['허용 디렉토리 명시', '루트(/) 접근 허용'] },

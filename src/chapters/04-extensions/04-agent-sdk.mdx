@@ -90,7 +90,7 @@ claude -p "package.json의 의존성을 분석해줘" --output-format json
 # {
 #   "type": "result",
 #   "subtype": "success",
-#   "cost_usd": 0.003,
+#   "total_cost_usd": 0.003,
 #   "is_error": false,
 #   "duration_ms": 2500,
 #   "duration_api_ms": 2100,
@@ -161,7 +161,7 @@ claude -p "src/auth.ts 파일을 리뷰해줘" \\
 #   "result": "분석 텍스트...",
 #   "structured_output": {"severity":"warning","issues":[{"line":15,...}],"summary":"...","score":72},
 #   "session_id": "...",
-#   "cost_usd": 0.005
+#   "total_cost_usd": 0.005
 # }
 
 # jq로 파싱하여 활용
@@ -176,6 +176,8 @@ claude -p "코드를 분석해줘" \\
 <Callout type="tip" title="JSON Schema 활용 팁">
   구조화된 출력은 자동화 파이프라인에서 결과를 파싱할 때 가장 유용합니다.
   예를 들어, CI에서 코드 리뷰 결과의 score가 일정 기준 이하이면 빌드를 실패시키는 등의 로직을 구현할 수 있습니다.
+
+  파싱 방식은 한 가지로 통일하세요. `--json-schema`를 지정하면 파싱된 객체가 최상위 `structured_output` 필드에 담기므로, jq에서는 `jq -r ".structured_output.score"`처럼 직접 접근하면 됩니다(`.result | fromjson` 같은 이중 파싱 불필요). 비용은 `total_cost_usd` 필드로 통일되어 있습니다. Agent SDK에서도 동일하게 `message.structured_output`과 `message.total_cost_usd`를 사용합니다.
 </Callout>
 
 ### 도구 자동 승인 전략
@@ -322,7 +324,7 @@ claude -p "전체 인증 모듈을 리팩토링해줘" \\
 
 # 모델 선택과 함께 사용
 claude -p "이 버그를 진단하고 수정해줘" \\
-  --model claude-sonnet-4-20250514 \\
+  --model claude-sonnet-4-6 \\
   --max-turns 10 \\
   --allowedTools "Read,Edit,Bash(npm test),Bash(npm run lint)"`}
   language="bash"
@@ -331,7 +333,7 @@ claude -p "이 버그를 진단하고 수정해줘" \\
 
 ## Agent SDK 심화 가이드
 
-**Claude Agent SDK**(구 Claude Code SDK)는 Python과 TypeScript 패키지로 제공되며, Claude Code를 프로그래밍 방식으로 완전히 제어할 수 있습니다. 2025년 말 범용 에이전트 런타임으로 리브랜딩되었으며, CLI `-p` 플래그보다 훨씬 정교한 제어가 가능합니다. 2026년 3월 현재 TypeScript는 npm v0.2.x, Python은 PyPI v0.1.x 버전입니다.
+**Claude Agent SDK**(구 Claude Code SDK)는 Python과 TypeScript 패키지로 제공되며, Claude Code를 프로그래밍 방식으로 완전히 제어할 수 있습니다. 2025년 말 범용 에이전트 런타임으로 리브랜딩되었으며, CLI `-p` 플래그보다 훨씬 정교한 제어가 가능합니다. 패키지 버전은 빠르게 갱신되므로, npm(`@anthropic-ai/claude-agent-sdk`)과 PyPI(`claude-agent-sdk`)의 최신 릴리스를 설치 시점에 확인하세요.
 
 <MermaidDiagram
   chart={`flowchart LR
@@ -658,9 +660,9 @@ jobs:
             --allowedTools "Read,Glob,Grep" \\
             --max-turns 5)
 
-          # 결과 파싱
-          SCORE=$(echo "$REVIEW" | jq -r '.result | fromjson | .score')
-          CRITICALS=$(echo "$REVIEW" | jq -r '.result | fromjson | .critical_issues | length')
+          # 결과 파싱 (--json-schema 사용 시 structured_output에 파싱된 객체가 담김)
+          SCORE=$(echo "$REVIEW" | jq -r '.structured_output.score')
+          CRITICALS=$(echo "$REVIEW" | jq -r '.structured_output.critical_issues | length')
 
           echo "리뷰 점수: $SCORE"
           echo "심각한 이슈: $CRITICALS개"
@@ -668,7 +670,7 @@ jobs:
           # 심각한 이슈가 있으면 실패
           if [ "$CRITICALS" -gt 0 ]; then
             echo "::error::심각한 이슈가 발견되었습니다"
-            echo "$REVIEW" | jq -r '.result | fromjson | .critical_issues[]'
+            echo "$REVIEW" | jq -r '.structured_output.critical_issues[]'
             exit 1
           fi
 
@@ -840,8 +842,8 @@ RESULT=$(echo "$DIFF" | claude -p "다음 코드 변경사항을 리뷰해주세
   --allowedTools "Read,Glob,Grep" \\
   --max-turns 5)
 
-# 결과 출력
-PARSED=$(echo "$RESULT" | jq -r '.result | fromjson')
+# 결과 출력 (--json-schema 사용 시 structured_output에 파싱된 객체가 담김)
+PARSED=$(echo "$RESULT" | jq -r '.structured_output')
 SCORE=$(echo "$PARSED" | jq '.score')
 CRITICAL_COUNT=$(echo "$PARSED" | jq '[.issues[] | select(.severity == "critical")] | length')
 
@@ -898,8 +900,8 @@ subject: 변경 요약 (50자 이내)
   --allowedTools "Read" \\
   --max-turns 2)
 
-TITLE=$(echo "$COMMIT_MSG" | jq -r '.result | fromjson | .title')
-BODY=$(echo "$COMMIT_MSG" | jq -r '.result | fromjson | .body')
+TITLE=$(echo "$COMMIT_MSG" | jq -r '.structured_output.title')
+BODY=$(echo "$COMMIT_MSG" | jq -r '.structured_output.body')
 
 echo "=== 생성된 커밋 메시지 ==="
 echo "$TITLE"
@@ -961,7 +963,7 @@ while true; do
       --allowedTools "Read" \\
       --max-turns 3)
 
-    PARSED=$(echo "$ANALYSIS" | jq -r '.result | fromjson')
+    PARSED=$(echo "$ANALYSIS" | jq -r '.structured_output')
     SEVERITY=$(echo "$PARSED" | jq -r '.severity')
 
     # critical 또는 high 심각도일 때만 Slack 알림
@@ -1137,8 +1139,8 @@ $SOURCE_LANG에서 $LANG으로 번역해주세요.
     --allowedTools "Read" \\
     --max-turns 2)
 
-  # 번역 결과를 파일로 저장
-  echo "$RESULT" | jq -r '.result | fromjson' > "$TARGET_FILE"
+  # 번역 결과를 파일로 저장 (structured_output에 파싱된 객체가 담김)
+  echo "$RESULT" | jq -r '.structured_output' > "$TARGET_FILE"
   echo "완료: $TARGET_FILE"
 done
 
@@ -1307,7 +1309,7 @@ ANALYSIS=$(cat /tmp/audit-result.json | claude -p "이 npm audit 결과를 분�
   --allowedTools "Read" \\
   --max-turns 3)
 
-PARSED=$(echo "$ANALYSIS" | jq -r '.result | fromjson')
+PARSED=$(echo "$ANALYSIS" | jq -r '.structured_output')
 RISK=$(echo "$PARSED" | jq -r '.risk_level')
 
 echo "=== 분석 결과 ==="
@@ -1376,7 +1378,7 @@ for FILE in $NEW_MIGRATIONS; do
     --allowedTools "Read" \\
     --max-turns 3)
 
-  PARSED=$(echo "$RESULT" | jq -r '.result | fromjson')
+  PARSED=$(echo "$RESULT" | jq -r '.structured_output')
   SAFE=$(echo "$PARSED" | jq -r '.safe')
   LOCK_RISK=$(echo "$PARSED" | jq -r '.lock_risk')
 
@@ -1610,7 +1612,7 @@ async function multiAgentPipeline(task: string) {
 3. 예상 테스트 범위
 를 JSON으로 반환하세요.\`,
       options: {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         maxTurns: 10,
         allowedTools: ["Read", "Glob", "Grep"],
         outputFormat: {
@@ -1653,7 +1655,7 @@ async function multiAgentPipeline(task: string) {
 
 각 파일을 계획대로 수정하고, 테스트도 함께 작성하세요.\`,
       options: {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         maxTurns: 20,
         allowedTools: ["Read", "Edit", "Glob", "Bash(npm test)"],
       },
@@ -1675,7 +1677,7 @@ async function multiAgentPipeline(task: string) {
 3. 테스트가 충분한지 평가
 4. 최종 승인 여부를 판단해주세요.\`,
       options: {
-        model: "claude-opus-4-5-20251101",
+        model: "claude-opus-4-8",
         maxTurns: 10,
         allowedTools: ["Read", "Glob", "Grep", "Bash(npm test)"],
         outputFormat: {
@@ -1897,9 +1899,9 @@ ESTIMATE=$(claude -p "다음 작업의 예상 복잡도를 판단해주세요: $
   --allowedTools "Read,Glob" \\
   --max-turns 2)
 
-COMPLEXITY=$(echo "$ESTIMATE" | jq -r '.result | fromjson | .complexity')
-EST_TURNS=$(echo "$ESTIMATE" | jq -r '.result | fromjson | .estimated_turns')
-ESTIMATE_COST=$(echo "$ESTIMATE" | jq -r '.cost_usd')
+COMPLEXITY=$(echo "$ESTIMATE" | jq -r '.structured_output.complexity')
+EST_TURNS=$(echo "$ESTIMATE" | jq -r '.structured_output.estimated_turns')
+ESTIMATE_COST=$(echo "$ESTIMATE" | jq -r '.total_cost_usd')
 
 echo "복잡도: $COMPLEXITY"
 echo "예상 턴 수: $EST_TURNS"
@@ -1908,15 +1910,15 @@ echo "추정 단계 비용: \$$ESTIMATE_COST"
 # 복잡도에 따라 모델과 턴 수 조정
 case "$COMPLEXITY" in
   "low")
-    MODEL="claude-sonnet-4-20250514"
+    MODEL="claude-haiku-4-5"
     MAX_TURNS=$((EST_TURNS + 2))
     ;;
   "medium")
-    MODEL="claude-sonnet-4-20250514"
+    MODEL="claude-sonnet-4-6"
     MAX_TURNS=$((EST_TURNS + 5))
     ;;
   "high")
-    MODEL="claude-opus-4-5-20251101"
+    MODEL="claude-opus-4-8"
     MAX_TURNS=$((EST_TURNS + 10))
     ;;
 esac
@@ -1931,7 +1933,7 @@ RESULT=$(claude -p "$TASK" \\
   --output-format json \\
   --allowedTools "Read,Edit,Bash(npm test)")
 
-ACTUAL_COST=$(echo "$RESULT" | jq -r '.cost_usd')
+ACTUAL_COST=$(echo "$RESULT" | jq -r '.total_cost_usd')
 echo ""
 echo "=== 실행 완료 ==="
 echo "실제 비용: \$$ACTUAL_COST"`}
@@ -2048,7 +2050,7 @@ echo "$RESULT" | jq '.session_id'
 # 문제 4: 비용 초과
 # 원인: max-turns 미설정, 복잡한 작업
 # 해결:
-claude -p "작업해줘" --max-turns 10 --model claude-sonnet-4-20250514
+claude -p "작업해줘" --max-turns 10 --model claude-sonnet-4-6
 
 # 문제 5: 타임아웃
 # 원인: 작업이 너무 오래 걸림
@@ -2063,6 +2065,40 @@ head -1000 large-file.log | claude -p "최근 에러를 분석해줘"`}
   filename="트러블슈팅 가이드"
 />
 
+## 2026 클라우드 자동화 기능
+
+직접 스크립트를 작성하는 Headless/SDK 방식 외에도, Claude Code는 2026년에 들어 별도 인프라 없이 자동화를 구성할 수 있는 내장 기능을 확장했습니다. 반복 작업이나 PR 게이트를 빠르게 구성할 때 먼저 검토할 만한 옵션입니다.
+
+<ComparisonTable
+  title="2026 내장 자동화 기능"
+  headers={['기능', '설명', '용도']}
+  rows={[
+    { feature: 'Routines (웹)', values: ['스케줄/GitHub 이벤트/API 호출로 템플릿 클라우드 에이전트를 실행', '정기 리포트, 이벤트 기반 트리거 — 직접 크론/큐 구축 대체'] },
+    { feature: '/code-review --fix', values: ['correctness 버그를 보고하고 --fix로 수정까지 적용', 'PR 게이트, 로컬 리뷰 (이전 /simplify에서 이름 변경)'] },
+    { feature: 'claude ultrareview', values: ['클라우드에서 버그 헌팅 에이전트 fleet을 실행하고 결과를 CLI/Desktop으로 자동 전달', '대규모 리뷰, CI/스크립트에서도 호출 가능'] },
+    { feature: 'security-guidance 플러그인', values: ['작업 중 변경사항을 취약점 관점에서 자동 리뷰', '보안 게이트'] },
+  ]}
+/>
+
+<CodeBlock
+  code={`# 로컬/CI에서 correctness 버그 리뷰 후 수정까지 적용
+claude /code-review --fix
+
+# 클라우드 fleet으로 심층 버그 헌팅 — 결과가 CLI/Desktop으로 자동 전달
+claude ultrareview
+
+# CI 스텝에서 비대화형으로 호출하는 예시
+claude -p "/code-review" --allowedTools "Read,Glob,Grep" --max-turns 5`}
+  language="bash"
+  filename="2026 클라우드 자동화 명령어"
+/>
+
+<Callout type="tip" title="언제 무엇을 쓸까">
+  단순한 정기 작업이나 이벤트 트리거는 **Routines**로 충분합니다.
+  PR마다 자동 리뷰가 필요하면 **/code-review --fix**를, 릴리스 전 대규모 버그 헌팅이 필요하면 **claude ultrareview**를 고려하세요.
+  세밀한 도구 제어, 멀티 에이전트 오케스트레이션, 커스텀 출력 파싱이 필요할 때 비로소 Headless/Agent SDK 직접 구현으로 내려가는 것이 효율적입니다.
+</Callout>
+
 ## CLI 옵션 전체 레퍼런스
 
 <ComparisonTable
@@ -2075,7 +2111,7 @@ head -1000 large-file.log | claude -p "최근 에러를 분석해줘"`}
     { feature: '--allowedTools', values: ['자동 승인할 도구 목록', '--allowedTools "Read,Edit"'] },
     { feature: '--disallowedTools', values: ['차단할 도구 목록', '--disallowedTools "Bash"'] },
     { feature: '--max-turns', values: ['최대 에이전트 턴 수', '--max-turns 10'] },
-    { feature: '--model', values: ['사용할 모델 지정', '--model claude-sonnet-4-20250514'] },
+    { feature: '--model', values: ['사용할 모델 지정', '--model claude-sonnet-4-6'] },
     { feature: '--continue', values: ['가장 최근 대화 이어서', '--continue'] },
     { feature: '--resume', values: ['특정 세션 재개', '--resume "session-id"'] },
     { feature: '--system-prompt', values: ['시스템 프롬프트 교체', '--system-prompt "역할 설명"'] },

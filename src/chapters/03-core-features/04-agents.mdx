@@ -638,25 +638,26 @@ Authorization: Bearer <token>
 
 <CodeBlock
   code={`## 서브에이전트 성능 지표
+# 아래 목표치는 공식 수치가 아닌 경험적 권장 기준입니다 — 팀/프로젝트 특성에 맞게 조정하세요.
 
 ### 1. 완료율 (Completion Rate)
 - 서브에이전트에 위임한 작업 중 성공적으로 완료된 비율
-- 목표: 90% 이상
+- 권장 기준(예시): 90% 이상
 - 낮다면: 프롬프트 품질 또는 도구 권한 문제
 
 ### 2. 결과 활용률 (Utilization Rate)
 - 서브에이전트 결과가 실제로 코드에 반영된 비율
-- 목표: 70% 이상
+- 권장 기준(예시): 70% 이상
 - 낮다면: 서브에이전트의 전문성 정의 재검토 필요
 
 ### 3. 토큰 효율성 (Token Efficiency)
 - 작업 복잡도 대비 소비된 토큰 수
 - 동일 작업을 메인 에이전트가 직접 처리했을 때와 비교
-- 서브에이전트가 3배 이상 토큰을 소비한다면 프롬프트 최적화 필요
+- 경험상 서브에이전트가 직접 처리 대비 토큰을 과도하게(예: 수 배 이상) 소비한다면 프롬프트 최적화 필요
 
 ### 4. 반복 수정 횟수 (Iteration Count)
 - 서브에이전트 결과를 수정해야 했던 횟수
-- 목표: 1회 이하
+- 권장 기준(예시): 1회 이하
 - 높다면: 프롬프트에 예시와 제약 조건 추가`}
   language="markdown"
   filename="서브에이전트 성능 모니터링"
@@ -672,16 +673,20 @@ Authorization: Bearer <token>
 
 <ComparisonTable
   title="서브에이전트 모델 선택 가이드"
-  headers={['작업 유형', '권장 모델', '이유', '예상 비용 절감']}
+  headers={['작업 유형', '권장 모델', '이유', '토큰 단가 절감 (Opus 대비)']}
   rows={[
-    { feature: '코드베이스 탐색 (Explore)', values: ['Haiku', '단순 검색과 패턴 매칭', 'Opus 대비 약 80% 절감'] },
-    { feature: '구현 전략 수립 (Plan)', values: ['Sonnet', '분석력과 비용의 균형', 'Opus 대비 약 40% 절감'] },
-    { feature: '보안 분석', values: ['Opus', '높은 정확도 필수', '비용 절감 없음 (정확도 우선)'] },
-    { feature: '테스트 코드 생성', values: ['Sonnet', '패턴 기반 코드 생성', 'Opus 대비 약 40% 절감'] },
-    { feature: '문서 생성', values: ['Sonnet', '충분한 텍스트 생성 능력', 'Opus 대비 약 40% 절감'] },
-    { feature: '복합 리팩토링', values: ['Opus', '복잡한 의존성 분석 필요', '비용 절감 없음 (품질 우선)'] },
+    { feature: '코드베이스 탐색 (Explore)', values: ['Haiku', '단순 검색과 패턴 매칭', '80% 저렴 ($1/$5 vs $5/$25)'] },
+    { feature: '구현 전략 수립 (Plan)', values: ['Sonnet', '분석력과 비용의 균형', '40% 저렴 ($3/$15 vs $5/$25)'] },
+    { feature: '보안 분석', values: ['Opus', '높은 정확도 필수', '절감 없음 (정확도 우선)'] },
+    { feature: '테스트 코드 생성', values: ['Sonnet', '패턴 기반 코드 생성', '40% 저렴 ($3/$15 vs $5/$25)'] },
+    { feature: '문서 생성', values: ['Sonnet', '충분한 텍스트 생성 능력', '40% 저렴 ($3/$15 vs $5/$25)'] },
+    { feature: '복합 리팩토링', values: ['Opus', '복잡한 의존성 분석 필요', '절감 없음 (품질 우선)'] },
   ]}
 />
+
+<Callout type="info" title="단가 기준">
+  위 절감률은 2026년 6월 공식 1M 토큰당 가격(Opus 4.8 $5/$25, Sonnet 4.6 $3/$15, Haiku 4.5 $1/$5)에 근거한 단가 차이입니다. 실제 작업 비용은 모델별 토큰 소비량에 따라 달라집니다 (출처: [Claude 모델 가격](https://platform.claude.com/docs/en/about-claude/models)).
+</Callout>
 
 ### 모델 지정 방법
 
@@ -747,7 +752,8 @@ model: sonnet         # 문서 생성은 중간 모델로 균형
 />
 
 <Callout type="info" title="비용 참고">
-  2026년 2월 기준, Opus는 입출력 토큰 모두 Sonnet 대비 약 1.7배, Haiku 대비 약 5배 높은 비용입니다.
+  2026년 6월 공식 가격(1M 토큰당 input/output)은 Opus 4.8 $5/$25, Sonnet 4.6 $3/$15, Haiku 4.5 $1/$5입니다 (출처: [Claude 모델 가격](https://platform.claude.com/docs/en/about-claude/models)).
+  즉 input/output 모두 Opus는 Sonnet 대비 약 1.67배, Haiku 대비 5배 높습니다.
   탐색 작업에 Opus를 사용하는 것은 불필요한 비용 낭비이며,
   보안 분석에 Haiku를 사용하면 취약점을 놓칠 수 있습니다.
   **작업의 중요도와 복잡도에 따라 적절한 모델을 배치하세요.**
@@ -757,7 +763,7 @@ model: sonnet         # 문서 생성은 중간 모델로 균형
 
 ## Agent Teams — 멀티 에이전트 협업 (2026년 2월~)
 
-2026년 2월 Claude Opus 4.6과 함께 출시된 **Agent Teams**는 서브에이전트의 진화형입니다. 기존 서브에이전트가 "메인 에이전트 → 서브에이전트"의 일방향 위임이었다면, Agent Teams는 **여러 Claude 인스턴스가 팀으로 직접 협력**하는 네이티브 멀티 에이전트 시스템입니다.
+2026년 2월 Claude Opus 4.6과 함께 처음 출시된 **Agent Teams**는 서브에이전트의 진화형입니다. 기존 서브에이전트가 "메인 에이전트 → 서브에이전트"의 일방향 위임이었다면, Agent Teams는 **여러 Claude 인스턴스가 팀으로 직접 협력**하는 네이티브 멀티 에이전트 시스템입니다. (2026년 6월 현재 권장 기본 모델은 Opus 4.8이며, Agent Teams의 팀 리드/팀원에도 Opus 4.8을 사용할 수 있습니다.)
 
 <Callout type="info" title="서브에이전트 vs Agent Teams">
   **서브에이전트**: 메인 세션이 Task 도구로 서브태스크 위임. 결과만 돌아옴. 서브에이전트끼리 통신 불가.
@@ -962,6 +968,32 @@ wait`}
   filename="Headless Mode 병렬 실행"
 />
 
+### Dynamic Workflows — 스크립트로 수십~수백 서브에이전트 오케스트레이션
+
+위의 수동 병렬 실행을 한 단계 더 자동화한 것이 **Dynamic Workflows**입니다 (2026년 5월, Opus 4.8과 함께 도입). 개발자가 직접 `&`로 프로세스를 띄우는 대신, **Claude이 스크립트를 작성해 수십~수백 개의 서브에이전트를 백그라운드에서 오케스트레이션**합니다. 대규모 마이그레이션이나 코드베이스 전반 스캔처럼 동질적인 작업이 매우 많을 때, 작업을 잘게 나눠 대량의 서브에이전트로 병렬 처리하고 결과를 취합합니다.
+
+<Callout type="tip" title="언제 Dynamic Workflows를 쓰는가">
+  Agent Teams가 "소수의 팀원이 서로 통신하며 협업"하는 데 적합하다면, Dynamic Workflows는 "독립적인 동질 작업이 수십~수백 건"일 때 적합합니다.
+  예: 모든 파일에 대한 일괄 패턴 치환, 수백 개 테스트의 분산 실행, 대규모 deprecated API 마이그레이션.
+  Claude이 스크립트로 분배·실행·취합을 관리하므로 사람이 프로세스를 일일이 띄울 필요가 없습니다.
+</Callout>
+
+### Agent View — 모든 세션 한눈에 보기 (`claude agents`)
+
+병렬 서브에이전트와 백그라운드 작업이 많아지면 진행 상황 파악이 어려워집니다. **Agent View**(`claude agents`, 2026년 5월 도입)는 실행 중인 모든 Claude Code 세션을 **한 화면에서** 보여줍니다. 각 세션의 상태(실행 중 / 대기 / 완료)를 한눈에 확인하고, 필요한 세션으로 전환할 수 있습니다.
+
+<CodeBlock
+  code={`# 실행 중인 모든 Claude Code 세션을 한 화면에서 확인
+claude agents
+
+# 표시 정보 예:
+# - 각 세션의 작업 요약
+# - 상태: 실행 중 / 대기(입력 필요) / 완료
+# - 세션 간 빠른 전환`}
+  language="bash"
+  filename="Agent View (claude agents)"
+/>
+
 ---
 
 ## 실전 사례: 대규모 리팩토링에서의 에이전트 팀 구성
@@ -1130,7 +1162,7 @@ Anthropic 엔지니어링 블로그에서 공개한 **Agent Teams의 가장 인�
 | 항목 | 내용 |
 |------|------|
 | **목표** | Linux 커널을 컴파일할 수 있는 Rust 기반 C 컴파일러를 처음부터 구축 |
-| **에이전트 수** | 16개 Claude Opus 4.6 인스턴스 |
+| **에이전트 수** | 16개 인스턴스 (당시 최신 모델인 Claude Opus 4.6 사용, 2026.02) |
 | **세션 수** | 약 2,000회 Claude Code 세션 |
 | **비용** | $20,000 API 비용 |
 | **결과물** | 100,000줄의 컴파일러 코드 |
@@ -1139,8 +1171,8 @@ Anthropic 엔지니어링 블로그에서 공개한 **Agent Teams의 가장 인�
 | **추가 검증** | 클래식 게임 Doom 컴파일 및 실행 성공 |
 
 <Callout type="info" title="출처">
-  Nicholas Carlini(Anthropic 안전성 연구원)의 공식 엔지니어링 블로그 포스트:
-  [Building a C compiler with Claude](https://www.anthropic.com/engineering/building-c-compiler)
+  Nicholas Carlini(Anthropic 안전성 연구원)의 공식 엔지니어링 블로그 포스트 (2026.02): [Building a C compiler with Claude](https://www.anthropic.com/engineering/building-c-compiler)
+  당시 최신 모델이던 Opus 4.6으로 수행된 역사적 사례이며, 16개 에이전트·약 2,000회 Claude Code 세션·약 $20,000 비용·약 100,000줄 컴파일러 코드라는 수치는 이 글에 근거합니다.
 </Callout>
 
 ### 작업 방식
@@ -1426,7 +1458,7 @@ asyncio.run(main())`}
 
 ## 개요
 
-**Agent Teams**는 2026년 2월 5일 Claude Opus 4.6과 함께 출시된 Claude Code의 **네이티브 멀티 에이전트 협업 기능**입니다. 기존 서브에이전트가 메인 에이전트에서 서브에이전트로의 일방향 위임이었다면, Agent Teams는 하나의 **팀 리드(Team Lead)**가 여러 **팀원(Teammates)**을 생성하고 조율하며, 팀원들이 서로 직접 메시지를 교환하는 완전한 멀티 에이전트 시스템입니다.
+**Agent Teams**는 2026년 2월 5일 Claude Opus 4.6과 함께 처음 출시된 Claude Code의 **네이티브 멀티 에이전트 협업 기능**입니다. 이후 모델 세대가 갱신되어, 2026년 6월 현재는 Opus 4.8을 팀 리드/팀원에 사용할 수 있습니다. 기존 서브에이전트가 메인 에이전트에서 서브에이전트로의 일방향 위임이었다면, Agent Teams는 하나의 **팀 리드(Team Lead)**가 여러 **팀원(Teammates)**을 생성하고 조율하며, 팀원들이 서로 직접 메시지를 교환하는 완전한 멀티 에이전트 시스템입니다.
 
 각 팀원은 독립적인 Claude Code 인스턴스로 실행되며, 자체 컨텍스트 윈도우를 보유합니다. 팀원들은 **공유 작업 목록(Task List)**과 **메일박스(Messaging)** 메커니즘을 통해 실시간으로 협업합니다.
 
@@ -1447,7 +1479,7 @@ Agent Teams의 핵심 아키텍처는 팀 리드를 중심으로 팀원들이 �
 <MermaidDiagram
   chart={`flowchart TB
     subgraph TeamLead["팀 리드 (Team Lead)"]
-      TL["작업 조율 & 할당\n모델: Opus 4.6\n공유 작업 목록 관리"]
+      TL["작업 조율 & 할당\n모델: Opus 4.8\n공유 작업 목록 관리"]
     end
     subgraph Teammates["팀원 (Teammates)"]
       T1["팀원 1\n프론트엔드\n독립 컨텍스트"]
@@ -2212,14 +2244,19 @@ Agent Teams는 각 팀원이 독립적인 Claude Code 인스턴스이므로 비�
 - 팀원 간 메시지: 추가 토큰 소비
 - 공유 작업 목록: 상태 동기화를 위한 토큰 소비
 
-### 비용 추정 공식 (대략적)
+### 비용 추정 공식 (개념적 — 실제 값은 토큰 소비량에 따라 달라짐)
 총 비용 ≈ (팀 리드 비용) + (팀원 수 x 평균 팀원 비용) + (메시지 오버헤드)
 
-### 예시: 3명 팀 (Opus 리드 + Sonnet 팀원 3명)
-- 팀 리드 (Opus): 약 $5-15 / 세션
-- 팀원 3명 (Sonnet 각): 약 $1-5 / 세션 x 3
-- 메시지 오버헤드: 약 10-20% 추가
-- 총 예상: $10-35 / 세션`}
+### 단가 기준 (2026.06 공식 가격, 1M 토큰당 input/output)
+- Opus 4.8: $5 / $25
+- Sonnet 4.6: $3 / $15
+- Haiku 4.5: $1 / $5
+- (출처: platform.claude.com/docs/en/about-claude/models)
+
+### 핵심 직관 (구체 금액 아님)
+- 팀원 N명이 각각 독립 세션으로 토큰을 소비하므로, 단일 에이전트 대비 총 토큰이 수 배로 늘어날 수 있음
+- 팀원 간 메시지와 작업 목록 동기화로 추가 토큰 오버헤드 발생
+- 따라서 핵심 구현만 Opus, 탐색/테스트는 Sonnet으로 차등 배치하는 것이 비용에 가장 큰 영향`}
   language="markdown"
   filename="비용 구조"
 />
@@ -2227,14 +2264,14 @@ Agent Teams는 각 팀원이 독립적인 Claude Code 인스턴스이므로 비�
 ### 비용 최적화 5가지 전략
 
 <ComparisonTable
-  title="비용 최적화 전략"
-  headers={['전략', '방법', '예상 절감']}
+  title="비용 최적화 전략 (절감폭은 대략적 추정 — 작업 특성에 따라 달라짐)"
+  headers={['전략', '방법', '대략적 절감폭']}
   rows={[
-    { feature: '모델 차등 배치', values: ['탐색은 Sonnet, 핵심 구현만 Opus', '30-50%'] },
-    { feature: '팀 규모 최소화', values: ['필요한 최소 인원으로 팀 구성', '팀원 1명당 비용 절감'] },
-    { feature: '작업 범위 한정', values: ['각 팀원의 작업 범위를 구체적으로 지정', '20-30%'] },
-    { feature: 'Plan Approval 활용', values: ['잘못된 방향 조기 차단으로 재작업 방지', '10-20%'] },
-    { feature: '서브에이전트와 혼용', values: ['독립 작업은 서브에이전트, 협업만 Agent Teams', '40-60%'] },
+    { feature: '모델 차등 배치', values: ['탐색은 Sonnet, 핵심 구현만 Opus', '큼 (단가 차이 직접 반영)'] },
+    { feature: '팀 규모 최소화', values: ['필요한 최소 인원으로 팀 구성', '팀원 1명당 비용 비례 절감'] },
+    { feature: '작업 범위 한정', values: ['각 팀원의 작업 범위를 구체적으로 지정', '중간 (불필요 토큰 감소)'] },
+    { feature: 'Plan Approval 활용', values: ['잘못된 방향 조기 차단으로 재작업 방지', '작음~중간 (재작업 방지분)'] },
+    { feature: '서브에이전트와 혼용', values: ['독립 작업은 서브에이전트, 협업만 Agent Teams', '큼 (불필요한 팀 세션 제거)'] },
   ]}
 />
 
@@ -2261,7 +2298,7 @@ Agent Teams는 각 팀원이 독립적인 Claude Code 인스턴스이므로 비�
 />
 
 <Callout type="warning" title="비용 주의">
-  Agent Teams는 서브에이전트 대비 **3-10배** 높은 비용이 발생할 수 있습니다. 단순한 작업에 Agent Teams를 사용하는 것은 비용 낭비입니다. 반드시 팀원 간 실시간 소통이 필요한 복합 작업에만 사용하세요.
+  Agent Teams는 팀원이 각각 독립 세션으로 실행되므로, 단일 에이전트 대비 총 토큰 소비가 수 배 수준으로 늘어날 수 있습니다(정확한 배수는 팀 규모와 작업량에 따라 다름). 단순한 작업에 Agent Teams를 사용하는 것은 비용 낭비입니다. 반드시 팀원 간 실시간 소통이 필요한 복합 작업에만 사용하세요.
 </Callout>
 
 ---

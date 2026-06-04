@@ -32,8 +32,8 @@ import { CodeBlock } from '../../components/CodeBlock';
 | **Part 5** | 실전 예제 | TypeScript API, Python API, 프론트엔드, E2E 워크플로우 |
 | **Part 6** | 거버넌스 | 보안, 법적 윤리적 고려사항, 팀 협업, 효과 측정 |
 
-<Callout type="info" title="2026년 3월 업데이트">
-  이 교육 자료는 **Claude Opus 4.6**, **Claude Sonnet 4.6**, **Agent Teams**, **Code Review**, **Cowork**, **Claude Agent SDK** 등 2026년 3월 기준 최신 기능을 포함합니다.
+<Callout type="info" title="2026년 6월 업데이트">
+  이 교육 자료는 **Claude Opus 4.8**(2026.05.28 출시, effort 기본 `high`, 100만 토큰 컨텍스트), **Claude Sonnet 4.6**, **Agent Teams**, **Code Review**, **Cowork**, **Claude Agent SDK** 등 2026년 6월 기준 최신 기능을 포함합니다.
 </Callout>
 
 ## AI 코딩 도구의 발전
@@ -144,7 +144,7 @@ import { CodeBlock } from '../../components/CodeBlock';
     {
       date: '2026.02',
       title: '16개 Claude로 C 컴파일러 구축',
-      description: 'Anthropic 엔지니어링 블로그: 16개 Opus 4.6 인스턴스가 Agent Teams로 협력하여 Rust 기반 C 컴파일러를 자율 개발. 100,000줄 코드, Linux 6.9 컴파일 성공, 컴파일러 테스트 스위트 99% 통과',
+      description: '[Anthropic 엔지니어링 블로그](https://www.anthropic.com/engineering/building-c-compiler): 당시 최신이던 Opus 4.6 기반 16개 에이전트가 약 2,000개의 Claude Code 세션, 약 $20,000 비용으로 100,000줄 Rust 기반 C 컴파일러를 자율 개발. Linux 6.9를 x86/ARM/RISC-V에서 빌드 성공',
       highlight: true,
     },
     {
@@ -190,7 +190,7 @@ AI 코딩 도구 시장은 2025년을 기점으로 폭발적 성장기에 진입
 현재 AI 코딩 도구 시장은 크게 **에디터 통합형**, **터미널/에이전트형**, **클라우드 IDE형**, **특화형**으로 나뉩니다. 각 카테고리의 대표 도구와 포지셔닝을 살펴봅니다.
 
 <MermaidDiagram
-  title="AI 코딩 도구 생태계 지도 (2026년 3월)"
+  title="AI 코딩 도구 생태계 지도 (2026년 6월)"
   chart={`
 graph TB
     subgraph CAT1["에디터 통합형"]
@@ -230,7 +230,7 @@ graph TB
 />
 
 <ComparisonTable
-  title="주요 AI 코딩 도구 비교 (2026년 3월 기준)"
+  title="주요 AI 코딩 도구 비교 (2026년 6월 기준)"
   headers={['기능', 'Claude Code', 'GitHub Copilot', 'Cursor', 'Devin']}
   rows={[
     { feature: '자율적 코드 생성 (에이전트)', values: ['yes', 'yes', 'yes', 'yes'] },
@@ -365,7 +365,7 @@ HIPAA, 의료기기 소프트웨어 규정 등으로 인해 보수적인 도입�
     {
       date: '2026',
       title: '멀티 에이전트 협업의 현실화',
-      description: 'Claude Opus 4.6의 Agent Teams로 여러 AI가 역할을 분담하여 대규모 프로젝트를 자율 수행. 16개 에이전트가 C 컴파일러를 구축하는 등 전례 없는 규모의 AI 협업 실현',
+      description: 'Claude Opus 4.6의 Agent Teams(2026.02)로 여러 AI가 역할을 분담하여 대규모 프로젝트를 자율 수행. 16개 에이전트가 C 컴파일러를 구축하는 등 전례 없는 규모의 AI 협업 실현. 이후 Opus 4.8과 dynamic workflows로 수백 개 서브에이전트 오케스트레이션까지 확장',
       highlight: true,
     },
   ]}
@@ -577,9 +577,9 @@ graph TB
   프로젝트의 맥락, 아키텍처, 컨벤션을 체계적으로 문서화하여 AI Agent가 일관된 코드를 생성하도록 하는 방법론을 제시합니다.
   이는 AI 도구의 "일회성 코드 생성"을 넘어 "지속 가능한 AI 협업"으로 이끕니다.
 
-  **3. 2026년 3월 최신 기능 반영**
-  Opus 4.6, Agent Teams, Code Review, Cowork, Claude Agent SDK, MCP의 Linux Foundation 이관 등
-  가장 최신의 기능과 생태계 변화를 반영합니다.
+  **3. 2026년 6월 최신 기능 반영**
+  Opus 4.8, dynamic workflows, agent view(`claude agents`), `/goal`, `/usage`, `/code-review`, `claude ultrareview`, auto mode, security-guidance plugin,
+  Agent Teams, Code Review, Cowork, Claude Agent SDK, MCP의 Linux Foundation 이관 등 가장 최신의 기능과 생태계 변화를 반영합니다.
 
   **4. 실습 중심의 학습 구조**
   모든 챕터에 실행 가능한 코드 예제, 프롬프트 템플릿, 설정 파일 예시가 포함되어 있어
@@ -816,8 +816,9 @@ $ claude
   - 이 프로젝트 템플릿 클론
 </Callout>
 
-<Callout type="warning" title="npm 설치는 더 이상 권장되지 않습니다">
-  이전에 `npm i -g @anthropic-ai/claude-code`로 설치한 경우, `claude install` 명령어로 네이티브 설치로 마이그레이션하세요. 기존 설정 파일은 그대로 유지됩니다.
+<Callout type="info" title="네이티브 설치가 기본입니다">
+  Claude Code CLI는 2026년 4월부터 네이티브 바이너리로 전환되어, 위 설치 스크립트(`install.sh` / `install.ps1`)가 Node.js 없이 동작하는 네이티브 설치를 기본으로 제공합니다.
+  이전에 `npm i -g @anthropic-ai/claude-code`로 설치했다면 `claude install` 명령어로 네이티브 설치로 마이그레이션하세요. 기존 설정 파일은 그대로 유지됩니다.
 </Callout>
 
 <ChapterNav

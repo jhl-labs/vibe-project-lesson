@@ -733,6 +733,9 @@ if (!API_KEY) {
   하지만 CLAUDE.md는 권고(advisory)이므로 100% 보장되지 않습니다.
   PreToolUse Hook에서 Bash matcher를 사용해 git commit 명령을 인터셉트하면,
   커밋 전 린트/보안 스캔을 자동으로 실행하고 실패 시 커밋을 차단할 수 있습니다.
+  또한 **Auto mode**(2026 research preview)는 분류기가 권한 프롬프트를 처리하여
+  안전한 작업은 자동 실행하고 위험한 작업은 차단합니다. hard deny 규칙을 함께 지정하면
+  "전부 자동 승인"과 "전부 수동 확인"의 중간 지점에서 안전하게 운용할 수 있습니다.
 </Callout>
 
 ## 개발자 보안 체크리스트
@@ -792,12 +795,20 @@ if (!API_KEY) {
   title="AI 보안 연구의 실천 방안"
   headers={['인사이트', '실천 방안']}
   rows={[
-    { feature: 'AI는 인간이 놓친 취약점을 찾을 수 있다', values: ['/security 스킬 또는 보안 서브에이전트를 정기적으로 실행'] },
+    { feature: 'AI는 인간이 놓친 취약점을 찾을 수 있다', values: ['security-review 커맨드, claude ultrareview(/ultrareview), security-guidance 플러그인(2026.05) 또는 보안 서브에이전트를 정기적으로 실행'] },
     { feature: '전통적 보안 도구로는 부족하다', values: ['퍼저 + AI 코드 리뷰를 병행하는 하이브리드 접근'] },
-    { feature: 'AI 보안 분석은 비용 효율적이다', values: ['Batch API로 전체 코드베이스 보안 스캔을 50% 할인된 비용으로 실행'] },
+    { feature: 'AI 보안 분석은 비용 효율적이다', values: ['Anthropic Batch API로 전체 코드베이스 보안 스캔을 비동기 배치로 처리하면 표준 요청 대비 50% 할인이 적용됩니다(출처: Anthropic Batch API 문서)'] },
     { feature: '새로운 위협도 있다', values: ['AI 생성 코드의 취약점을 AI로 검증하는 이중 검증 패턴 도입'] },
   ]}
 />
+
+<Callout type="info" title="Claude Code의 실제 보안 리뷰 도구">
+  Claude Code는 다음과 같은 보안 리뷰 수단을 제공합니다.
+  - **security-review 커맨드**: 변경된 코드를 보안 관점에서 점검합니다.
+  - **claude ultrareview / /ultrareview**(2026): 클라우드에서 버그 헌팅 에이전트 fleet을 실행하고 결과를 CLI/Desktop으로 자동 전달합니다. CI/스크립트에서도 사용할 수 있습니다.
+  - **security-guidance 플러그인**(2026.05): 작업 중 Claude의 변경사항을 취약점 관점에서 리뷰합니다.
+  - **보안 서브에이전트**: `.claude/agents/`에 보안 전용 에이전트를 정의해 정기 스캔에 활용할 수 있습니다.
+</Callout>
 
 <CodeBlock
   code={`# 정기 보안 스캔 자동화 (CI/CD)

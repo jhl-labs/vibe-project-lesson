@@ -30,7 +30,7 @@ Claude Code의 슬래시 커맨드는 크게 **내장 커맨드**와 **커스텀
     { feature: '커스터마이징', values: ['no', 'yes'] },
     { feature: '인자 지원', values: ['커맨드별 상이', '$ARGUMENTS로 자유롭게'] },
     { feature: '프론트매터', values: ['해당 없음', 'description, allowed-tools, argument-hint, model 등'] },
-    { feature: '예시', values: ['/init, /clear, /help', '/commit, /pr, /review'] },
+    { feature: '예시', values: ['/init, /clear, /help, /code-review', '/commit, /pr, /review'] },
   ]}
 />
 
@@ -71,12 +71,16 @@ Claude Code의 슬래시 커맨드는 크게 **내장 커맨드**와 **커스텀
 | `/install-github-app` | GitHub App 설치 (PR 자동 리뷰 등) | CI/CD 연동 시 |
 | `/add-dir` | 추가 작업 디렉토리 등록 | 다중 디렉토리 작업 시 |
 | `/agents` | 서브에이전트 관리 | 에이전트 생성/편집 시 |
+| `claude agents` | Agent view — 모든 Claude Code 세션을 한 화면에서 (실행중/대기/완료 상태) | 여러 세션을 병렬로 운영할 때 |
 
 ### 개발 지원
 
 | 커맨드 | 설명 | 주요 사용 시점 |
 |--------|------|---------------|
-| `/review` | 코드 리뷰 (deprecated, `/simplify`로 대체) | 코드 검토 시 |
+| `/code-review` | 내장 코드 리뷰 — correctness 버그 보고, `--fix`로 수정 적용 (구 `/simplify`에서 개명) | 코드 검토 시 |
+| `/usage` | 플랜 한도를 skill/subagent/plugin/MCP 서버 단위로 분해 표시 | 사용량/한도 점검 시 |
+| `/recap` | 터미널이 비활성일 때 일어난 일 요약 (세션 복귀 시 recap) | 세션 복귀 시 |
+| `/goal` | 완료 조건이 충족될 때까지 턴을 넘어 계속 작업 | 장기 목표 작업 시 |
 | `/bug` | 버그 리포트 제출 | Claude Code 버그 발견 시 |
 | `/export` | 대화 내용 내보내기 | 대화 저장 시 |
 
@@ -150,11 +154,11 @@ Claude Code의 설치 상태, 인증, 네트워크 연결, MCP 서버 등 전반
   code={`# 모델 변경
 /model
 
-# 모델 선택 화면에서 원하는 모델 지정
-# - claude-sonnet-4-20250514: Sonnet 4, 빠른 응답
-# - claude-sonnet-4-5-20250929: Sonnet 4.5, 균형잡힌 성능 (기본 모델)
-# - claude-opus-4-5-20251101: Opus 4.5, 복잡한 추론
-# - claude-opus-4-6: Opus 4.6, 최신 최상위 모델
+# 모델 선택 화면에서 원하는 모델 지정 (2026.06 기준)
+# - claude-opus-4-8: Opus 4.8, 기본/최강 모델 (가장 강력한 추론)
+# - claude-sonnet-4-6: Sonnet 4.6, 속도/지능 균형
+# - claude-haiku-4-5: Haiku 4.5, 가장 빠른 응답
+# - claude-sonnet-4-5-20250929: Sonnet 4.5 (레거시, 사용 가능)
 # 또는 별칭 사용: sonnet, opus, haiku`}
   language="bash"
   filename="/model 사용 예시"
@@ -586,15 +590,16 @@ description: "디버깅용 커맨드"
 
 | 커맨드 | 설명 | 출력물 | 설정 파일 |
 |--------|------|--------|-----------|
-| `/review` | 코드 리뷰 (내장 확장) | 리뷰 코멘트 및 제안 | `.claude/commands/review.md` |
+| `/review` | 코드 리뷰 (커스텀) | 리뷰 코멘트 및 제안 | `.claude/commands/review.md` |
 | `/test` | 테스트 케이스 생성 | 단위 테스트 코드 | `.claude/commands/test.md` |
 | `/refactor` | 리팩토링 제안 | 개선된 코드 및 설명 | `.claude/commands/refactor.md` |
 | `/security` | 보안 스캔 | 취약점 리포트 | `.claude/commands/security.md` |
 | `/doc` | 문서 생성 | API 문서, JSDoc 등 | `.claude/commands/doc.md` |
 
-<Callout type="info" title="커스텀 /review vs 내장 /review">
-  Claude Code에는 내장 `/review`가 있지만, `.claude/commands/review.md`로 동일 이름의 커스텀 커맨드를 정의하면
-  **커스텀 버전이 우선 실행**됩니다. 프로젝트별 리뷰 기준(보안 체크리스트, 컨벤션 검증 등)을 반영할 수 있습니다.
+<Callout type="info" title="커스텀 /review vs 내장 /code-review">
+  Claude Code의 내장 코드 리뷰 커맨드는 `/code-review`입니다(구 `/simplify`에서 개명, correctness 버그를 보고하고 `--fix`로 수정 적용).
+  여기서 정의하는 커스텀 `/review`는 이름이 다르므로 내장 커맨드와 충돌하지 않으며, `.claude/commands/review.md`로
+  프로젝트별 리뷰 기준(보안 체크리스트, 컨벤션 검증 등)을 자유롭게 정의할 수 있습니다.
 </Callout>
 
 ### [커스텀] /commit 상세
@@ -1111,8 +1116,8 @@ allowed-tools: Read, Glob, Grep
   `.claude/skills/` 디렉토리의 해당 스킬 파일도 함께 조정하세요.
 </Callout>
 
-<Callout type="info" title="Claude Code v2.1.3 커맨드/스킬 통합">
-  Claude Code v2.1.3에서 슬래시 커맨드와 스킬이 통합되었습니다. `.claude/commands/`와 `.claude/skills/` 디렉토리 모두에서 마크다운 파일을 정의하면 `/파일명`으로 호출할 수 있습니다.
+<Callout type="info" title="커맨드/스킬 통합">
+  최신 Claude Code(2.1.x)에서는 슬래시 커맨드와 스킬이 통합되어, `.claude/commands/`와 `.claude/skills/` 디렉토리 모두에서 마크다운 파일을 정의하면 `/파일명`으로 호출할 수 있습니다.
   `$ARGUMENTS` 변수로 전체 인자를 받을 수 있고, `$1`, `$2` 등으로 개별 위치 인자에 접근할 수 있습니다.
   `context: fork` 프론트매터를 추가하면 독립된 서브에이전트에서 실행됩니다.
 </Callout>
@@ -1227,12 +1232,12 @@ if (!user.isActive) return;
 
 ## Test Generation 스킬 상세
 
-테스트 피라미드 비율(Unit 70%, Integration 20%, E2E 10%)을 따르며, AAA 패턴과 FIRST 원칙에 기반한 테스트 코드를 생성합니다.
+테스트 피라미드 비율(Unit 70%, Integration 20%, E2E 10%)은 권장 가이드라인(프로젝트별 조정)이며, 이를 참고해 AAA 패턴과 FIRST 원칙에 기반한 테스트 코드를 생성합니다.
 
 ### 테스트 피라미드
 
 <PlotlyChart
-  title="테스트 피라미드 비율"
+  title="테스트 피라미드 비율 (권장 가이드라인, 프로젝트별 조정)"
   data={[
     {
       labels: ['Unit Tests (70%)', 'Integration Tests (20%)', 'E2E Tests (10%)'],
@@ -1352,7 +1357,9 @@ afterEach(() => { process.env = originalEnv; });`}
 
 ### 레이어별 커버리지 목표
 
-| 레이어 | 목표 커버리지 |
+아래 수치는 권장 가이드라인(프로젝트별 조정)입니다. 도메인 핵심 로직일수록 높게, 인프라 연동 코드일수록 현실적인 수준으로 설정하세요.
+
+| 레이어 | 권장 커버리지 |
 |--------|-------------|
 | Domain Layer | > 90% |
 | Application Layer | > 80% |
@@ -1819,7 +1826,7 @@ Claude가 임의로 실행하지 않습니다.`}
 />
 
 <Callout type="tip" title="Claude Code에서 스킬 실행">
-  Claude Code v2.1.3 이후 `.claude/commands/`와 `.claude/skills/` 디렉토리가 통합되어,
+  최신 Claude Code(2.1.x)에서는 `.claude/commands/`와 `.claude/skills/` 디렉토리가 통합되어,
   어느 디렉토리든 마크다운 파일을 두면 `/파일명`으로 호출할 수 있습니다.
   프론트매터에 `context: fork`를 추가하면 독립된 서브에이전트로 실행됩니다.
 </Callout>

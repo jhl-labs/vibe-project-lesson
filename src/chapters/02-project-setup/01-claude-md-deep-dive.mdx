@@ -861,8 +861,9 @@ Claude Code는 컨텍스트 윈도우가 채워지면 자동으로 대화를 요
 /compact 현재 작업 중인 인증 모듈의 설계 결정과 미완료 TODO를 보존해줘
 
 # 4. 자동 Compaction 설정
-# 200K 컨텍스트 윈도우 기준, ~167K 토큰 사용 시 자동 발동
-# (autocompact 버퍼: ~33K 토큰, 16.5%)
+# 모델별 컨텍스트 윈도우 기준으로 일정 비율 사용 시 자동 발동
+# 예: 200K 모델 기준 ~167K 토큰(버퍼 ~33K, 약 16.5%)
+# 현행 Opus 4.8 / Sonnet 4.6은 1M 토큰 윈도우
 # 5. CLAUDE.md에 compaction 보존 지시 추가 가능
 # "When compacting, always preserve the full list of modified files"
 # 6. 논리적 구간에서 수동 /compact 실행 시 더 좋은 요약 생성`}

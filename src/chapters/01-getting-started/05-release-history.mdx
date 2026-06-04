@@ -9,15 +9,15 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 # Claude Code 릴리스 히스토리
 
-> 13개월, 340+ 버전 — Research Preview에서 Code Review까지의 진화
+> 약 16개월, 340+ 버전 — Research Preview에서 Dynamic Workflows / Opus 4.8까지의 진화
 
 ## 개요
 
-Claude Code는 2025년 2월 Research Preview로 시작하여, 불과 12개월 만에 **AI 코딩 에이전트의 표준**으로 자리잡았습니다. 주 평균 6회 릴리스라는 빠른 개발 속도를 유지하며, 터미널 기반 도구에서 멀티 에이전트 플랫폼으로 진화했습니다.
+Claude Code는 2025년 2월 Research Preview로 시작하여, 약 16개월(2026.06 기준) 만에 **AI 코딩 에이전트의 표준**으로 자리잡았습니다. 주 평균 6회 릴리스라는 빠른 개발 속도를 유지하며, 터미널 기반 도구에서 멀티 에이전트 플랫폼으로 진화했습니다.
 
 <Callout type="info" title="릴리스 단계 구분">
   Claude Code의 발전은 크게 4단계로 나뉩니다:
-  **Phase 1** Research Preview (v0.2.x) → **Phase 2** GA (v1.0.x) → **Phase 3** Major Redesign (v2.0.x) → **Phase 4** Current (v2.1.x)
+  **Phase 1** Research Preview (v0.2.x) → **Phase 2** GA (v1.0.x) → **Phase 3** Major Redesign (v2.0.x) → **Phase 4** Current (v2.1.x, ~2026.06)
 </Callout>
 
 ---
@@ -85,7 +85,24 @@ Claude Code는 2025년 2월 Research Preview로 시작하여, 불과 12개월 �
     {
       date: '2026.03',
       title: 'Code Review & /loop (v2.1.68+)',
-      description: 'multi-agent PR 코드 리뷰(Research Preview), /loop 스케줄링, effort 3단계 간소화, ultrathink 키워드 복귀',
+      description: 'multi-agent PR 코드 리뷰, /loop(인터벌 생략 시 self-pace), ultrathink 키워드 복귀',
+      highlight: true,
+    },
+    {
+      date: '2026.04',
+      title: 'CLI 네이티브 바이너리 전환 & Computer use',
+      description: 'CLI가 네이티브 바이너리로 전환(Node.js 불필요). Monitor 도구, Routines(스케줄/이벤트 기반 클라우드 에이전트), computer use(research preview) 도입',
+    },
+    {
+      date: '2026.05',
+      title: 'Opus 4.8 & Dynamic Workflows',
+      description: 'Opus 4.8(claude-opus-4-8, effort 기본 high) 출시(2026.05.28). Dynamic workflows로 수십~수백 개 서브에이전트를 백그라운드 오케스트레이션. agent view(claude agents), /goal 도입',
+      highlight: true,
+    },
+    {
+      date: '2026.06',
+      title: '현행 안정 버전 (v2.1.162)',
+      description: '/code-review(--fix), claude ultrareview / /ultrareview, /usage, /recap, auto mode(Pro 지원), security-guidance plugin, .claude/skills 자동 로드',
       highlight: true,
     },
   ]}
@@ -162,9 +179,9 @@ UI/UX 전면 재설계와 함께 VS Code 확장, 체크포인트, 플러그인 �
 
 ---
 
-## Phase 4: Current (v2.1.x, 2026.01 ~ 현재)
+## Phase 4: Current (v2.1.x, 2026.01 ~ 2026.06)
 
-Agent Teams, Fast mode, Task 관리 등 멀티 에이전트 협업 기능이 핵심인 현재 진행 중인 단계입니다.
+Agent Teams, Fast mode, Task 관리에서 시작해 Opus 4.8과 dynamic workflows까지, 멀티 에이전트 협업과 자율 작업 능력이 핵심인 현재 진행 중인 단계입니다.
 
 <ComparisonTable
   title="Phase 4 주요 버전"
@@ -177,17 +194,21 @@ Agent Teams, Fast mode, Task 관리 등 멀티 에이전트 협업 기능이 핵
     { feature: 'v2.1.30', values: ['2026.02', 'Agent Teams 출시. Opus 4.6과 함께 네이티브 멀티 에이전트 협업'] },
     { feature: 'v2.1.32', values: ['2026.02', 'Fast mode (동일 모델, 빠른 출력). /fast 토글로 전환'] },
     { feature: 'v2.1.45', values: ['2026.02', '안정성 개선 및 Agent Teams 최적화'] },
-    { feature: 'v2.1.68', values: ['2026.03', 'Opus 4.6 기본 medium effort, ultrathink 키워드 복귀, effort 3단계(low/medium/high) 간소화'] },
-    { feature: 'v2.1.71', values: ['2026.03', '/loop 스케줄링 명령어 도입. cron 방식으로 반복 프롬프트 실행 (최대 50개 동시)'] },
-    { feature: 'v2.1.72', values: ['2026.03', '최신 버전 (2026.03 기준). /copy에 w키(파일 직접 쓰기), /plan 설명 인자, 성능 최적화'] },
+    { feature: 'v2.1.68', values: ['2026.03', 'ultrathink 키워드 복귀, /code-review(구 /simplify) multi-agent PR 리뷰'] },
+    { feature: 'v2.1.71', values: ['2026.03', '/loop 도입. 인터벌을 생략하면 모델이 스스로 페이스를 조절(self-pace)하며 반복 실행'] },
+    { feature: 'v2.1.95', values: ['2026.04', 'CLI 네이티브 바이너리 전환(Node.js 불필요). Monitor 도구, Routines(스케줄/이벤트 기반 클라우드 에이전트), computer use(research preview)'] },
+    { feature: 'v2.1.120', values: ['2026.05', 'Opus 4.8(claude-opus-4-8, effort 기본 high) 기본 모델 채택. Dynamic workflows, agent view(claude agents), /goal'] },
+    { feature: 'v2.1.162', values: ['2026.06', '현행 안정 버전. /code-review --fix, claude ultrareview / /ultrareview, /usage, /recap, auto mode, security-guidance plugin, .claude/skills 자동 로드'] },
   ]}
 />
 
 <Callout type="info" title="Phase 4의 방향성">
   2.1의 핵심 테마는 **"팀으로 일하는 AI"**입니다. Agent Teams로 여러 에이전트가 병렬 협업하고,
   Task 관리로 복잡한 작업을 체계적으로 추적하며, Fast mode로 일상적 작업의 속도를 높입니다.
-  2026년 3월에는 **Code Review**(multi-agent PR 리뷰)와 **/loop 스케줄링**이 추가되어,
-  CI/CD 통합과 자율 작업 수행 능력이 한 단계 더 강화되었습니다.
+  2026년 봄에는 **/code-review**(multi-agent PR 리뷰)와 **/loop**(self-pace 반복 실행),
+  **Routines**(스케줄/이벤트 기반 클라우드 에이전트)가 더해졌고,
+  5월에는 **Opus 4.8**과 **dynamic workflows**로 수백 개 서브에이전트를 오케스트레이션하는 단계로 진화했습니다.
+  CI/CD 통합과 자율 작업 수행 능력이 크게 강화되었습니다.
 </Callout>
 
 ---
@@ -224,23 +245,39 @@ Claude Code의 기능 확장은 기반 모델의 발전과 밀접하게 연결�
     {
       date: '2025.11',
       title: 'Claude Opus 4.5',
-      description: 'SWE-bench 80.9% — 80% 임계값 돌파 최초 모델. 단일 세션 최강 추론',
+      description: 'SWE-bench Verified 약 80%대 — 80% 임계값 돌파 모델. 단일 세션 최강 추론',
       highlight: true,
     },
     {
       date: '2026.02',
       title: 'Claude Opus 4.6',
-      description: 'Agent Teams 네이티브 지원, 1M 컨텍스트(베타), Adaptive Thinking. 128K 출력 토큰',
+      description: 'Agent Teams 네이티브 지원, 1M 컨텍스트(베타), Adaptive Thinking, 128K 출력 토큰. SWE-bench Verified 약 80.8% ([Vellum](https://www.vellum.ai/blog/claude-opus-4-6-benchmarks)). 오픈소스에서 500+ high-severity 취약점 발견 ([Axios, 2026.02.05](https://www.axios.com/2026/02/05/anthropic-claude-opus-46-software-hunting))',
       highlight: true,
     },
     {
       date: '2026.02',
       title: 'Claude Sonnet 4.6',
-      description: 'SWE-bench 79.6%. Opus 4.6에 근접한 성능을 Sonnet 가격($3/$15)으로 제공. 1M 컨텍스트(베타) 지원 ([Anthropic](https://www.anthropic.com/news/claude-sonnet-4-6))',
+      description: 'SWE-bench Verified 79.6%. Opus 4.6에 근접한 성능을 Sonnet 가격($3/$15)으로 제공. 1M 컨텍스트(베타) 지원 ([Anthropic](https://www.anthropic.com/news/claude-sonnet-4-6))',
+      highlight: true,
+    },
+    {
+      date: '2026.05',
+      title: 'Claude Opus 4.7',
+      description: 'Opus 4.6 후속. SWE-bench Verified 약 87.6% (Anthropic 보고)로 추론·코딩 성능 향상',
+    },
+    {
+      date: '2026.05',
+      title: 'Claude Opus 4.8',
+      description: 'SWE-bench Verified 88.6% ([Vellum](https://www.vellum.ai/blog/claude-opus-4-8-benchmarks-explained), 2026.05.28). 현행 기본/최강 모델. effort 파라미터 기본 high, /effort xhigh로 최고 난도 작업. 1M 컨텍스트, 128K 출력',
       highlight: true,
     },
   ]}
 />
+
+<Callout type="info" title="벤치마크 점수에 대하여">
+  SWE-bench Verified 점수는 측정 방식과 평가 하네스에 따라 보고값이 달라질 수 있습니다.
+  위 수치는 각 출처가 보고한 값이며, 모델 간 직접 비교 시 동일 조건에서 측정한 값인지 확인이 필요합니다.
+</Callout>
 
 ---
 
@@ -293,7 +330,7 @@ Claude Code의 성장 배경에는 Anthropic의 급속한 기업 확장이 있�
     {
       date: '2026.02',
       title: 'Opus 4.6 + Agent Teams 출시',
-      description: 'SWE-bench 80.8%, 1M 컨텍스트(베타), 네이티브 멀티 에이전트. 500+ 제로데이 취약점 발견 (2026.02.05)',
+      description: 'SWE-bench Verified 약 80.8%, 1M 컨텍스트(베타), 네이티브 멀티 에이전트. 오픈소스에서 500+ high-severity 취약점 발견 ([Axios, 2026.02.05](https://www.axios.com/2026/02/05/anthropic-claude-opus-46-software-hunting))',
       highlight: true,
     },
     {
@@ -305,13 +342,19 @@ Claude Code의 성장 배경에는 Anthropic의 급속한 기업 확장이 있�
     {
       date: '2026.02',
       title: 'Sonnet 4.6 출시',
-      description: 'SWE-bench 79.6%로 Opus 4.6에 근접한 성능을 Sonnet 가격으로 제공. Claude Code 사용자 70%가 Sonnet 4.5보다 선호 (2026.02.17, [Anthropic](https://www.anthropic.com/news/claude-sonnet-4-6))',
+      description: 'SWE-bench Verified 79.6%로 Opus 4.6에 근접한 성능을 Sonnet 가격으로 제공. Claude Code 초기 테스트에서 사용자가 Sonnet 4.5보다 약 70% 선호 (2026.02.17, [Anthropic](https://www.anthropic.com/news/claude-sonnet-4-6))',
       highlight: true,
     },
     {
       date: '2026.03',
-      title: 'Code Review 출시 (Research Preview)',
-      description: 'multi-agent PR 코드 리뷰 기능. 여러 에이전트가 병렬로 버그를 탐지하고 심각도를 분류. Team/Enterprise 고객 대상 $15-25/리뷰 (2026.03.09, [Anthropic](https://claude.com/blog/code-review))',
+      title: 'Code Review (/code-review) 출시',
+      description: 'multi-agent PR 코드 리뷰 기능. 여러 에이전트가 병렬로 버그를 탐지하고 심각도를 분류. 도입 후 PR 리뷰 코멘트 비율이 16%에서 54%로 상승, 엔지니어가 오류로 표시한 발견은 1% 미만 (2026.03.09, [Claude Code Docs](https://code.claude.com/docs/en/code-review))',
+      highlight: true,
+    },
+    {
+      date: '2026.05',
+      title: 'Opus 4.8 + Dynamic Workflows 출시',
+      description: 'SWE-bench Verified 88.6% ([Vellum](https://www.vellum.ai/blog/claude-opus-4-8-benchmarks-explained), 2026.05.28). dynamic workflows로 수백 개 서브에이전트를 백그라운드 오케스트레이션. effort 기본 high, /effort xhigh 지원',
       highlight: true,
     },
   ]}
@@ -329,8 +372,8 @@ Claude Code의 성장 배경에는 Anthropic의 급속한 기업 확장이 있�
 
 | 예상 시기 | 내용 | 근거 |
 |-----------|------|------|
-| **2026 중반** | Claude 5 출시 | Anthropic의 연간 모델 출시 주기 (Claude 3: 2024.03, Claude 4: 2025.05) |
-| **2026 후반** | 자동 모델 라우팅 보편화 | Opus 4.6 Adaptive Thinking이 그 방향의 첫 단계 |
+| **2026 하반기** | Opus 4.x 계열의 추가 세분 출시 또는 차세대 모델 | 4.5→4.6→4.7→4.8로 세분 릴리스가 이어지고 있어, 연 단위 메이저 점프보다 점진적 갱신 가능성 |
+| **2026 후반** | 자동 모델 라우팅 보편화 | Opus 4.8의 adaptive thinking과 effort 자동 조정이 그 방향의 첫 단계 |
 
 ### MCP 생태계
 
@@ -350,8 +393,8 @@ Claude Code의 성장 배경에는 Anthropic의 급속한 기업 확장이 있�
 
 | 예상 시기 | 내용 | 근거 |
 |-----------|------|------|
-| **2026** | Agent Teams + Code Review 고도화 | Code Review가 Research Preview에서 GA로 확대, Agent Teams의 다양한 모델 조합 지원 가능 |
-| **2026** | /loop 기반 자율 작업 확대 | 스케줄링 기능으로 야간 모니터링, 자동 버그 수정 등 무인 운영 |
+| **2026** | Agent Teams + /code-review 고도화 | /code-review와 dynamic workflows의 결합, Agent Teams의 다양한 모델 조합 지원 가능 |
+| **2026** | Routines 기반 자율 작업 확대 | Routines(스케줄/이벤트 기반 클라우드 에이전트)와 /loop(self-pace)로 야간 모니터링, 자동 버그 수정 등 무인 운영 |
 | **2026** | Cowork 생태계 성장 | Claude Desktop의 비개발자용 에이전트가 개발 워크플로우와 연결 |
 | **2026** | Labs의 새 프로덕트 | Anthropic Labs 출범 (2026.01)으로 실험적 AI 제품 기대 |
 

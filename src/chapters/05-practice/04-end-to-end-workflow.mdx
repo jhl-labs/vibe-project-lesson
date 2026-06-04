@@ -273,6 +273,12 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
   이 패턴은 Anthropic 공식 문서([Common Workflows](https://code.claude.com/docs/en/common-workflows))와 커뮤니티에서 널리 권장됩니다.
 </Callout>
 
+<Callout type="tip" title="리뷰 자동화 명령 (2026)">
+  수동 프롬프트 대신 전용 리뷰 명령을 사용하면 더 빠릅니다:
+  - **`/code-review`**: 변경사항의 correctness 버그를 보고하고, `--fix`로 수정까지 적용합니다. (이전 `/simplify`에서 이름이 변경됨) ([Docs](https://code.claude.com/docs/en/code-review))
+  - **`claude ultrareview`** / **`/ultrareview`**: 클라우드에서 버그 헌팅 에이전트 fleet를 실행하고, 결과를 CLI나 Desktop으로 자동 전달합니다. CI/스크립트에서도 호출할 수 있습니다.
+</Callout>
+
 ### 리뷰에서 자주 발견되는 이슈
 
 <ComparisonTable
@@ -328,7 +334,7 @@ Writer/Reviewer 패턴으로 새 세션에서 리뷰합니다.
 
 ## 실전 시나리오 1: 스타트업 MVP 개발 전 과정
 
-스타트업에서 3주 안에 SaaS MVP를 Claude Code로 개발하는 전체 과정입니다. 실제 스타트업들이 Claude Code를 도입하여 개발 속도를 극적으로 높이고 있는 사례를 기반으로 합니다.
+스타트업에서 3주 안에 SaaS MVP를 Claude Code로 개발하는 전체 과정입니다. 실제 도입 사례를 참고한 예시 시나리오로, 팀 상황에 맞게 조정해 활용할 수 있습니다.
 
 <Timeline
   events={[
@@ -722,6 +728,12 @@ services:
   filename="프로덕션 모니터링 & 분석 프롬프트"
 />
 
+<Callout type="tip" title="Monitor 도구로 실시간 대응 (2026.04)">
+  로그를 수동으로 붙여넣는 대신 **Monitor 도구**를 사용하면 백그라운드 이벤트를 대화로 직접 스트리밍할 수 있습니다.
+  로그 파일을 tail하거나 모니터링 이벤트를 구독하고, 새로운 에러가 들어올 때 Claude가 실시간으로 반응하도록 구성할 수 있습니다.
+  예를 들어 에러 로그 스트림을 감시하다가 동일 에러가 임계치를 넘으면 즉시 원인 분석과 핫픽스 제안을 받는 흐름을 자동화할 수 있습니다.
+</Callout>
+
 <Callout type="warning" title="프로덕션 로그 주의사항">
   프로덕션 로그를 Claude Code에 전달할 때 반드시 **PII(개인식별정보)를 마스킹**해야 합니다.
   이메일, IP 주소, 사용자 이름, 토큰 등은 사전에 제거하거나 익명화하세요.
@@ -921,6 +933,8 @@ WARN 또는 FAIL인 항목은 구체적인 수정 제안을 포함해주세요.`
   - `PostToolUse` + `Edit|Write` → 자동 포맷팅 (Prettier). exit code로 상태 전달
   - `Stop` + `agent` → 매 응답 후 자동 테스트 실행
   - `PreToolUse` + `Bash` → 위험 명령 차단 (exit code 2로 블록). HTTP hooks도 지원하여 외부 URL에 JSON POST 가능
+
+  여기에 더해, **security-guidance 플러그인**(2026.05)을 설치하면 작업 중 Claude의 변경사항을 취약점 관점에서 자동 리뷰해 품질 자동화를 한층 강화할 수 있습니다.
 </Callout>
 
 ---
@@ -1029,7 +1043,7 @@ Anthropic과 기업들이 공개한 Agent Teams / 병렬 Claude Code 활용 사�
   title="Agent Teams 실증 사례"
   headers={['사례', '규모', '성과']}
   rows={[
-    { feature: 'C 컴파일러 구축 (Anthropic)', values: ['16 Claude Opus 4.6 에이전트, 약 2,000 세션, $20K 비용', '100K줄 Rust 코드, Linux 6.9를 x86/ARM/RISC-V에서 컴파일 ([블로그](https://www.anthropic.com/engineering/building-c-compiler))'] },
+    { feature: 'C 컴파일러 구축 (Anthropic)', values: ['16개 에이전트(당시 2026.02 Claude Opus 4.6 기준), 약 2,000 Claude Code 세션, 약 $20,000 비용', '약 100,000줄 Rust 컴파일러, Linux 6.9를 x86/ARM/RISC-V에서 빌드 ([블로그](https://www.anthropic.com/engineering/building-c-compiler), Nicholas Carlini, 2026.02)'] },
     { feature: 'Ramp (핀테크)', values: ['엔지니어링팀 전사 적용, 50% 주간 채택', '월 100만줄+ AI 코드, 다중 세션 병렬 개발로 대기 시간 제거 ([사례](https://claude.com/customers/ramp))'] },
     { feature: 'Anthropic 보안팀 내부', values: ['일상 업무 적용', '스택 트레이스 분석 + 런북 자동 생성으로 인시던트 대응 가속 ([출처](https://claude.com/blog/how-anthropic-teams-use-claude-code))'] },
     { feature: 'Anthropic 마케팅팀', values: ['광고 자동화', '수백 개 광고 변형 생성 수시간 → 수분 (서브에이전트 파이프라인) ([출처](https://claude.com/blog/how-anthropic-teams-use-claude-code))'] },

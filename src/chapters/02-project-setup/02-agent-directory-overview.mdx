@@ -131,7 +131,7 @@ AI 코딩 에이전트는 대화가 시작될 때 **프로젝트에 대해 아�
 | **창립 기여 프로젝트** | Anthropic의 MCP, Block의 goose, OpenAI의 AGENTS.md |
 | **플래티넘 멤버** | AWS, Anthropic, Block, Bloomberg, Cloudflare, Google, Microsoft, OpenAI |
 | **지원 도구** | Amp, Codex, Cursor, Devin, Factory, Gemini CLI, GitHub Copilot, Jules, VS Code 등 |
-| **채택 규모** | 60,000+ GitHub 저장소 |
+| **채택 규모** | 다수의 공개 저장소에서 채택 |
 
 <CodeBlock
   code={`# AGENTS.md (프로젝트 루트)
@@ -232,7 +232,7 @@ Claude Code는 다음 공식 경로를 자동으로 인식합니다.
 | 디렉토리/파일 | 역할 | 로드 시점 | 비고 |
 |--------------|------|----------|------|
 | `commands/` | 커스텀 슬래시 커맨드 | `/커맨드명` 입력 시 | 개별 .md 파일이 `/파일명`으로 호출됨 |
-| `skills/` | 실행 가능한 스킬 | `/스킬명` 입력 시 | 각 스킬은 `SKILL.md`를 포함하는 디렉토리. 범용 표준으로 타 도구와도 호환 |
+| `skills/` | 실행 가능한 스킬 | **자동 발견** + `/스킬명` 호출 | `.claude/skills`에서 자동 로드(마켓플레이스 불필요). 사용자가 `/스킬명`으로 명시 호출하거나, Claude이 컨텍스트에 따라 자동 발견/활용. 각 스킬은 `SKILL.md`를 포함하는 디렉토리 |
 | `agents/` | 커스텀 서브에이전트 | Task 도구 사용 시 | YAML 프론트매터 + 마크다운으로 정의 |
 | `rules/` | 모듈화된 프로젝트 규칙 | **항상 자동 로드** | path-scoped 규칙 지원. 서브디렉토리 재귀 검색 |
 | `settings.json` | 권한, 훅, MCP 서버 설정 | **항상 자동 로드** | 팀 공유용 (Git 커밋) |
@@ -563,7 +563,7 @@ alwaysApply: false
 | `AGENTS.md` | **수동** (자동 로드 아님) | CLAUDE.md에서 `@AGENTS.md`로 임포트 |
 | `.claude/rules/*.md` | **항상 자동** (path-scoped 가능) | - |
 | `.claude/agents/*.md` | Task 도구 호출 시 | Claude가 자동 선택 |
-| `.claude/skills/*/SKILL.md` | `/스킬명` 입력 시 | 사용자가 명시적 호출 |
+| `.claude/skills/*/SKILL.md` | **자동 발견** + `/스킬명` 호출 | `.claude/skills`에서 자동 로드(마켓플레이스 불필요). 명시 호출 또는 Claude이 컨텍스트 기반 자동 활용 |
 | `.claude/commands/*.md` | `/커맨드명` 입력 시 | 사용자가 명시적 호출 |
 | 임의 경로의 .md 파일 | **수동** | CLAUDE.md에서 `@path/to/file.md` |
 
@@ -783,7 +783,7 @@ NEVER hardcode secrets, ALWAYS validate inputs`}
 
 <ComparisonTable
   title="자동 생성 vs 수동 관리"
-  headers={['항목', '자동 생성 (claude /init 등)', '수동 관리']}
+  headers={['항목', '자동 생성 (/init 등)', '수동 관리']}
   rows={[
     { feature: '초기 셋업 속도', values: ['빠름 (수 초)', '느림 (수 시간)'] },
     { feature: '프로젝트 맞춤 정확도', values: ['중간 (템플릿 기반)', '높음 (도메인 지식 반영)'] },
@@ -798,7 +798,7 @@ NEVER hardcode secrets, ALWAYS validate inputs`}
 
 | 도구/방법 | 생성 대상 | 특징 |
 |-----------|----------|------|
-| `claude /init` | CLAUDE.md | 프로젝트 구조를 분석하여 초기 CLAUDE.md 생성 |
+| `/init` | CLAUDE.md | 세션 내 슬래시 커맨드. 프로젝트 구조를 분석하여 초기 CLAUDE.md 생성 |
 | Claude Code 대화 | .claude/rules/*.md | "프로젝트 규칙을 분석해서 rules/ 파일을 생성해줘" |
 | 커뮤니티 템플릿 | 전체 .claude/ 구조 | GitHub에서 공유되는 .claude/ 보일러플레이트 |
 | `cursor init` | .cursor/rules/ | Cursor IDE에서 프로젝트 분석 후 규칙 생성 |
@@ -807,7 +807,7 @@ NEVER hardcode secrets, ALWAYS validate inputs`}
 
 <MermaidDiagram
   chart={`flowchart LR
-    A["1. 자동 생성\n(claude /init)"] --> B["2. 팀 리뷰\n(PR로 검토)"]
+    A["1. 자동 생성\n(/init)"] --> B["2. 팀 리뷰\n(PR로 검토)"]
     B --> C["3. 도메인 지식 추가\n(수동 보강)"]
     C --> D["4. 정기 업데이트\n(분기별 리뷰)"]
     D -->|"프로젝트 변경 시"| C
@@ -820,7 +820,7 @@ NEVER hardcode secrets, ALWAYS validate inputs`}
 />
 
 <Callout type="tip" title="자동 생성 후 반드시 리뷰하세요">
-  `claude /init`으로 생성된 CLAUDE.md는 프로젝트의 파일 구조를 분석한 결과일 뿐, 비즈니스 규칙이나 팀 컨벤션은 반영하지 못합니다.
+  `/init`으로 생성된 CLAUDE.md는 프로젝트의 파일 구조를 분석한 결과일 뿐, 비즈니스 규칙이나 팀 컨벤션은 반영하지 못합니다.
   자동 생성된 파일을 PR로 올려 팀이 함께 검토하고, 도메인 특화 정보를 추가하세요.
 </Callout>
 

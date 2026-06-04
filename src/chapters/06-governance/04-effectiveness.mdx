@@ -199,7 +199,7 @@ Faros AI의 2025년 연구에서 발견된 가장 중요한 인사이트는,
   headers={['병목', '대응 전략', '구체적 방법']}
   rows={[
     { feature: 'PR 크기 증가', values: ['작업 분할 규칙', 'PR당 변경 200줄 이하 권장, AI에게 전체가 아닌 단위별 작업 요청 (Part 6 팀 협업 참조)'] },
-    { feature: '리뷰 시간 증가', values: ['AI 보조 리뷰 도입', 'AI가 1차 리뷰(린트, 패턴 검사) → 인간이 2차 리뷰(설계, 비즈니스 로직). Claude Code Review(2026.03) 등 멀티 에이전트 리뷰 도구 활용'] },
+    { feature: '리뷰 시간 증가', values: ['AI 보조 리뷰 도입', 'AI가 1차 리뷰(린트, 패턴 검사) → 인간이 2차 리뷰(설계, 비즈니스 로직). /code-review(구 /simplify, --fix로 수정 적용)나 claude ultrareview(클라우드 버그 헌팅 fleet) 등 멀티 에이전트 리뷰 도구 활용'] },
     { feature: '버그 증가', values: ['테스트 게이트 강화', 'CI에서 커버리지 임계값 설정, AI 생성 코드는 테스트 필수'] },
     { feature: '코드 이해도 저하', values: ['작성자 설명 의무화', 'PR에 "AI 사용 내역" 섹션 필수, 리뷰 시 이해도 확인 질문'] },
     { feature: '전체 처리량 정체', values: ['파이프라인 병렬화', '코드 소유권 분산, 리뷰어 풀 확대, 자동 리뷰어 할당'] },
@@ -486,8 +486,10 @@ AI 도구 도입은 5개 차원 모두에 영향을 미칩니다.
   파일 생성, 테스트 실행, 오류 수정을 자율적으로 수행합니다. Claude Code의 경우
   "headless 모드"와 CI/CD 통합으로 배포 파이프라인까지 자동화할 수 있어,
   기존 도구와 근본적으로 다른 ROI 모델이 필요합니다.
-  2026년 3월에는 **Code Review** 기능이 출시되어 멀티 에이전트 시스템이 모든 PR을 분석합니다.
-  Anthropic 내부에서는 Code Review 도입 후 실질적 리뷰 코멘트가 달린 PR 비율이 16%에서 54%로 증가했습니다.
+  이후 멀티 에이전트 리뷰가 발전해, 현재는 **/code-review**(구 /simplify, --fix로 수정 적용)와
+  **claude ultrareview**(클라우드에서 버그 헌팅 에이전트 fleet 실행)로 모든 PR을 분석할 수 있습니다.
+  Anthropic 내부에서는 Code Review 도입 후 실질적 리뷰 코멘트가 달린 PR 비율이 16%에서 54%로 증가했습니다
+  (출처: [Claude Code Docs — Code Review](https://code.claude.com/docs/en/code-review)).
 </Callout>
 
 ## 팀 레벨 효과 측정
@@ -1090,11 +1092,11 @@ system = [{
 }]
 
 # 첫 요청: $0.375 (50K x $5/M x 1.25 + α)
-r1 = client.messages.create(model="claude-opus-4-6", system=system,
+r1 = client.messages.create(model="claude-opus-4-8", system=system,
     messages=[{"role": "user", "content": "인증 모듈의 버그를 찾아줘"}])
 
 # 후속 요청: $0.025 (50K x $5/M x 0.10 + α) — 93% 절감!
-r2 = client.messages.create(model="claude-opus-4-6", system=system,
+r2 = client.messages.create(model="claude-opus-4-8", system=system,
     messages=[{"role": "user", "content": "결제 모듈의 성능을 분석해줘"}])`}
   language="python"
   filename="prompt-caching-example.py"
@@ -1128,8 +1130,8 @@ r2 = client.messages.create(model="claude-opus-4-6", system=system,
 
 <Callout type="info" title="Claude Code 구독 vs API 비용">
   Claude Code의 평균 일일 비용은 **$6**이며, 90%의 개발자가 **$12/일** 이하를 사용합니다 (Anthropic 공식 문서).
-  Max 구독($100/월, Opus 4.6 포함 5x 사용량)은 API 직접 사용 대비 상당한 비용 절감 효과가 있습니다.
-  API 가격 기준: Opus 4.6은 입력 $5/MTok, 출력 $25/MTok; Sonnet 4.6은 입력 $3/MTok, 출력 $15/MTok.
+  Max 구독($100/월, Opus 4.8 포함 5x 사용량)은 API 직접 사용 대비 상당한 비용 절감 효과가 있습니다.
+  API 가격 기준: Opus 4.8은 입력 $5/MTok, 출력 $25/MTok; Sonnet 4.6은 입력 $3/MTok, 출력 $15/MTok.
   Team 플랜의 프리미엄 좌석($150/월)은 Claude Code 개발 환경을 포함합니다.
 </Callout>
 
