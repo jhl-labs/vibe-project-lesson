@@ -65,7 +65,7 @@ Claude Code가 시작될 때 CLAUDE.md를 어떻게 찾고 로드하는지, 전�
 Claude Code는 여러 수준의 메모리 파일을 계층적으로 로드합니다. 현재 작업 디렉토리에서 시작하여 **루트 디렉토리까지 재귀적으로 탐색**하며 CLAUDE.md 파일을 찾습니다.
 
 <FileTree
-  title="CLAUDE.md 로딩 계층 (위에서 아래로 우선순위)"
+  title="CLAUDE.md 로딩 계층 (위에서 아래로 로드 순서 — Enterprise 정책이 최상위, 그 외에는 더 구체적인 설정이 일반 설정을 오버라이드)"
   data={[
     {
       name: 'Enterprise 정책',

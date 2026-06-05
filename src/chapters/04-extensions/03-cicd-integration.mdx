@@ -826,7 +826,7 @@ claude-code-action이 PR에 남기는 리뷰 코멘트의 실제 모습입니다
 
 - **max_turns 제한**: `claude_args: "--max-turns 10"`으로 에이전트 턴 수 제한
 - **모델 선택**: 간단한 작업에는 Haiku 4.5(`claude-haiku-4-5`)나 Sonnet 4.6(`claude-sonnet-4-6`)을, 복잡한 작업에만 Opus 4.8(`claude-opus-4-8`)을 사용
-- **노력(effort) 제어**: Opus 4.8은 effort 파라미터가 기본 `high`입니다. 간단한 작업에는 `/effort low`로 토큰 사용량을, 고난도 작업에만 `/effort xhigh`로 품질을 우선해 비용을 세밀하게 조절하세요
+- **노력(effort) 제어**: Opus 4.8은 effort 파라미터가 기본 `high`입니다. CI는 비대화형이므로 슬래시 커맨드(`/effort`)가 아니라 `claude_args`로 전달합니다 — 간단한 작업엔 `claude_args: "--effort low"`로 토큰을, 고난도 작업엔 `claude_args: "--effort xhigh"`로 품질을 우선해 비용을 조절하세요
 - **경로 필터링**: `paths` 트리거로 불필요한 파일 변경 시 실행 방지
 - **트리거 조건**: `if` 조건으로 특정 상황에서만 실행
 - **job timeout-minutes**: GitHub Actions의 `timeout-minutes` 설정으로 비정상 실행 방지
@@ -839,7 +839,7 @@ claude-code-action이 PR에 남기는 리뷰 코멘트의 실제 모습입니다
 
 - **시크릿 관리**: API 키는 반드시 GitHub Secrets에 저장
 - **권한 최소화**: `permissions`를 워크플로우에 필요한 최소 범위로 설정
-- **도구 제한**: `allowed_tools`로 허용할 도구를 명시적으로 지정
+- **도구 제한**: `claude_args: "--allowedTools ..."`로 허용할 도구를 명시적으로 지정(v1.0에서 개별 옵션이 `claude_args`로 통합됨)
 - **포크 PR 주의**: 외부 기여자의 포크 PR에서 시크릿이 노출되지 않도록 주의
 - **브랜치 보호**: 메인 브랜치에 직접 푸시하지 않도록 브랜치 보호 규칙 설정
 

@@ -151,7 +151,7 @@ import { ChapterNav } from '../../components/ChapterNav';
 
 ## 2단계: 설계 (Plan Mode)
 
-`Shift+Tab`을 2회 눌러 Plan Mode에 진입하거나, `/plan` 명령을 사용합니다 (v2.1.0+). Plan Mode에서는 Claude가 파일을 수정하지 않고 **읽기와 계획만** 수행합니다.
+`Shift+Tab`을 눌러 Plan Mode로 전환하거나, `--permission-mode plan` 플래그로 시작합니다. Plan Mode에서는 Claude가 파일을 수정하지 않고 **읽기와 계획만** 수행합니다.
 
 <CodeBlock
   code={`# Plan Mode 진입 후
@@ -171,13 +171,13 @@ import { ChapterNav } from '../../components/ChapterNav';
 # 5. 새 파일: src/presentation/api/users/upload-avatar.ts
 # 6. 새 파일: src/__tests__/upload-avatar.test.ts
 
-# 계획 승인 후 Shift+Tab 2회로 구현 모드로 전환`}
+# 계획을 승인하면 자동으로 편집(구현) 모드로 전환됩니다 (필요 시 Shift+Tab로 모드 전환)`}
   language="text"
   filename="2단계: Plan Mode에서 설계"
 />
 
 <Callout type="info" title="Plan Mode 활용 팁">
-  - **활성화 방법**: `Shift+Tab` 2회, `/plan` 명령, 또는 `--permission-mode plan` 플래그로 진입 ([Docs](https://code.claude.com/docs/en/common-workflows))
+  - **활성화 방법**: `Shift+Tab`로 모드 전환, 또는 `--permission-mode plan` 플래그로 시작 ([Docs](https://code.claude.com/docs/en/common-workflows))
   - **확장 사고(Extended Thinking)**: 기본적으로 **활성화**되어 있으며, `Alt+T`로 토글하거나 설정에서 끌 수 있습니다 ([Anthropic Docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking))
   - **계획 저장**: 복잡한 기능은 계획을 별도 마크다운 파일로 저장하면 세션 간 참조 가능
   - **위험도 매칭**: 고위험 변경(DB 스키마, 인증)은 Plan Mode에서 충분히 검토한 후 구현

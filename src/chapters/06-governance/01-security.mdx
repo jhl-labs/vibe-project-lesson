@@ -212,8 +212,9 @@ check_npm_package() {
   fi
 
   # 2. 주간 다운로드 수 확인 (너무 낮으면 경고)
+  #    npm registry 메타데이터에는 다운로드 수가 없으므로 다운로드 통계 API를 사용
   local downloads
-  downloads=$(npm view "$pkg" --json 2>/dev/null | jq -r '.downloads // 0')
+  downloads=$(curl -s "https://api.npmjs.org/downloads/point/last-week/$pkg" | jq -r '.downloads // 0')
 
   # 3. 마지막 배포일 확인
   local last_publish
@@ -520,7 +521,7 @@ BLOCKED_PATTERNS=(
 
 for pattern in "\${BLOCKED_PATTERNS[@]}"; do
   if echo "$COMMAND" | grep -qP "$pattern"; then
-    echo "{\\"decision\\": \\"block\\", \\"reason\\": \\"보안 정책 위반: '$pattern' 패턴이 감지되었습니다\\"}"
+    echo "{\\"hookSpecificOutput\\": {\\"hookEventName\\": \\"PreToolUse\\", \\"permissionDecision\\": \\"deny\\", \\"permissionDecisionReason\\": \\"보안 정책 위반: '$pattern' 패턴이 감지되었습니다\\"}}"
     exit 0
   fi
 done

@@ -967,7 +967,12 @@ test.describe('대시보드', () => {
   test('모바일에서 1열 레이아웃이어야 한다', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     const grid = page.locator('[data-testid="stat-grid"]');
-    await expect(grid).toHaveCSS('grid-template-columns', '1fr');
+    // 브라우저 computed style은 grid-template-columns를 픽셀 트랙으로 직렬화하므로
+    // '1fr'이 아니라 단일 트랙(공백 없는 단일 px 값)인지로 1열 레이아웃을 검증한다.
+    const columns = await grid.evaluate(
+      (el) => getComputedStyle(el).gridTemplateColumns
+    );
+    expect(columns.trim().split(/\s+/)).toHaveLength(1);
   });
 });`}
   language="typescript"

@@ -206,7 +206,7 @@ Priority: Must | Owner: FE
 ## 4. Non-Functional Constraints
 - 보안: PCI DSS Level 1 준수, 카드번호 토큰화 필수
 - 성능: 결제 API p95 응답시간 2초 이내
-- 가용성: 99.95% (연간 다운타임 4시간 26분 이하)
+- 가용성: 99.95% (연간 다운타임 약 4시간 23분 이하)
 
 ## 5. Dependencies & Assumptions
 - 가정: PG사 API 연동 계약 2주 내 완료
@@ -268,7 +268,7 @@ Priority: Must | Owner: FE
 - OWASP Top 10 전 항목 대응
 
 ### NFR-003: 가용성
-- SLA: 99.9% (월간 43분 이하 다운타임)
+- SLA: 99.95% (월간 약 21.6분 이하 다운타임)
 - RTO: 15분, RPO: 5분
 - 멀티 AZ 배포, DB 리드레플리카 2개
 
@@ -621,10 +621,10 @@ Staging: https://api-staging.example.com/v1
 | NFR-003 | 가용성 99.95% | PT-002 | Performance | 카오스 엔지니어링 (PG 장애) | Ready | Should |
 
 ## Coverage Summary
-- 전체 요구사항: 8개 (Must: 6, Should: 2)
-- 매핑된 테스트: 10개
+- 전체 요구사항: 6개 (Must: 5, Should: 1)
+- 매핑된 테스트: 8개
 - 커버리지: 100% (모든 요구사항에 최소 1개 테스트)
-- 자동화율: 80% (8/10)
+- 자동화율: 75% (6/8, E2E 2건은 수동)
 
 ## Entry/Exit Criteria
 

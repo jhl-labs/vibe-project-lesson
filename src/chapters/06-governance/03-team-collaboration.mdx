@@ -393,7 +393,7 @@ git checkout -b feat/auth-refresh     # PR 3: 리프레시 (feat/auth-middleware
 # PR에 포함된 변경 라인 수를 검사하여 경고
 
 MAX_LINES=500
-CHANGED_LINES=$(git diff --stat HEAD~1 | tail -1 | awk '{print $4+$6}')
+CHANGED_LINES=$(git diff --numstat HEAD~1 | awk '{added+=$1; removed+=$2} END {print added+removed}')
 
 if [ "$CHANGED_LINES" -gt "$MAX_LINES" ]; then
   echo "WARNING: 이 커밋의 변경 라인 수가 \${CHANGED_LINES}줄입니다."
@@ -1083,7 +1083,7 @@ description: 주간 AI 협업 리포트를 생성합니다
   headers={['기업', '규모', '성과', '출처']}
   rows={[
     { feature: 'Ramp (핀테크)', values: ['엔지니어링 팀 전체 + 제품/디자인/데이터 팀', '월 100만줄+ AI 코드 처리, 인시던트 조사 시간 80% 단축, 비기술 직원도 Snowflake 데이터 직접 조회', 'Anthropic 고객 사례'] },
-    { feature: 'Bridgewater (헤지펀드)', values: ['AIA Labs 투자 분석팀', 'Claude Opus 4 + Amazon Bedrock로 투자 분석 어시스턴트 구축. 1년차 애널리스트 수준 정밀도, 인사이트 도출 시간 50-70% 단축', 'Amazon Bedrock 사례'] },
+    { feature: 'Bridgewater (헤지펀드)', values: ['AIA Labs 투자 분석팀', '당시 Claude Opus 4 + Amazon Bedrock로 투자 분석 어시스턴트 구축. 1년차 애널리스트 수준 정밀도, 인사이트 도출 시간 50-70% 단축(사례 발표 시점 기준)', 'Amazon Bedrock 사례'] },
     { feature: 'Anthropic 내부', values: ['엔지니어링 조직 전체 (132명 조사)', '엔지니어당 일일 머지 PR 수 67% 증가, AI 사용 비율 28%→59%, 엔지니어당 코드 생산량 200% 증가 (1년간)', '공식 블로그 (2025.08)'] },
   ]}
 />

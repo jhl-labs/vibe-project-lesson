@@ -679,8 +679,8 @@ server.tool(
 
 // 리소스 정의 — AI가 읽을 수 있는 데이터 소스
 server.resource(
+  "api-spec",
   "docs://api-spec",
-  "내부 API 스펙 문서",
   async (uri) => {
     const spec = await loadApiSpec();
     return {
@@ -1398,18 +1398,22 @@ server.tool(
 
 <CodeBlock
   code={`// 도구 로직 단위 테스트 — Jest 사용
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 import { searchDocuments } from "../tools/search-documents";
 
 describe("searchDocuments 도구", () => {
-  it("키워드로 문서를 검색한다", async () => {
-    const mockDb = {
+  let mockDb;
+
+  beforeEach(() => {
+    mockDb = {
       query: jest.fn().mockResolvedValue([
         { id: "1", title: "API 가이드", content: "REST API 사용법..." },
         { id: "2", title: "인증 가이드", content: "JWT 토큰..." },
       ]),
     };
+  });
 
+  it("키워드로 문서를 검색한다", async () => {
     const result = await searchDocuments(
       { query: "API", category: "guide", limit: 10 },
       { db: mockDb }
@@ -1827,7 +1831,7 @@ server.tool(
   },
   async ({ job, count }) => {
     const response = await fetch(
-      \`\${JENKINS_URL}/job/\${job}/api/json?tree=builds[number,status,timestamp,duration]{0,\${count}}\`,
+      \`\${JENKINS_URL}/job/\${job}/api/json?tree=builds[number,result,timestamp,duration]{0,\${count}}\`,
       { headers: { Authorization: \`Basic \${JENKINS_AUTH}\` } }
     );
 

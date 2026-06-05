@@ -294,10 +294,12 @@ Application Layer는 도메인 객체들을 조합하여 하나의 비즈니스 
 <CodeBlock
   code={`// src/application/use-cases/user/create-user.use-case.ts
 import { User } from '../../../domain/user/entity';
+import { Email } from '../../../domain/user/value-objects';
 import { IUserRepository } from '../../../domain/user/repository';
 import { IEmailService } from '../../ports/email-service.port';
 import { IEventBus } from '../../ports/event-bus.port';
 import { UserCreatedEvent } from '../../events/user-created.event';
+import { DuplicateError } from '../../../shared/errors';
 
 interface CreateUserInput {
   email: string;
@@ -1380,6 +1382,7 @@ describe('CreateUserUseCase', () => {
     mockUserRepository = {
       findById: jest.fn(),
       findByEmail: jest.fn().mockResolvedValue(null),
+      findAll: jest.fn(),
       save: jest.fn(),
       delete: jest.fn(),
     };

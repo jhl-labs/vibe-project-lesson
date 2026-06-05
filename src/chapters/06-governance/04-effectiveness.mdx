@@ -75,7 +75,7 @@ AI 도구 도입의 효과를 체감하는 것과 **증명**하는 것은 다릅
       text: ['0.93', '0.92', '0.87', '0.79', '0.71', '0.58'],
       textposition: 'outside',
       textfont: { color: '#2d2a26', size: 13 },
-      hovertemplate: '%{x}: %{y}{"<extra></extra>"}',
+      hovertemplate: '%{x}: %{y}<extra></extra>',
     },
   ]}
   layout={{
@@ -835,7 +835,7 @@ AI 도구의 효과를 경영진에게 보고할 때는, **기술 지표를 비�
 
 <ComparisonTable
   title="경영진 보고 DO & DON'T"
-  headers={['DO (권장)', 'DON NOT (지양)']}
+  headers={['DO (권장)', "DON'T (지양)"]}
   rows={[
     { feature: '금액으로 변환', values: ['"월 220시간 절약 = 약 638만원 가치"', '"개발자들이 빨라졌다"'] },
     { feature: '비교 기준 명시', values: ['"도입 전 18시간 → 현재 11.7시간 (35% 개선)"', '"리드타임이 11.7시간입니다"'] },
@@ -1091,11 +1091,11 @@ system = [{
     "cache_control": {"type": "ephemeral"}
 }]
 
-# 첫 요청: $0.375 (50K x $5/M x 1.25 + α)
+# 첫 요청: $0.3125 (50K x $5/M x 1.25 + α)
 r1 = client.messages.create(model="claude-opus-4-8", system=system,
     messages=[{"role": "user", "content": "인증 모듈의 버그를 찾아줘"}])
 
-# 후속 요청: $0.025 (50K x $5/M x 0.10 + α) — 93% 절감!
+# 후속 요청: $0.025 (50K x $5/M x 0.10 + α) — 90% 절감!
 r2 = client.messages.create(model="claude-opus-4-8", system=system,
     messages=[{"role": "user", "content": "결제 모듈의 성능을 분석해줘"}])`}
   language="python"

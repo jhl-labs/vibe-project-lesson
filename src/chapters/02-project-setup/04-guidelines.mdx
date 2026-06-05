@@ -419,10 +419,11 @@ Claude Code의 **Hooks**는 세션 라이프사이클의 특정 시점에 셸 �
       },
       {
         "matcher": "Write",
+        "_comment": "PostToolUse는 도구 실행 후 호출되므로 생성 자체를 막지는 못합니다. 사전 차단은 PreToolUse를 사용하세요. 여기서는 사후 경고(exit 2로 Claude에 피드백)를 보냅니다.",
         "hooks": [
           {
             "type": "command",
-            "command": "echo $CLAUDE_FILE_PATHS | grep -qE '\\.(env|pem|key|secret)$' && echo 'BLOCKED: Sensitive file creation' && exit 2 || exit 0"
+            "command": "echo $CLAUDE_FILE_PATHS | grep -qE '\\.(env|pem|key|secret)$' && echo 'WARNING: 민감 파일이 생성되었습니다. 검토 후 제거하세요' >&2 && exit 2 || exit 0"
           }
         ]
       }
@@ -837,7 +838,7 @@ jobs:
           git diff origin/main --name-only | while read file; do
             if [ -f "$file" ]; then
               # AWS 키, API 토큰 등 패턴 검사
-              if grep -qE '(AKIA|sk-|ghp_|password\s*=\s*["\x27][^"\x27]+)' "$file"; then
+              if grep -qE '(AKIA|sk-|ghp_|password\s*=\s*"[^"]+)' "$file"; then
                 echo "::error file=$file::하드코딩된 시크릿 패턴 감지"
                 exit 1
               fi

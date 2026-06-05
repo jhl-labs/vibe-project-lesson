@@ -377,15 +377,17 @@ pip install scancode-toolkit
 scancode --license --copyright --output-json scan-result.json ./src/
 
 # 3. 결과 확인 - GPL 등 copyleft 라이선스 탐지 여부 확인
-python -c "
+python -c '
 import json
-with open('scan-result.json') as f:
+with open("scan-result.json") as f:
     data = json.load(f)
-    for file_info in data.get('files', []):
-        for license_info in file_info.get('licenses', []):
-            if 'gpl' in license_info.get('key', '').lower():
-                print(f'WARNING: {file_info[\"path\"]} - {license_info[\"key\"]}')
-"
+for file_info in data.get("files", []):
+    path = file_info.get("path")
+    for license_info in file_info.get("licenses", []):
+        key = license_info.get("key", "")
+        if "gpl" in key.lower():
+            print("WARNING:", path, "-", key)
+'
 
 # 4. CI/CD 파이프라인에 통합 (GitHub Actions 예시)
 # .github/workflows/license-check.yml에 추가`}
