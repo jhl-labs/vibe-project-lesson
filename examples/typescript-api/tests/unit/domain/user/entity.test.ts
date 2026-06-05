@@ -1,107 +1,71 @@
 import { User } from '../../../../src/domain/user/entity';
 
 describe('User Entity', () => {
-  const validUserProps = {
-    id: 'user-123',
-    email: 'test@example.com',
-    name: 'Test User',
-  };
-
   describe('create', () => {
-    it('should create a user with active status', () => {
-      const user = User.create(validUserProps);
+    it('should create a user with pending status and normalized email', () => {
+      const user = User.create({
+        email: 'Test@Example.com',
+        name: 'Test User',
+      });
 
-      expect(user.id).toBe(validUserProps.id);
-      expect(user.email).toBe(validUserProps.email);
-      expect(user.name).toBe(validUserProps.name);
-      expect(user.status).toBe('active');
-      expect(user.isActive).toBe(true);
+      expect(user.id).toBeDefined();
+      expect(user.email.value).toBe('test@example.com');
+      expect(user.name).toBe('Test User');
+      expect(user.status).toBe('pending');
     });
 
-    it('should set timestamps on creation', () => {
-      const before = new Date();
-      const user = User.create(validUserProps);
-      const after = new Date();
-
-      expect(user.createdAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
-      expect(user.createdAt.getTime()).toBeLessThanOrEqual(after.getTime());
-    });
-  });
-
-  describe('update', () => {
-    it('should update name', () => {
-      const user = User.create(validUserProps);
-      const updated = user.update({ name: 'New Name' });
-
-      expect(updated.name).toBe('New Name');
-      expect(updated.email).toBe(validUserProps.email);
-    });
-
-    it('should update email', () => {
-      const user = User.create(validUserProps);
-      const updated = user.update({ email: 'new@example.com' });
-
-      expect(updated.email).toBe('new@example.com');
-    });
-
-    it('should update updatedAt timestamp', () => {
-      const user = User.create(validUserProps);
-      const originalUpdatedAt = user.updatedAt;
-
-      // 약간의 지연 후 업데이트
-      const updated = user.update({ name: 'New Name' });
-
-      expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(
-        originalUpdatedAt.getTime()
+    it('should throw error for invalid email', () => {
+      expect(() => User.create({ email: 'bad-email', name: 'Test User' })).toThrow(
+        'Invalid email'
       );
     });
   });
 
-  describe('deactivate', () => {
-    it('should change status to inactive', () => {
-      const user = User.create(validUserProps);
-      const deactivated = user.deactivate();
+  describe('status transitions', () => {
+    it('should activate from pending', () => {
+      const user = User.create({ email: 'test@example.com', name: 'Test User' });
 
-      expect(deactivated.status).toBe('inactive');
-      expect(deactivated.isActive).toBe(false);
+      user.activate();
+
+      expect(user.status).toBe('active');
     });
 
-    it('should throw error if already inactive', () => {
-      const user = User.create(validUserProps);
-      const deactivated = user.deactivate();
+    it('should not activate when not pending', () => {
+      const user = User.create({ email: 'test@example.com', name: 'Test User' });
+      user.activate();
 
-      expect(() => deactivated.deactivate()).toThrow('User is already inactive');
-    });
-  });
-
-  describe('activate', () => {
-    it('should change status to active', () => {
-      const user = User.create(validUserProps);
-      const deactivated = user.deactivate();
-      const activated = deactivated.activate();
-
-      expect(activated.status).toBe('active');
-      expect(activated.isActive).toBe(true);
+      expect(() => user.activate()).toThrow('Only pending users can be activated');
     });
 
-    it('should throw error if already active', () => {
-      const user = User.create(validUserProps);
+    it('should deactivate from active', () => {
+      const user = User.create({ email: 'test@example.com', name: 'Test User' });
+      user.activate();
 
-      expect(() => user.activate()).toThrow('User is already active');
+      user.deactivate();
+
+      expect(user.status).toBe('inactive');
+    });
+
+    it('should not deactivate when not active', () => {
+      const user = User.create({ email: 'test@example.com', name: 'Test User' });
+
+      expect(() => user.deactivate()).toThrow('Only active users can be deactivated');
     });
   });
 
-  describe('toJSON', () => {
-    it('should return all properties', () => {
-      const user = User.create(validUserProps);
-      const json = user.toJSON();
+  describe('reconstitute', () => {
+    it('should restore persisted user state', () => {
+      const user = User.reconstitute({
+        id: 'user-1',
+        email: 'restored@example.com',
+        name: 'Restored',
+        status: 'active',
+      });
 
-      expect(json).toHaveProperty('id', validUserProps.id);
-      expect(json).toHaveProperty('email', validUserProps.email);
-      expect(json).toHaveProperty('name', validUserProps.name);
-      expect(json).toHaveProperty('status', 'active');
-      expect(json).toHaveProperty('createdAt');
-      expect(json).toHaveProperty('updatedAt');
+      expect(user.id).toBe('user-1');
+      expect(user.email.value).toBe('restored@example.com');
+      expect(user.name).toBe('Restored');
+      expect(user.status).toBe('active');
     });
   });
 });

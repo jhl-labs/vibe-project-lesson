@@ -1,10 +1,10 @@
 """pytest fixtures."""
 
-import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.core.database import get_session
 from app.infrastructure.database.models import Base
 from app.main import app
 
@@ -22,6 +22,17 @@ async def setup_db():
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def override_db_dependency():
+    async def _get_test_session():
+        async with TestSession() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = _get_test_session
+    yield
+    app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture

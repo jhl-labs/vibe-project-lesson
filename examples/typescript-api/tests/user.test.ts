@@ -31,7 +31,15 @@ describe('CreateUserUseCase', () => {
 
     await expect(
       useCase.execute({ email: 'test@example.com', name: 'Test' })
-    ).rejects.toThrow('Email already exists');
+    ).rejects.toThrow("User with email 'test@example.com' already exists");
+  });
+
+  it('should reject duplicate emails regardless of case', async () => {
+    mockRepo.findByEmail.mockResolvedValue({} as any);
+
+    await expect(
+      useCase.execute({ email: 'TEST@EXAMPLE.COM', name: 'Test' })
+    ).rejects.toThrow("User with email 'test@example.com' already exists");
   });
 
   it('should throw error for invalid email format', async () => {

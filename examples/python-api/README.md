@@ -24,7 +24,6 @@ python-api/
 │   │   └── user/
 │   │       ├── entity.py
 │   │       ├── repository.py
-│   │       └── errors.py
 │   ├── application/      # 유스케이스
 │   │   └── user/
 │   │       ├── dtos.py
@@ -35,7 +34,6 @@ python-api/
 │   │       └── user_repository.py
 │   ├── presentation/     # API 레이어
 │   │   ├── api/
-│   │   │   ├── deps.py
 │   │   │   └── users.py
 │   │   └── schemas/
 │   │       └── user.py
@@ -44,8 +42,9 @@ python-api/
 │   │   └── database.py
 │   └── main.py
 ├── tests/
-│   └── unit/
-│       └── domain/
+│   ├── test_user_entity.py
+│   ├── test_create_user.py
+│   └── test_user_api.py
 ├── CLAUDE.md             # 프로젝트별 AI 지시
 ├── pyproject.toml
 ├── requirements.txt
@@ -94,11 +93,8 @@ FastAPI는 자동으로 API 문서를 생성합니다:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | /health | 헬스 체크 |
-| GET | /api/v1/users | 사용자 목록 |
-| POST | /api/v1/users | 사용자 생성 |
+| POST | /api/v1/users/ | 사용자 생성 |
 | GET | /api/v1/users/{id} | 사용자 조회 |
-| PUT | /api/v1/users/{id} | 사용자 수정 |
-| DELETE | /api/v1/users/{id} | 사용자 삭제 |
 
 ## AI Agent 활용
 

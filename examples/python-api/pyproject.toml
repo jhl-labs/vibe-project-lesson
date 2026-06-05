@@ -50,6 +50,7 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by formatter)
+    "B008",  # FastAPI Depends 패턴에서 false positive
 ]
 
 [tool.ruff.lint.isort]

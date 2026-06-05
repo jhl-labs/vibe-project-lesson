@@ -1,8 +1,8 @@
 """User Entity - Domain model."""
 
-from dataclasses import dataclass
 import re
 import uuid
+from dataclasses import dataclass
 
 
 @dataclass

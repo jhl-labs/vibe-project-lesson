@@ -3,13 +3,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.user.dtos import CreateUserDto, UserResponseDto
 from app.application.user.use_cases import CreateUserUseCase, GetUserUseCase
-from app.application.user.dtos import CreateUserDto
-from app.infrastructure.database.user_repository import SQLAlchemyUserRepository
 from app.core.database import get_session
+from app.infrastructure.database.user_repository import SQLAlchemyUserRepository
 from app.presentation.schemas.user import CreateUserRequest, UserResponse
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 
 # --- 의존성 주입 팩토리 ---
@@ -31,22 +31,23 @@ def get_get_user_use_case(
 async def create_user(
     request: CreateUserRequest,
     use_case: CreateUserUseCase = Depends(get_create_user_use_case),
-):
+) -> UserResponseDto:
     try:
         dto = CreateUserDto(email=request.email, name=request.name)
         result = await use_case.execute(dto)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        status_code = 409 if "already exists" in str(e).lower() else 400
+        raise HTTPException(status_code=status_code, detail=str(e)) from e
 
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: str,
     use_case: GetUserUseCase = Depends(get_get_user_use_case),
-):
+) -> UserResponseDto:
     try:
         result = await use_case.execute(user_id)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e

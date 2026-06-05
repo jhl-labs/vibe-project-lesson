@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import {
+  InvalidUserDataError,
   UserNotFoundError,
   UserAlreadyExistsError,
 } from '../../domain/user/errors';
@@ -15,7 +16,9 @@ export function errorHandler(
   next: NextFunction
 ): void {
   // Production: log message only, Development: log full error
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'test') {
+    // Keep test output clean while still returning structured errors.
+  } else if (process.env.NODE_ENV === 'production') {
     console.error('Error:', error.message);
   } else {
     console.error('Error:', error);
@@ -51,6 +54,16 @@ export function errorHandler(
     res.status(409).json({
       error: {
         code: 'USER_ALREADY_EXISTS',
+        message: error.message,
+      },
+    });
+    return;
+  }
+
+  if (error instanceof InvalidUserDataError) {
+    res.status(400).json({
+      error: {
+        code: 'INVALID_USER_DATA',
         message: error.message,
       },
     });

@@ -43,7 +43,9 @@ typescript-api/
 │   └── index.ts
 ├── tests/
 │   ├── user.test.ts
-│   └── user.integration.test.ts
+│   ├── user-api.test.ts
+│   └── unit/
+│       └── domain/user/entity.test.ts
 ├── CLAUDE.md             # 프로젝트별 AI 지시
 ├── package.json
 ├── jest.config.js
@@ -80,7 +82,7 @@ npm run dev
 |--------|----------|-------------|
 | GET | /health | 헬스 체크 |
 | POST | /api/users | 사용자 생성 |
-| GET | /api/users/:id | 사용자 조회 |
+| GET | /api/users/{id} | 사용자 조회 |
 
 ## AI Agent 활용
 

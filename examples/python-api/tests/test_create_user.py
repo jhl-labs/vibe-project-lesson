@@ -1,10 +1,11 @@
 """CreateUserUseCase Unit Tests."""
 
 from unittest.mock import AsyncMock
+
 import pytest
 
-from app.application.user.use_cases import CreateUserUseCase
 from app.application.user.dtos import CreateUserDto
+from app.application.user.use_cases import CreateUserUseCase
 from app.domain.user.entity import User
 
 

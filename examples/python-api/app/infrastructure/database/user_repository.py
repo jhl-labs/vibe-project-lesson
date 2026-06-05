@@ -1,8 +1,7 @@
 """SQLAlchemy User Repository Implementation."""
 
-from typing import Optional
-
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.user.entity import User
@@ -13,16 +12,17 @@ class SQLAlchemyUserRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def find_by_id(self, user_id: str) -> Optional[User]:
+    async def find_by_id(self, user_id: str) -> User | None:
         result = await self.session.execute(
             select(UserModel).where(UserModel.id == user_id)
         )
         row = result.scalar_one_or_none()
         return self._to_domain(row) if row else None
 
-    async def find_by_email(self, email: str) -> Optional[User]:
+    async def find_by_email(self, email: str) -> User | None:
+        normalized_email = email.strip().lower()
         result = await self.session.execute(
-            select(UserModel).where(UserModel.email == email)
+            select(UserModel).where(func.lower(UserModel.email) == normalized_email)
         )
         row = result.scalar_one_or_none()
         return self._to_domain(row) if row else None
@@ -35,7 +35,11 @@ class SQLAlchemyUserRepository:
             status=user.status,
         )
         self.session.add(model)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError as error:
+            await self.session.rollback()
+            raise ValueError("Email already exists") from error
 
     def _to_domain(self, model: UserModel) -> User:
         return User(

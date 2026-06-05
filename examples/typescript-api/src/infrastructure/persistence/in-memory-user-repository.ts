@@ -9,8 +9,9 @@ export class InMemoryUserRepository implements IUserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
+    const normalizedEmail = email.trim().toLowerCase();
     for (const user of this.users.values()) {
-      if (user.email.value === email) return user;
+      if (user.email.value === normalizedEmail) return user;
     }
     return null;
   }
