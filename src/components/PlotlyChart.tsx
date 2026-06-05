@@ -4,9 +4,18 @@ import Plotly from 'plotly.js-basic-dist';
 
 const Plot = createPlotlyComponent(Plotly);
 
+type AxisLayout = Record<string, unknown>;
+type LegendLayout = Record<string, unknown>;
+type PlotlyLayout = Record<string, unknown> & {
+  xaxis?: AxisLayout;
+  yaxis?: AxisLayout;
+  legend?: LegendLayout;
+  height?: number;
+};
+
 interface PlotlyChartProps {
-  data: Plotly.Data[];
-  layout?: Partial<Plotly.Layout>;
+  data: Record<string, unknown>[];
+  layout?: PlotlyLayout;
   title?: string;
   height?: number;
 }
@@ -17,37 +26,43 @@ export const PlotlyChart: React.FC<PlotlyChartProps> = ({
   title,
   height = 400,
 }) => {
-  const mergedLayout = useMemo<Partial<Plotly.Layout>>(() => ({
-    paper_bgcolor: '#f0ece5',
-    plot_bgcolor: '#faf9f7',
-    font: {
-      family: "'Pretendard Variable', sans-serif",
-      color: '#5c564e',
-      size: 12,
-    },
-    margin: { t: 40, r: 24, b: 48, l: 48 },
-    height,
-    xaxis: {
+  const mergedLayout = useMemo<PlotlyLayout>(() => {
+    const xaxis = {
       gridcolor: '#e0d9cf',
       linecolor: '#d4cdc4',
       zerolinecolor: '#d4cdc4',
-      ...userLayout?.xaxis,
-    } as Partial<Plotly.LayoutAxis>,
-    yaxis: {
+      ...(userLayout?.xaxis ?? {}),
+    };
+
+    const yaxis = {
       gridcolor: '#e0d9cf',
       linecolor: '#d4cdc4',
       zerolinecolor: '#d4cdc4',
-      ...userLayout?.yaxis,
-    } as Partial<Plotly.LayoutAxis>,
-    legend: {
+      ...(userLayout?.yaxis ?? {}),
+    };
+
+    const legend = {
       font: { color: '#5c564e' },
       bgcolor: 'rgba(0,0,0,0)',
-      ...userLayout?.legend,
-    },
-    ...userLayout,
-    // xaxis/yaxis는 위에서 이미 머지했으므로 다시 덮어쓰기
-    ...(userLayout?.xaxis ? {} : {}),
-  }), [userLayout, height]);
+      ...(userLayout?.legend ?? {}),
+    };
+
+    return {
+      paper_bgcolor: '#f0ece5',
+      plot_bgcolor: '#faf9f7',
+      font: {
+        family: "'Pretendard Variable', sans-serif",
+        color: '#5c564e',
+        size: 12,
+      },
+      margin: { t: 40, r: 24, b: 48, l: 48 },
+      height,
+      ...(userLayout ?? {}),
+      xaxis,
+      yaxis,
+      legend,
+    };
+  }, [userLayout, height]);
 
   return (
     <div style={{

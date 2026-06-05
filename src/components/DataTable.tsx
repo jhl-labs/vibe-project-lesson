@@ -147,19 +147,34 @@ export function DataTable<T extends Record<string, unknown>>({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} style={{
-                    padding: '10px 16px',
-                    color: '#5c564e',
-                    borderBottom: '1px solid #f0ece5',
-                  }}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+            {table.getRowModel().rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  style={{
+                    padding: '24px 16px',
+                    color: '#8c857c',
+                    textAlign: 'center',
+                  }}
+                >
+                  표시할 데이터가 없습니다.
+                </td>
               </tr>
-            ))}
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} style={{
+                      padding: '10px 16px',
+                      color: '#5c564e',
+                      borderBottom: '1px solid #f0ece5',
+                    }}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

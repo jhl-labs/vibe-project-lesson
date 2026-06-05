@@ -26,9 +26,14 @@ export const TemplateFileViewer: React.FC<TemplateFileViewerProps> = ({
   const [activeAnnotation, setActiveAnnotation] = useState<number | null>(null);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (!navigator.clipboard) return;
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Ignore clipboard failures (e.g., unsupported/insecure context)
+    }
   };
 
   const highlightedLines = activeAnnotation !== null

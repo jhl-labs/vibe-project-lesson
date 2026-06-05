@@ -9,3 +9,5 @@ declare module '*.mdx' {
   const MDXComponent: (props: Record<string, unknown>) => JSX.Element;
   export default MDXComponent;
 }
+
+declare module 'plotly.js-basic-dist';

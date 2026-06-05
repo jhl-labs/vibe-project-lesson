@@ -101,12 +101,12 @@ vibe-project-lesson/
 ├── src/
 │   ├── chapters/              # 교육 콘텐츠 (28개 MDX)
 │   │   ├── 00-intro/
-│   │   ├── 01-foundations/          # Part 1: 기초
-│   │   ├── 02-template-structure/   # Part 2: 템플릿 구조
-│   │   ├── 03-ai-workflows/         # Part 3: AI 워크플로우
-│   │   ├── 04-mcp-integration/      # Part 4: MCP 통합
-│   │   ├── 05-examples/             # Part 5: 실전 예제
-│   │   └── 06-best-practices/       # Part 6: 모범 사례
+│   │   ├── 01-getting-started/      # Part 1: 기초
+│   │   ├── 02-project-setup/        # Part 2: 템플릿 구조
+│   │   ├── 03-core-features/        # Part 3: AI 워크플로우
+│   │   ├── 04-extensions/           # Part 4: MCP 통합
+│   │   ├── 05-practice/             # Part 5: 실전 예제
+│   │   └── 06-governance/           # Part 6: 모범 사례
 │   │
 │   ├── components/            # React 컴포넌트 (11개)
 │   │   ├── Callout.tsx        #   알림 박스 (info, warning, tip)

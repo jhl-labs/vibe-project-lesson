@@ -17,6 +17,22 @@ export const Quiz: React.FC<QuizProps> = ({
   questions,
   title = '퀴즈',
 }) => {
+  if (questions.length === 0) {
+    return (
+      <div style={{
+        background: '#faf9f7',
+        border: '1px solid #e0d9cf',
+        borderRadius: '8px',
+        margin: '16px 0',
+        padding: '20px',
+        color: '#8c857c',
+        fontSize: '14px',
+      }}>
+        표시할 문제가 없습니다.
+      </div>
+    );
+  }
+
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
