@@ -601,7 +601,7 @@ SECRET_PATTERNS=(
   'sk-proj-[a-zA-Z0-9_-]{40,}'           # OpenAI API Key
   'sk-ant-[a-zA-Z0-9-]{90,}'            # Anthropic API Key
   'ghp_[a-zA-Z0-9]{36}'                 # GitHub Personal Token
-  'password\s*=\s*["\x27][^"\x27]+'     # 하드코딩된 비밀번호
+  'password\s*=\s*"[^"]+'     # 하드코딩된 비밀번호(큰따옴표 값)
   'BEGIN (RSA|DSA|EC) PRIVATE KEY'       # 개인 키
 )
 
@@ -694,10 +694,12 @@ exit 0`}
   code={`#!/bin/bash
 # .claude/hooks/enforce-test-coverage.sh
 # npm test 명령에 자동으로 --coverage 플래그 추가
+# 참고: "npm test"는 스크립트에 인자를 넘기기 위해 "--"가 필요하지만,
+#       "npx jest"는 "npx jest --coverage"처럼 "--" 없이 플래그를 직접 받습니다.
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
 
-if echo "$COMMAND" | grep -qE '^npm test$|^npx jest$'; then
+if echo "$COMMAND" | grep -qE '^npm test$'; then
   # 입력 수정하여 coverage 포함
   cat <<EOJSON
 {

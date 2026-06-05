@@ -365,7 +365,7 @@ fi
 
 # 시크릿 패턴 정의
 PATTERNS=(
-  '[A-Za-z0-9_]*(KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL)[A-Za-z0-9_]*\s*=\s*["\x27][^"\x27]{8,}'
+  '[A-Za-z0-9_]*(KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL)[A-Za-z0-9_]*\s*=\s*"[^"]{8,}'
   'sk-[a-zA-Z0-9]{20,}'
   'ghp_[a-zA-Z0-9]{36}'
   'AKIA[0-9A-Z]{16}'
@@ -548,7 +548,7 @@ fi
 ISSUES=()
 
 # 1. 하드코딩된 시크릿 탐지
-if grep -qP '(api_key|secret|password|token)\s*=\s*["\x27][^"\x27]{8,}' "$FILE_PATH" 2>/dev/null; then
+if grep -qiP '(api_key|secret|password|token)\s*=\s*"[^"]{8,}' "$FILE_PATH" 2>/dev/null; then
   ISSUES+=("하드코딩된 시크릿 감지")
 fi
 
